@@ -1,0 +1,72 @@
+import asyncio
+import uuid
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.database import engine, Base
+from app.core.audit_logger import setup_audit_listeners
+from app.routers import (
+    auth_router, health_router, incidents_router, volunteers_router,
+    assignments_router, resources_router, risk_router,
+    notifications_router, mesh_router, status_router,
+)
+from app.realtime.ws_manager import ws_manager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    setup_audit_listeners()
+
+    from app.background.auto_reassign import auto_reassign_loop
+    task = asyncio.create_task(auto_reassign_loop())
+
+    yield
+
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    await engine.dispose()
+
+
+app = FastAPI(
+    title="CrisisCore",
+    description="AI-powered early-warning platform for landslide/flood risk",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(health_router)
+app.include_router(auth_router)
+app.include_router(incidents_router)
+app.include_router(volunteers_router)
+app.include_router(assignments_router)
+app.include_router(resources_router)
+app.include_router(risk_router)
+app.include_router(notifications_router)
+app.include_router(mesh_router)
+app.include_router(status_router)
+
+
+@app.websocket("/ws/status")
+async def websocket_status(websocket: WebSocket):
+    client_id = str(uuid.uuid4())
+    await ws_manager.connect(websocket, client_id)
+    try:
+        await ws_manager.subscribe_and_forward(websocket, client_id)
+    except (WebSocketDisconnect, Exception):
+        ws_manager.disconnect(websocket, client_id)

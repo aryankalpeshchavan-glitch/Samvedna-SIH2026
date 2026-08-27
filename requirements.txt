@@ -1,0 +1,15 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+sqlalchemy[asyncio]>=2.0.35
+aiosqlite>=0.20.0
+alembic>=1.14.0
+redis>=5.0.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+python-multipart>=0.0.12
+httpx>=0.28.0
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+fakeredis>=2.26.0
