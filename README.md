@@ -74,12 +74,13 @@ When left unset, all optional variables default to demo-safe stub behavior.
 ## Running Tests
 
 ```bash
-# Inside the API container:
-pytest tests/ -v
+# Local environment (runs with SQLite fallback by default):
+pytest -q
 
-# Or from host (with test DB):
-DATABASE_URL=postgresql+asyncpg://crisiscore:crisiscore@localhost:5432/crisiscore_test pytest tests/ -v
+# Or against a PostgreSQL test database:
+TEST_DATABASE_URL=postgresql+asyncpg://crisiscore:crisiscore@localhost:5432/crisiscore_test pytest -q
 ```
+
 
 ## Evidence Pack
 

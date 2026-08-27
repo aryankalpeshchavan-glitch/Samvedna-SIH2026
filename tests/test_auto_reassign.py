@@ -4,12 +4,24 @@ import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch, AsyncMock
 
+import pytest_asyncio
+
 from app.background.auto_reassign import check_and_reassign_expired
 from app.core.database import async_session, Base, engine
 from app.models.user import User
 from app.models.incident import Incident
 from app.models.volunteer import Volunteer
 from app.models.assignment import Assignment
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def setup_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
 
 
 @pytest.mark.asyncio
@@ -38,10 +50,10 @@ async def test_auto_reassign_creates_exactly_one_new_assignment():
         await db.flush()
 
         vol1 = Volunteer(
-            user_id=user2.id, skills=["rescue"], lat=26.15, lng=91.74,
+            user_id=user2.id, skills="rescue", lat=26.15, lng=91.74,
         )
         vol2 = Volunteer(
-            user_id=user3.id, skills=["rescue", "swimming"], lat=26.14, lng=91.73,
+            user_id=user3.id, skills="rescue,swimming", lat=26.14, lng=91.73,
         )
         db.add_all([vol1, vol2])
         await db.flush()
