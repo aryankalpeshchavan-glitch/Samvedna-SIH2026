@@ -1,0 +1,98 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+@theme {
+  --color-paper: #F4F1E8;
+  --color-mist: #E8E6DC;
+  --color-charcoal: #202622;
+  --color-forest: #23483A;
+  --color-moss: #71856B;
+  --color-clay: #A87C58;
+  --color-sand: #C7B89B;
+  --color-muted-blue: #536A72;
+  --color-saffron: #D88A32;
+  --color-vermilion: #C6533C;
+  --color-deep-red: #8E2F2B;
+  --color-bone: #FAF9F3;
+
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: #F4F1E8;
+  color: #202622;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-serif-editorial {
+  font-family: 'Instrument Serif', Georgia, serif;
+}
+
+/* Accessibility Focus Rings */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #F4F1E8, 0 0 0 4px #23483A;
+}
+
+/* MapLibre Light Cartographic Style Overrides */
+.maplibregl-ctrl-attrib {
+  display: none !important;
+}
+
+.maplibregl-popup-content {
+  background: #FAF9F3 !important;
+  color: #202622 !important;
+  border: 1px solid #C7B89B !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 10px 25px rgba(32, 38, 34, 0.12) !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: #FAF9F3 !important;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: #FAF9F3 !important;
+}
+
+/* Topographic Contour Pattern Utility */
+.bg-contour-pattern {
+  background-image: radial-gradient(rgba(113, 133, 107, 0.12) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.tactile-press {
+  transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.12s ease;
+}
+
+.tactile-press:active {
+  transform: scale(0.97);
+}
+
+.touch-target-lg {
+  min-height: 52px;
+  min-width: 52px;
+}

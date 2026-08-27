@@ -14,3 +14,8 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+
+# Frontend
+node_modules/
+dist/
+*.log

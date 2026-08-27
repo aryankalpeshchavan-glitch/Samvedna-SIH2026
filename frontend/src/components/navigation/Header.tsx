@@ -1,0 +1,107 @@
+import React, { useState } from 'react';
+import { NetworkIndicator } from '../ui/NetworkIndicator';
+import { DataSourceBadge } from '../ui/DataSourceBadge';
+import { NetworkStatusType } from '../../types/emergency';
+import { TabType } from './BottomNav';
+import { Shield, Home, AlertTriangle, Activity, Users, Bell, Globe } from 'lucide-react';
+
+interface HeaderProps {
+  networkStatus: NetworkStatusType;
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
+}
+
+const LANGUAGES = ['English', 'Hindi (हिंदी)', 'Assamese (অসমীয়া)', 'Bengali (বাংলা)', 'Manipuri (ꯃꯏꯇꯩꯂꯣꯟ)', 'Mizo', 'Khasi'];
+
+export const Header: React.FC<HeaderProps> = ({ networkStatus, activeTab = 'home', onTabChange }) => {
+  const [currentLang, setCurrentLang] = useState('English');
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
+
+  const desktopTabs = [
+    { id: 'home', label: 'MAP', icon: Home },
+    { id: 'incident', label: 'REPORT', icon: AlertTriangle },
+    { id: 'status', label: 'SOS STATUS', icon: Activity },
+    { id: 'family', label: 'FAMILY', icon: Users },
+    { id: 'alerts', label: 'ALERTS', icon: Bell },
+  ] as const;
+
+  return (
+    <header className="sticky top-0 z-40 bg-[#FAF9F3]/95 backdrop-blur-md border-b border-[#C7B89B]/50 px-4 py-3 font-sans">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        
+        {/* Branding Title */}
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-[#23483A] text-[#FAF9F3] flex items-center justify-center shadow-sm shrink-0">
+            <Shield className="w-5 h-5 fill-current" />
+          </div>
+          <div>
+            <h1 className="text-lg font-heading font-black tracking-wider text-[#202622] uppercase leading-none">
+              CRISISCORE
+            </h1>
+            <span className="text-[10px] font-mono text-[#536A72] tracking-tight block mt-0.5">
+              SIH26001 &bull; LANDSLIDE EARLY WARNING
+            </span>
+          </div>
+        </div>
+
+        {/* Minimal Top Navigation Links (Desktop) */}
+        {onTabChange && (
+          <nav className="hidden lg:flex items-center space-x-1 bg-[#F4F1E8] p-1 rounded-2xl border border-[#C7B89B]/50">
+            {desktopTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id as TabType)}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-heading font-bold transition-all ${
+                    isActive
+                      ? 'bg-[#23483A] text-[#FAF9F3] shadow-sm'
+                      : 'text-[#536A72] hover:text-[#202622] hover:bg-[#E8E6DC]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        )}
+
+        {/* Right Tools: Language Selector, Data Badge, Network Indicator */}
+        <div className="flex items-center space-x-2 shrink-0">
+          {/* Language Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowLangDropdown(!showLangDropdown)}
+              className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-[#F4F1E8] border border-[#C7B89B]/50 text-xs font-mono font-bold text-[#202622] hover:bg-[#E8E6DC]"
+            >
+              <Globe className="w-3.5 h-3.5 text-[#23483A]" />
+              <span className="hidden sm:inline">{currentLang}</span>
+            </button>
+
+            {showLangDropdown && (
+              <div className="absolute right-0 mt-2 w-44 bg-[#FAF9F3] border border-[#C7B89B] rounded-xl shadow-xl py-1 z-50 text-xs font-mono">
+                {LANGUAGES.map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => {
+                      setCurrentLang(lang.split(' ')[0]);
+                      setShowLangDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 hover:bg-[#E8E6DC] ${
+                      currentLang === lang.split(' ')[0] ? 'font-bold text-[#23483A]' : 'text-[#202622]'
+                    }`}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DataSourceBadge type="synthetic" size="sm" />
+          <NetworkIndicator status={networkStatus} />
+        </div>
+      </div>
+    </header>
+  );
+};
