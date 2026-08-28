@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.auth import require_role
+from app.core.audit_logger import record_audit_log
 from app.models.assignment import Assignment
 from app.models.incident import Incident
 from app.models.volunteer import Volunteer
@@ -43,6 +44,22 @@ async def create_assignment(
 
     await db.flush()
     await db.refresh(assignment)
+
+    await record_audit_log(
+        db=db,
+        action="assign",
+        entity_type="Assignment",
+        entity_id=str(assignment.id),
+        actor_id=current_user.id,
+        before=None,
+        after={
+            "incident_id": str(data.incident_id),
+            "volunteer_id": data.volunteer_id,
+            "status": "pending",
+            "sla_minutes": data.sla_minutes,
+        },
+    )
+
     return assignment
 
 
@@ -58,6 +75,7 @@ async def update_assignment_status(
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
 
+    old_status = assignment.status
     assignment.status = data.status.value
     if data.status.value == "acked":
         assignment.acked_at = datetime.utcnow()
@@ -73,4 +91,15 @@ async def update_assignment_status(
 
     await db.flush()
     await db.refresh(assignment)
+
+    await record_audit_log(
+        db=db,
+        action=f"status_{data.status.value}",
+        entity_type="Assignment",
+        entity_id=str(assignment.id),
+        actor_id=current_user.id,
+        before={"status": old_status},
+        after={"status": data.status.value},
+    )
+
     return assignment

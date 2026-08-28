@@ -23,13 +23,16 @@ async def lifespan(app: FastAPI):
     setup_audit_listeners()
 
     from app.background.auto_reassign import auto_reassign_loop
+    from app.background.matching_worker import process_matching_queue
     task = asyncio.create_task(auto_reassign_loop())
+    matching_task = asyncio.create_task(process_matching_queue())
 
     yield
 
     task.cancel()
+    matching_task.cancel()
     try:
-        await task
+        await asyncio.gather(task, matching_task, return_exceptions=True)
     except asyncio.CancelledError:
         pass
     await engine.dispose()

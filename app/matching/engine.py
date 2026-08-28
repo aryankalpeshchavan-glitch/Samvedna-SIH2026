@@ -78,12 +78,14 @@ def _incident_to_resource_type(incident_type: str) -> Optional[str]:
 async def find_best_volunteer(
     db: AsyncSession,
     incident: Incident,
+    exclude_volunteer_ids: Optional[list[int]] = None,
 ) -> Optional[tuple[Volunteer, float]]:
     from sqlalchemy import select
 
-    result = await db.execute(
-        select(Volunteer).where(Volunteer.availability_status == "available")
-    )
+    query = select(Volunteer).where(Volunteer.availability_status == "available")
+    if exclude_volunteer_ids:
+        query = query.where(~Volunteer.id.in_(exclude_volunteer_ids))
+    result = await db.execute(query)
     volunteers = result.scalars().all()
     if not volunteers:
         return None

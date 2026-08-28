@@ -162,11 +162,23 @@ async def verify_incident(
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
 
+    old_status = incident.status
     incident.status = "verified"
     incident.data_label = data.data_label.value
     incident.updated_at = datetime.utcnow()
     await db.flush()
     await db.refresh(incident)
+
+    from app.core.audit_logger import record_audit_log
+    await record_audit_log(
+        db=db,
+        action="verify",
+        entity_type="Incident",
+        entity_id=str(incident.id),
+        actor_id=current_user.id,
+        before={"status": old_status},
+        after={"status": "verified", "data_label": data.data_label.value},
+    )
 
     # Enqueue matching job for verified incident
     import asyncio

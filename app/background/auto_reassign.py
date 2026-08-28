@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from app.core.database import async_session
+from app.core.audit_logger import record_audit_log
 from app.models.assignment import Assignment
 from app.models.incident import Incident
 from app.notifications.dispatcher import on_assignment_reassigned
@@ -31,7 +32,18 @@ async def check_and_reassign_expired():
         expired = result.scalars().all()
 
         for assignment in expired:
+            old_vol_id = assignment.volunteer_id
             assignment.status = "reassigned"
+
+            await record_audit_log(
+                db=db,
+                action="reassign",
+                entity_type="Assignment",
+                entity_id=str(assignment.id),
+                actor_id=None,
+                before={"status": "pending", "volunteer_id": old_vol_id},
+                after={"status": "reassigned", "volunteer_id": old_vol_id},
+            )
 
             incident_result = await db.execute(
                 select(Incident).where(Incident.id == assignment.incident_id)
@@ -40,7 +52,7 @@ async def check_and_reassign_expired():
             if not incident:
                 continue
 
-            best = await find_best_volunteer(db, incident)
+            best = await find_best_volunteer(db, incident, exclude_volunteer_ids=[old_vol_id])
             if best:
                 new_volunteer, score = best
                 from datetime import timedelta
@@ -50,8 +62,21 @@ async def check_and_reassign_expired():
                     sla_deadline=now + timedelta(minutes=5),
                 )
                 db.add(new_assignment)
+                await db.flush()
+                await db.refresh(new_assignment)
+
                 incident.status = "assigned"
                 incident.updated_at = now
+
+                await record_audit_log(
+                    db=db,
+                    action="create",
+                    entity_type="Assignment",
+                    entity_id=str(new_assignment.id),
+                    actor_id=None,
+                    before=None,
+                    after={"status": "pending", "volunteer_id": new_volunteer.id, "incident_id": str(incident.id)},
+                )
 
                 await on_assignment_reassigned(
                     incident_id=str(incident.id),
@@ -61,7 +86,7 @@ async def check_and_reassign_expired():
 
                 print(
                     f"[AUTO_REASSIGN] Reassigned incident {incident.id} "
-                    f"from volunteer {assignment.volunteer_id} to {new_volunteer.id} "
+                    f"from volunteer {old_vol_id} to {new_volunteer.id} "
                     f"(score={score})"
                 )
 
