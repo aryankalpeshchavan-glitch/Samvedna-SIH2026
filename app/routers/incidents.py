@@ -15,6 +15,7 @@ from app.schemas.incident import (
     IncidentCreate, IncidentOut, IncidentVerify, IncidentSMS,
     IncidentBatchSyncRequest, IncidentBatchSyncResponse,
 )
+from app.matching.queue import enqueue_matching_job
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
@@ -52,6 +53,11 @@ async def create_incident(
     try:
         await db.flush()
         await db.refresh(incident)
+
+        # Enqueue matching job asynchronously
+        import asyncio
+        asyncio.create_task(enqueue_matching_job(str(incident.id)))
+
         return incident
     except IntegrityError:
         await db.rollback()
@@ -161,6 +167,11 @@ async def verify_incident(
     incident.updated_at = datetime.utcnow()
     await db.flush()
     await db.refresh(incident)
+
+    # Enqueue matching job for verified incident
+    import asyncio
+    asyncio.create_task(enqueue_matching_job(str(incident.id)))
+
     return incident
 
 
@@ -220,4 +231,8 @@ async def create_incident_sms(
     db.add(incident)
     await db.flush()
     await db.refresh(incident)
+
+    import asyncio
+    asyncio.create_task(enqueue_matching_job(str(incident.id)))
+
     return incident
