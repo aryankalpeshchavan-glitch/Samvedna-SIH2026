@@ -12,7 +12,7 @@ export const DataSourceBadge: React.FC<DataSourceBadgeProps> = ({ type, size = '
     live: {
       label: 'LIVE GIS',
       icon: Radio,
-      className: 'bg-[#23483A]/10 text-[#23483A] border-[#23483A]/30',
+      className: 'bg-accent/10 text-accent border-accent/30',
     },
     synthetic: {
       label: 'SYNTHETIC DEMO',
@@ -22,7 +22,7 @@ export const DataSourceBadge: React.FC<DataSourceBadgeProps> = ({ type, size = '
     replayed: {
       label: 'REPLAYED FEED',
       icon: RotateCcw,
-      className: 'bg-[#536A72]/15 text-[#536A72] border-[#536A72]/40',
+      className: 'bg-muted/15 text-muted border-muted/40',
     },
   };
 

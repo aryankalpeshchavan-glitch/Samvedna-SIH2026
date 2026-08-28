@@ -7,7 +7,7 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ level }) => {
   const styles = {
-    LOW: 'bg-[#23483A]/10 text-[#23483A] border-[#23483A]/30',
+    LOW: 'bg-accent/10 text-accent border-accent/30',
     WATCH: 'bg-[#D88A32]/15 text-[#D88A32] border-[#D88A32]/40',
     MEDIUM: 'bg-[#D88A32]/15 text-[#D88A32] border-[#D88A32]/40',
     HIGH: 'bg-[#C6533C]/15 text-[#C6533C] border-[#C6533C]/40',

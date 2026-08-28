@@ -11,8 +11,8 @@ export const NetworkIndicator: React.FC<NetworkIndicatorProps> = ({ status }) =>
     ONLINE: {
       label: 'ONLINE',
       icon: Wifi,
-      className: 'bg-[#23483A]/10 text-[#23483A] border-[#23483A]/30',
-      dot: 'bg-[#23483A]',
+      className: 'bg-accent/10 text-accent border-accent/30',
+      dot: 'bg-accent',
     },
     WEAK: {
       label: 'WEAK SIGNAL',

@@ -1,35 +1,55 @@
 @import "tailwindcss";
 @import "maplibre-gl/dist/maplibre-gl.css";
 
+:root {
+  color-scheme: light;
+  --bg-main: #FFFFFF;
+  --bg-sidebar: #F9F9F9;
+  --bg-surface: #F4F4F4;
+  --bg-hover: #E5E5E5;
+  --border-subtle: #E5E5E5;
+  --text-primary: #0D0D0D;
+  --text-muted: #676767;
+  --accent-green: #228B22;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg-main: #0B0D17;      /* Deep obsidian black */
+  --bg-sidebar: #07090E;   /* Darkest navy black sidebar */
+  --bg-surface: #121824;   /* Midnight navy surface */
+  --bg-hover: #1E2638;     /* Subtle navy charcoal hover */
+  --border-subtle: #242E42; /* Clean navy border */
+  --text-primary: #F1F5F9; /* Crisp soft white text */
+  --text-muted: #94A3B8;   /* Muted slate text */
+  --accent-green: #228B22; /* Forest green accent */
+}
+
 @theme {
-  --color-paper: #F4F1E8;
-  --color-mist: #E8E6DC;
-  --color-charcoal: #202622;
-  --color-forest: #23483A;
-  --color-moss: #71856B;
-  --color-clay: #A87C58;
-  --color-sand: #C7B89B;
-  --color-muted-blue: #536A72;
-  --color-saffron: #D88A32;
-  --color-vermilion: #C6533C;
-  --color-deep-red: #8E2F2B;
-  --color-bone: #FAF9F3;
+  --color-main: var(--bg-main);
+  --color-sidebar: var(--bg-sidebar);
+  --color-surface: var(--bg-surface);
+  --color-hover: var(--bg-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-primary: var(--text-primary);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent-green);
+  --color-critical: #8E2F2B;
+  --color-high: #C6533C;
+  --color-watch: #D88A32;
 
   --font-heading: 'Space Grotesk', sans-serif;
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Instrument Serif', Georgia, serif;
 }
 
-:root {
-  color-scheme: light;
-}
-
 body {
-  background-color: #F4F1E8;
-  color: #202622;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3, h4, .font-heading {
@@ -43,7 +63,7 @@ h1, h2, h3, h4, .font-heading {
 /* Accessibility Focus Rings */
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #F4F1E8, 0 0 0 4px #23483A;
+  box-shadow: 0 0 0 2px var(--bg-main), 0 0 0 4px var(--accent-green);
 }
 
 /* MapLibre Light Cartographic Style Overrides */
@@ -52,20 +72,20 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .maplibregl-popup-content {
-  background: #FAF9F3 !important;
-  color: #202622 !important;
-  border: 1px solid #C7B89B !important;
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
   border-radius: 12px !important;
   padding: 10px 14px !important;
-  box-shadow: 0 10px 25px rgba(32, 38, 34, 0.12) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
   font-family: 'Inter', sans-serif !important;
 }
 
 .maplibregl-popup-anchor-top .maplibregl-popup-tip {
-  border-bottom-color: #FAF9F3 !important;
+  border-bottom-color: var(--bg-surface) !important;
 }
 .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
-  border-top-color: #FAF9F3 !important;
+  border-top-color: var(--bg-surface) !important;
 }
 
 /* Topographic Contour Pattern Utility */

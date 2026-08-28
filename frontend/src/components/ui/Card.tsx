@@ -26,10 +26,10 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`bg-[#FAF9F3] border ${
+      className={`bg-surface border ${
         active 
-          ? 'border-[#23483A] bg-[#F4F1E8] shadow-md' 
-          : 'border-[#C7B89B]/50 hover:border-[#A87C58]'
+          ? 'border-accent bg-main shadow-md' 
+          : 'border-border/50 hover:border-border'
       } rounded-2xl p-4 sm:p-5 transition-all duration-150 ${
         interactive ? 'cursor-pointer select-none tactile-press' : ''
       } ${className}`}

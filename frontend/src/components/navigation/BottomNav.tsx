@@ -27,7 +27,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, so
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FAF9F3]/95 backdrop-blur-md border-t border-[#C7B89B]/50 py-1.5 px-2 font-sans">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border/50 py-1.5 px-2 font-sans">
       <div className="max-w-xl mx-auto flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -39,8 +39,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, so
               onClick={() => onTabChange(tab.id)}
               className={`relative flex flex-col items-center justify-center py-1.5 px-3 rounded-xl touch-target-lg transition-colors focus:outline-none ${
                 isActive
-                  ? 'text-[#23483A] font-bold bg-[#E8E6DC]'
-                  : 'text-[#536A72] hover:text-[#202622]'
+                  ? 'text-accent font-bold bg-hover'
+                  : 'text-muted hover:text-primary'
               }`}
               aria-label={`Navigate to ${tab.label}`}
             >

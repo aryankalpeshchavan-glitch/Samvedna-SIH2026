@@ -50,12 +50,12 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
   if (submitted) {
     return (
       <div className="pb-24 pt-8 px-4 max-w-xl mx-auto text-center space-y-4 font-sans">
-        <div className="w-16 h-16 rounded-full bg-[#23483A]/10 border-2 border-[#23483A] text-[#23483A] flex items-center justify-center mx-auto">
+        <div className="w-16 h-16 rounded-full bg-accent/10 border-2 border-accent text-accent flex items-center justify-center mx-auto">
           <CheckCircle2 className="w-10 h-10" />
         </div>
-        <h2 className="text-2xl font-heading font-black text-[#202622]">Hazard Report Transmitted</h2>
-        <p className="text-sm text-[#202622]/80 leading-relaxed font-medium">
-          Your field observation for <strong className="text-[#23483A] font-mono">{selectedCat.replace('_', ' ')}</strong> has been pinned to the local community intelligence map.
+        <h2 className="text-2xl font-heading font-black text-primary">Hazard Report Transmitted</h2>
+        <p className="text-sm text-primary/80 leading-relaxed font-medium">
+          Your field observation for <strong className="text-accent font-mono">{selectedCat.replace('_', ' ')}</strong> has been pinned to the local community intelligence map.
         </p>
         <div className="pt-4">
           <Button variant="secondary" onClick={() => setSubmitted(false)}>
@@ -70,12 +70,12 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
     <div ref={containerRef} className="pb-24 pt-4 px-4 max-w-xl mx-auto space-y-6 font-sans">
       
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#C7B89B]/50">
+      <div className="flex items-center justify-between pb-3 border-b border-border/50">
         <div>
-          <span className="text-xs font-mono font-bold text-[#23483A] uppercase tracking-widest block">
+          <span className="text-xs font-mono font-bold text-accent uppercase tracking-widest block">
             CITIZEN COMMUNITY INTELLIGENCE
           </span>
-          <h2 className="text-xl font-heading font-black text-[#202622] uppercase tracking-wide">
+          <h2 className="text-xl font-heading font-black text-primary uppercase tracking-wide">
             Report Something
           </h2>
         </div>
@@ -86,7 +86,7 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
         
         {/* 1. Category Selection Grid */}
         <div>
-          <label className="block text-xs font-mono font-bold text-[#536A72] uppercase tracking-wider mb-2">
+          <label className="block text-xs font-mono font-bold text-muted uppercase tracking-wider mb-2">
             1. Select Incident Type:
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -100,11 +100,11 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
                   onClick={() => setSelectedCat(item.id)}
                   className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all tactile-press ${
                     isSelected
-                      ? 'bg-[#23483A] text-[#FAF9F3] border-[#23483A] shadow-md'
-                      : 'bg-[#FAF9F3] text-[#202622] border-[#C7B89B]/50 hover:bg-[#E8E6DC]'
+                      ? 'bg-accent text-surface border-accent shadow-md'
+                      : 'bg-surface text-primary border-border/50 hover:bg-hover'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-[#FAF9F3]' : 'text-[#23483A]'}`} />
+                  <Icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-surface' : 'text-accent'}`} />
                   <span className="text-xs font-heading font-bold">{item.label}</span>
                 </button>
               );
@@ -114,7 +114,7 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
 
         {/* 2. Photo Upload */}
         <div>
-          <label className="block text-xs font-mono font-bold text-[#536A72] uppercase tracking-wider mb-2">
+          <label className="block text-xs font-mono font-bold text-muted uppercase tracking-wider mb-2">
             2. Photo Evidence (Optional):
           </label>
           <input
@@ -126,37 +126,37 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
           />
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="p-4 rounded-2xl border-2 border-dashed border-[#C7B89B] bg-[#FAF9F3] hover:bg-[#E8E6DC] cursor-pointer flex flex-col items-center justify-center text-center transition-colors"
+            className="p-4 rounded-2xl border-2 border-dashed border-border bg-surface hover:bg-hover cursor-pointer flex flex-col items-center justify-center text-center transition-colors"
           >
             {photoPreview ? (
               <div className="relative w-full h-32 rounded-xl overflow-hidden">
                 <img src={photoPreview} alt="Upload Preview" className="w-full h-full object-cover" />
-                <span className="absolute bottom-2 right-2 px-2 py-1 bg-[#202622]/80 text-white text-[10px] rounded font-mono">
+                <span className="absolute bottom-2 right-2 px-2 py-1 bg-primary/80 text-white text-[10px] rounded font-mono">
                   Photo Attached
                 </span>
               </div>
             ) : (
               <>
-                <Camera className="w-6 h-6 text-[#23483A] mb-1" />
-                <span className="text-xs font-heading font-bold text-[#202622]">Take Photo or Upload Image</span>
-                <span className="text-[10px] text-[#536A72] font-mono mt-0.5">JPEG, PNG up to 10MB</span>
+                <Camera className="w-6 h-6 text-accent mb-1" />
+                <span className="text-xs font-heading font-bold text-primary">Take Photo or Upload Image</span>
+                <span className="text-[10px] text-muted font-mono mt-0.5">JPEG, PNG up to 10MB</span>
               </>
             )}
           </div>
         </div>
 
         {/* 3. Location Auto Detection */}
-        <div className="p-3 rounded-xl bg-[#FAF9F3] border border-[#C7B89B]/50 text-xs font-mono text-[#536A72] flex items-center justify-between">
+        <div className="p-3 rounded-xl bg-surface border border-border/50 text-xs font-mono text-muted flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <MapPin className="w-4 h-4 text-[#23483A]" />
-            <span>GPS Location: <strong className="text-[#202622]">Auto-Detected Coordinates Attached</strong></span>
+            <MapPin className="w-4 h-4 text-accent" />
+            <span>GPS Location: <strong className="text-primary">Auto-Detected Coordinates Attached</strong></span>
           </div>
-          <span className="text-[#23483A] font-bold">26.14° N, 91.73° E</span>
+          <span className="text-accent font-bold">26.14° N, 91.73° E</span>
         </div>
 
         {/* 4. Severity Toggles */}
         <div>
-          <label className="block text-xs font-mono font-bold text-[#536A72] uppercase tracking-wider mb-2">
+          <label className="block text-xs font-mono font-bold text-muted uppercase tracking-wider mb-2">
             4. Observed Severity:
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -171,8 +171,8 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
                 onClick={() => setSeverity(lvl.id as SeverityLevel)}
                 className={`py-2.5 text-xs font-heading font-bold rounded-xl border transition-colors ${
                   severity === lvl.id
-                    ? 'bg-[#23483A] text-[#FAF9F3] border-[#23483A]'
-                    : 'bg-[#FAF9F3] text-[#202622] border-[#C7B89B]/50 hover:bg-[#E8E6DC]'
+                    ? 'bg-accent text-surface border-accent'
+                    : 'bg-surface text-primary border-border/50 hover:bg-hover'
                 }`}
               >
                 {lvl.label}
@@ -183,7 +183,7 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
 
         {/* 5. Optional Note */}
         <div>
-          <label className="block text-xs font-mono font-bold text-[#536A72] uppercase tracking-wider mb-2">
+          <label className="block text-xs font-mono font-bold text-muted uppercase tracking-wider mb-2">
             5. Situation Description (Optional):
           </label>
           <textarea
@@ -191,7 +191,7 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. Debris flow blocking main road near bridge 4. 2 vehicles stranded."
-            className="w-full p-3 rounded-xl bg-[#FAF9F3] border border-[#C7B89B] text-sm text-[#202622] placeholder-[#536A72]/60 focus:border-[#23483A] focus:outline-none"
+            className="w-full p-3 rounded-xl bg-surface border border-border text-sm text-primary placeholder-muted/60 focus:border-accent focus:outline-none"
           />
         </div>
 

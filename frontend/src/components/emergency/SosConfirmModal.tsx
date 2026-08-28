@@ -19,37 +19,37 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({ onConfirm, onC
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/70 backdrop-blur-sm font-sans"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       <div
         ref={modalRef}
-        className="w-full max-w-md bg-[#FAF9F3] border-2 border-[#8E2F2B] rounded-3xl p-6 shadow-2xl text-left space-y-4"
+        className="w-full max-w-md bg-surface border-2 border-[#8E2F2B] rounded-3xl p-6 shadow-2xl text-left space-y-4"
       >
-        <div className="flex items-start justify-between pb-3 border-b border-[#E8E6DC]">
+        <div className="flex items-start justify-between pb-3 border-b border-hover">
           <div className="flex items-center space-x-2 text-[#8E2F2B]">
             <AlertOctagon className="w-6 h-6 shrink-0" />
-            <h2 id="modal-title" className="text-xl font-heading font-black tracking-wide text-[#202622] uppercase">
+            <h2 id="modal-title" className="text-xl font-heading font-black tracking-wide text-primary uppercase">
               Confirm Emergency SOS
             </h2>
           </div>
           <button
             onClick={onCancel}
-            className="text-[#536A72] hover:text-[#202622] p-1 rounded-full hover:bg-[#E8E6DC]"
+            className="text-muted hover:text-primary p-1 rounded-full hover:bg-hover"
             aria-label="Cancel emergency modal"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <p className="text-sm text-[#202622]/90 leading-relaxed font-medium">
+        <p className="text-sm text-primary/90 leading-relaxed font-medium">
           You are triggering a high-priority emergency rescue request. Your detected GPS coordinates will be attached to the payload.
         </p>
 
         <div>
-          <label className="block text-xs font-mono font-bold uppercase text-[#536A72] mb-2">
+          <label className="block text-xs font-mono font-bold uppercase text-muted mb-2">
             Primary Hazard (Optional):
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -66,7 +66,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({ onConfirm, onC
                 className={`px-3 py-2 text-xs font-heading font-bold rounded-xl border text-left flex items-center justify-between transition-colors ${
                   selectedCategory === cat.id
                     ? 'bg-[#8E2F2B]/15 text-[#8E2F2B] border-[#8E2F2B]'
-                    : 'bg-[#F4F1E8] text-[#202622] border-[#C7B89B]/50 hover:bg-[#E8E6DC]'
+                    : 'bg-main text-primary border-border/50 hover:bg-hover'
                 }`}
               >
                 <span>{cat.label}</span>

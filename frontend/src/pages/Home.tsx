@@ -49,6 +49,7 @@ export const Home: React.FC<HomeProps> = ({
   const [isWhyRiskOpen, setIsWhyRiskOpen] = useState(false);
   const [isTerrainScanOpen, setIsTerrainScanOpen] = useState(false);
   const [isStoryModeOpen, setIsStoryModeOpen] = useState(false);
+  const [centerUserLocationTrigger, setCenterUserLocationTrigger] = useState(0);
 
   useEffect(() => {
     animatePageEnter(containerRef.current);
@@ -61,20 +62,21 @@ export const Home: React.FC<HomeProps> = ({
     setShowSafeRoute(false);
   };
 
-  const handleMyAreaClick = () => {
-    refreshLocation();
+  const handleMyAreaClick = async () => {
     setSelectedState(null);
     setSelectedStation(null);
+    await refreshLocation();
+    setCenterUserLocationTrigger(Date.now());
   };
 
   const userLngLat: [number, number] | null =
     location.longitude && location.latitude ? [location.longitude, location.latitude] : [91.7362, 26.1445];
 
   return (
-    <div ref={containerRef} className="pb-16 lg:pb-4 font-sans space-y-3">
+    <div className="font-sans">
       
-      {/* 90% Viewport Hero Map Section — THE MAP IS THE HERO */}
-      <div className="relative rounded-2xl overflow-hidden shadow-lg border border-[#C7B89B]/50 bg-[#F4F1E8]">
+      {/* Full Viewport Background Map Section */}
+      <div className="fixed inset-0 z-0 bg-main">
         <NeMap3D
           layerMode={mapLayerMode}
           selectedState={selectedState}
@@ -82,6 +84,7 @@ export const Home: React.FC<HomeProps> = ({
           selectedCitizenReport={selectedCitizenReport}
           showSafeRoute={showSafeRoute}
           userLocation={userLngLat}
+          centerUserLocationTrigger={centerUserLocationTrigger}
           onSelectState={setSelectedState}
           onSelectStation={setSelectedStation}
           onSelectCitizenReport={setSelectedCitizenReport}
@@ -113,30 +116,32 @@ export const Home: React.FC<HomeProps> = ({
         <SafeRouteOverlay isOpen={showSafeRoute} onClose={() => setShowSafeRoute(false)} />
       </div>
 
-      {/* Floating Light SOS Action Trigger Bar sitting neatly below Hero Map */}
-      <div className="max-w-xl mx-auto px-2">
-        {sosState !== 'IDLE' ? (
-          <SosStateViewer statusDetail={statusDetail} onReset={onResetSos} />
-        ) : (
-          <SosButton onTrigger={onTriggerSos} />
+      {/* Floating Bottom Action Trigger Bar */}
+      <div ref={containerRef} className="fixed bottom-0 inset-x-0 z-20 pointer-events-none pb-20 lg:pb-6 px-4 space-y-3 flex flex-col items-center">
+        <div className="w-full max-w-xl mx-auto pointer-events-auto">
+          {sosState !== 'IDLE' ? (
+            <SosStateViewer statusDetail={statusDetail} onReset={onResetSos} />
+          ) : (
+            <SosButton onTrigger={onTriggerSos} />
+          )}
+        </div>
+
+        {/* Feature Phone / SMS Fallback Banner */}
+        <div className="w-full max-w-xl mx-auto p-3 rounded-xl bg-surface border border-border/40 text-xs text-muted flex items-center justify-between font-mono shadow-sm pointer-events-auto">
+          <div className="flex items-center space-x-2">
+            <PhoneCall className="w-4 h-4 text-accent" />
+            <span>SMS Fallback: <strong className="text-primary">SMS 'SOS' to 56161</strong></span>
+          </div>
+          <span className="text-[10px] text-accent font-bold">Feature Phones Ready</span>
+        </div>
+
+        {networkStatus === 'OFFLINE' && (
+          <div className="w-full max-w-xl mx-auto p-3 rounded-xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-xs text-[#8E2F2B] font-mono flex items-center space-x-2 pointer-events-auto">
+            <AlertOctagon className="w-4 h-4 shrink-0" />
+            <span>⚠️ OFFLINE MODE: SOS request saved in IndexedDB; will auto-sync on reconnect.</span>
+          </div>
         )}
       </div>
-
-      {/* Feature Phone / SMS Fallback Banner */}
-      <div className="max-w-xl mx-auto p-3 rounded-xl bg-[#FAF9F3] border border-[#C7B89B]/40 text-xs text-[#536A72] flex items-center justify-between font-mono shadow-sm">
-        <div className="flex items-center space-x-2">
-          <PhoneCall className="w-4 h-4 text-[#23483A]" />
-          <span>SMS Fallback: <strong className="text-[#202622]">SMS 'SOS' to 56161</strong></span>
-        </div>
-        <span className="text-[10px] text-[#23483A] font-bold">Feature Phones Ready</span>
-      </div>
-
-      {networkStatus === 'OFFLINE' && (
-        <div className="max-w-xl mx-auto p-3 rounded-xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-xs text-[#8E2F2B] font-mono flex items-center space-x-2">
-          <AlertOctagon className="w-4 h-4 shrink-0" />
-          <span>⚠️ OFFLINE MODE: SOS request saved in IndexedDB; will auto-sync on reconnect.</span>
-        </div>
-      )}
 
       {/* Interactive Modals */}
       <WhyRiskModal
