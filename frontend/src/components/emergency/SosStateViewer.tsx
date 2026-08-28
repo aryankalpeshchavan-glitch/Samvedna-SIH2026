@@ -3,6 +3,7 @@ import { SosState, SosStatusDetail } from '../../types/emergency';
 import { DataSourceBadge } from '../ui/DataSourceBadge';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { Loader2, CheckCircle, Clock, ShieldAlert, PhoneCall, MapPin, UserCheck, CheckCheck } from 'lucide-react';
 
 interface SosStateViewerProps {
@@ -11,57 +12,59 @@ interface SosStateViewerProps {
 }
 
 export const SosStateViewer: React.FC<SosStateViewerProps> = ({ statusDetail, onReset }) => {
+  const { t } = useTranslation();
+
   const getStateConfig = (state: SosState) => {
     switch (state) {
       case 'SENDING':
         return {
-          title: 'TRANSMITTING SOS SIGNAL...',
-          desc: 'Connecting to CrisisCore regional relay network.',
+          title: t('status.stateSending'),
+          desc: t('status.stateSending'),
           icon: <Loader2 className="w-8 h-8 text-[#8E2F2B] animate-spin" />,
           color: 'border-[#8E2F2B] bg-[#8E2F2B]/10',
         };
       case 'OFFLINE_QUEUED':
         return {
-          title: 'SAVED LOCALLY (OFFLINE QUEUE)',
-          desc: statusDetail.errorMessage || 'No active connection. SOS payload saved in IndexedDB and queued to auto-sync upon reconnection.',
+          title: t('status.stateOfflineQueued'),
+          desc: statusDetail.errorMessage || t('network.pending'),
           icon: <Clock className="w-8 h-8 text-[#D88A32]" />,
           color: 'border-[#D88A32] bg-[#D88A32]/10',
         };
       case 'SENT':
         return {
-          title: 'SOS TRANSMITTED SUCCESSFULLY',
-          desc: 'Received by regional dispatch node. Verification in progress.',
-          icon: <CheckCircle className="w-8 h-8 text-accent" />,
-          color: 'border-accent bg-accent/10',
+          title: t('status.stateSent'),
+          desc: t('status.stateSent'),
+          icon: <CheckCircle className="w-8 h-8 text-[#23483A]" />,
+          color: 'border-[#23483A] bg-[#23483A]/10',
         };
       case 'VERIFIED':
         return {
-          title: 'SOS VERIFIED BY OPERATOR',
-          desc: 'Disaster coordination center has confirmed your location.',
-          icon: <ShieldAlert className="w-8 h-8 text-accent" />,
-          color: 'border-accent bg-accent/10',
+          title: t('status.stateVerified'),
+          desc: t('status.stateVerified'),
+          icon: <ShieldAlert className="w-8 h-8 text-[#23483A]" />,
+          color: 'border-[#23483A] bg-[#23483A]/10',
         };
       case 'ASSIGNED':
       case 'VOLUNTEER_EN_ROUTE':
         return {
-          title: 'RESCUE VOLUNTEER DISPATCHED',
-          desc: `Assigned NDRF certified volunteer is moving toward your location.`,
-          icon: <UserCheck className="w-8 h-8 text-accent" />,
-          color: 'border-accent bg-accent/15',
+          title: t('status.stateEnRoute'),
+          desc: t('status.stateEnRoute'),
+          icon: <UserCheck className="w-8 h-8 text-[#23483A]" />,
+          color: 'border-[#23483A] bg-[#23483A]/15',
         };
       case 'HELP_ARRIVED':
       case 'RESOLVED':
         return {
-          title: 'RESCUE COMPLETED / RESOLVED',
-          desc: 'Emergency responder has reached location or incident closed.',
-          icon: <CheckCheck className="w-8 h-8 text-accent" />,
-          color: 'border-accent bg-accent/10',
+          title: t('status.stateVerified'),
+          desc: t('status.stateVerified'),
+          icon: <CheckCheck className="w-8 h-8 text-[#23483A]" />,
+          color: 'border-[#23483A] bg-[#23483A]/10',
         };
       case 'ERROR':
       default:
         return {
-          title: 'TRANSMISSION ERROR',
-          desc: statusDetail.errorMessage || 'Failed to dispatch SOS. Please try calling local emergency services directly.',
+          title: t('status.stateSending'),
+          desc: statusDetail.errorMessage || t('status.stateSending'),
           icon: <ShieldAlert className="w-8 h-8 text-[#8E2F2B]" />,
           color: 'border-[#8E2F2B] bg-[#8E2F2B]/15',
         };
@@ -72,63 +75,63 @@ export const SosStateViewer: React.FC<SosStateViewerProps> = ({ statusDetail, on
 
   return (
     <Card className={`border-2 ${config.color} p-5 my-2 font-sans`}>
-      <div className="flex items-center justify-between mb-3 pb-2 border-b border-hover">
-        <span className="font-mono text-xs font-bold text-muted uppercase tracking-widest">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#E8E6DC]">
+        <span className="font-mono text-xs font-bold text-[#536A72] uppercase tracking-widest">
           SOS TRACKER &bull; {statusDetail.sosId || 'PENDING'}
         </span>
         <DataSourceBadge type="synthetic" />
       </div>
 
       <div className="flex items-start space-x-3.5">
-        <div className="shrink-0 p-2 rounded-xl bg-surface border border-border/40">
+        <div className="shrink-0 p-2 rounded-xl bg-[#FAF9F3] border border-[#C7B89B]/40">
           {config.icon}
         </div>
         <div className="flex-1">
-          <h3 className="text-base font-heading font-bold text-primary tracking-wide uppercase">
+          <h3 className="text-base font-heading font-bold text-[#202622] tracking-wide uppercase">
             {config.title}
           </h3>
-          <p className="mt-1 text-xs text-primary/85 font-medium leading-relaxed">
+          <p className="mt-1 text-xs text-[#202622]/85 font-medium leading-relaxed">
             {config.desc}
           </p>
 
           {statusDetail.assignedVolunteerName && (
-            <div className="mt-3 p-3 rounded-xl bg-surface border border-accent/40 space-y-1">
-              <div className="flex items-center text-accent font-heading font-bold text-xs">
+            <div className="mt-3 p-3 rounded-xl bg-[#FAF9F3] border border-[#23483A]/40 space-y-1">
+              <div className="flex items-center text-[#23483A] font-heading font-bold text-xs">
                 <UserCheck className="w-4 h-4 mr-1.5" />
-                <span>{statusDetail.assignedVolunteerName}</span>
+                <span>{t('status.assignedResponder')} {statusDetail.assignedVolunteerName}</span>
               </div>
               {statusDetail.etaMinutes && (
-                <div className="flex items-center text-xs text-muted font-mono">
+                <div className="flex items-center text-xs text-[#536A72] font-mono">
                   <MapPin className="w-3.5 h-3.5 mr-1" />
-                  <span>Arrival ETA: <strong className="text-primary">{statusDetail.etaMinutes} mins</strong></span>
+                  <span>{t('status.eta')} <strong className="text-[#202622]">{statusDetail.etaMinutes} mins</strong></span>
                 </div>
               )}
               {statusDetail.assignedVolunteerPhone && (
                 <a
                   href={`tel:${statusDetail.assignedVolunteerPhone}`}
-                  className="inline-flex items-center text-xs font-bold text-accent hover:underline pt-1"
+                  className="inline-flex items-center text-xs font-bold text-[#23483A] hover:underline pt-1"
                 >
                   <PhoneCall className="w-3.5 h-3.5 mr-1" />
-                  Call Responder ({statusDetail.assignedVolunteerPhone})
+                  {t('status.callResponder')} ({statusDetail.assignedVolunteerPhone})
                 </a>
               )}
             </div>
           )}
 
           {statusDetail.lastUpdatedText && (
-            <p className="mt-2 text-[11px] font-mono text-muted">
+            <p className="mt-2 text-[11px] font-mono text-[#536A72]">
               Latest Event: {statusDetail.lastUpdatedText}
             </p>
           )}
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-hover flex items-center justify-between">
-        <p className="text-xs text-muted font-mono">
-          State: <span className="text-primary font-bold">{statusDetail.state}</span>
+      <div className="mt-4 pt-3 border-t border-[#E8E6DC] flex items-center justify-between">
+        <p className="text-xs text-[#536A72] font-mono">
+          State: <span className="text-[#202622] font-bold">{statusDetail.state}</span>
         </p>
         <Button variant="outline" size="sm" onClick={onReset}>
-          Reset SOS
+          {t('status.resetButton')}
         </Button>
       </div>
     </Card>

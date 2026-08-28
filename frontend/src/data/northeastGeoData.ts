@@ -309,6 +309,7 @@ export function getNeStatesGeoJson() {
         avgRainfall: state.avgRainfall24h,
         soilMoisture: state.avgSoilMoisture,
         elevationRange: state.elevationRange,
+        heightOffset: state.heightOffset,
       },
       geometry: {
         type: 'Polygon',

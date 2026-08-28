@@ -14,9 +14,9 @@ export const RiskLevelBanner: React.FC<RiskLevelBannerProps> = ({
 }) => {
   const config = {
     LOW: {
-      border: 'border-accent/30 bg-accent/10',
+      border: 'border-[#23483A]/30 bg-[#23483A]/10',
       icon: Info,
-      iconColor: 'text-accent',
+      iconColor: 'text-[#23483A]',
       desc: 'Normal seasonal weather pattern. No immediate landslide or surge threat detected.',
     },
     WATCH: {
@@ -49,22 +49,22 @@ export const RiskLevelBanner: React.FC<RiskLevelBannerProps> = ({
   const Icon = current.icon;
 
   return (
-    <div className={`p-4 rounded-2xl border ${current.border} bg-surface my-2 transition-all font-sans`}>
+    <div className={`p-4 rounded-2xl border ${current.border} bg-[#FAF9F3] my-2 transition-all font-sans`}>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center space-x-2">
           <Icon className={`w-5 h-5 ${current.iconColor}`} />
-          <span className="text-xs font-mono font-bold text-muted uppercase tracking-wide">
+          <span className="text-xs font-mono font-bold text-[#536A72] uppercase tracking-wide">
             REGIONAL HAZARD STATUS
           </span>
         </div>
         <Badge level={level} />
       </div>
 
-      <p className="text-xs font-mono text-muted mb-1">
-        Zone: <strong className="text-primary">{regionName}</strong>
+      <p className="text-xs font-mono text-[#536A72] mb-1">
+        Zone: <strong className="text-[#202622]">{regionName}</strong>
       </p>
       
-      <p className="text-xs sm:text-sm font-medium text-primary leading-relaxed">
+      <p className="text-xs sm:text-sm font-medium text-[#202622] leading-relaxed">
         {current.desc}
       </p>
     </div>

@@ -1,11 +1,11 @@
 # CrisisCore — Citizen Emergency Frontend (`/frontend-citizen`)
 
 > **Last-mile AI decision + action layer for landslide, flash-flood, and multi-hazard emergencies.**  
-> *SIH26001 — AI-Based Early Warning and Landslide Risk Monitoring System in the North Eastern Region of India*
+> *SIH26001 — AI-Based Early Warning and Landslide Risk Monitoring System in the North Eastern Region of India (MDoNER)*
 
 ---
 
-## 1. Editorial Cartographic Visual Direction
+## 1. Editorial Cartographic Visual Identity
 
 The visual identity is modeled after **environmental research cartography, National Geographic publications, and cinematic editorial design**.
 
@@ -25,10 +25,12 @@ The visual identity is modeled after **environmental research cartography, Natio
 
 ---
 
-## 3. Interactive Feature Matrix
+## 3. Interactive Feature Matrix (Day 1 & Day 2)
 
 | Feature | Description | Implementation Details |
 | :--- | :--- | :--- |
+| **Dynamic Rain Overlay** *(Day 2)* | Rain precipitation physics visualization | HTML5 canvas particle system overlaid on 3D terrain canvas |
+| **Emergency Mode Banner** *(Day 2)* | High-stress evacuation state | Restrained vermilion banner focusing citizens on nearest shelter & route |
 | **"Why Is My Area at Risk?"** | 5-step visual explainer of risk drivers | Staggered Anime.js steps (*Rainfall → Soil Moisture → Terrain Slope → Historical → Risk Assessment*) |
 | **"Scan Terrain"** | Environmental topography scan | Animated scanning line computing cartographic **Risk Index: 72/100** |
 | **"Show Safe Route"** | Animated evacuation path | Draws safe corridor across 3D terrain to nearest Community Shelter |
@@ -40,7 +42,14 @@ The visual identity is modeled after **environmental research cartography, Natio
 
 ---
 
-## 4. How to Run
+## 4. API Key & Security Audit
+
+- **MapLibre GL JS**: Consumes open-access raster basemaps (`OpenStreetMap`/`CartoDB`) and open DEM tiles (`AWS Terrarium`).
+- **Zero API keys exposed or required**: Ensures seamless execution without secret key configurations or billable quotas.
+
+---
+
+## 5. How to Run
 
 ```bash
 # 1. Install dependencies

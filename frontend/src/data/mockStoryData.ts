@@ -32,7 +32,7 @@ export const WHY_RISK_STEPS: WhyRiskStep[] = [
     value: '3 Prior Events',
     unit: 'recorded in sector',
     description: 'Geospatial records indicate high recurrence interval during similar saturation.',
-    statusColor: 'text-accent',
+    statusColor: 'text-[#23483A]',
   },
   {
     stepNumber: '05',

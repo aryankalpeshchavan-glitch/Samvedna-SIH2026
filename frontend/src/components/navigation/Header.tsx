@@ -3,106 +3,87 @@ import { NetworkIndicator } from '../ui/NetworkIndicator';
 import { DataSourceBadge } from '../ui/DataSourceBadge';
 import { NetworkStatusType } from '../../types/emergency';
 import { TabType } from './BottomNav';
-import { Shield, Home, AlertTriangle, Activity, Users, Bell, Globe, Moon, Sun } from 'lucide-react';
-import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../i18n/LanguageContext';
+import { useAudioAlert } from '../../hooks/useAudioAlert';
+import { QrCode, Shield, Globe, Volume2, VolumeX, LifeBuoy } from 'lucide-react';
+
+import { SpecularHeading } from '../ui/SpecularHeading';
 
 interface HeaderProps {
   networkStatus: NetworkStatusType;
   activeTab?: TabType;
   onTabChange?: (tab: TabType) => void;
+  onOpenQrScanner?: () => void;
+  onOpenHelp?: () => void;
 }
 
-const LANGUAGES = ['English', 'Hindi (हिंदी)', 'Assamese (অসমীয়া)', 'Bengali (বাংলা)', 'Manipuri (ꯃꯏꯇꯩꯂꯣꯟ)', 'Mizo', 'Khasi'];
-
-export const Header: React.FC<HeaderProps> = ({ networkStatus, activeTab = 'home', onTabChange }) => {
-  const [currentLang, setCurrentLang] = useState('English');
+export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, onOpenHelp }) => {
+  const { language, setLanguage, languages, t } = useTranslation();
+  const { audioEnabled, toggleAudioEnabled } = useAudioAlert();
   const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const { isDark, toggleTheme } = useTheme();
 
-  const desktopTabs = [
-    { id: 'home', label: 'MAP', icon: Home },
-    { id: 'incident', label: 'REPORT', icon: AlertTriangle },
-    { id: 'status', label: 'SOS STATUS', icon: Activity },
-    { id: 'family', label: 'FAMILY', icon: Users },
-    { id: 'alerts', label: 'ALERTS', icon: Bell },
-  ] as const;
+  const activeLangObj = languages.find((l) => l.code === language) || languages[0];
 
   return (
-    <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-border/50 px-4 py-3 font-sans">
+    <header className="sticky top-0 z-40 bg-[#FAF9F3]/95 backdrop-blur-md border-b border-[#C7B89B]/50 px-4 py-3 font-sans">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
         {/* Branding Title */}
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-accent text-surface flex items-center justify-center shadow-sm shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-[#23483A] text-[#FAF9F3] flex items-center justify-center shadow-sm shrink-0">
             <Shield className="w-5 h-5 fill-current" />
           </div>
           <div>
-            <h1 className="text-lg font-heading font-black tracking-wider text-primary uppercase leading-none">
+            <h1 className="text-lg font-heading font-black tracking-wider text-[#202622] uppercase leading-none px-1.5 py-0.5">
               CRISISCORE
             </h1>
-            <span className="text-[10px] font-mono text-muted tracking-tight block mt-0.5">
-              SIH26001 &bull; LANDSLIDE EARLY WARNING
+            <span className="text-[10px] font-mono text-[#536A72] tracking-tight block mt-0.5 uppercase">
+              {t('nav.subtitle')}
             </span>
           </div>
         </div>
 
-        {/* Minimal Top Navigation Links (Desktop) */}
-        {onTabChange && (
-          <nav className="hidden lg:flex items-center space-x-1 bg-main p-1 rounded-2xl border border-border/50">
-            {desktopTabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id as TabType)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-heading font-bold transition-all ${
-                    isActive
-                      ? 'bg-accent text-surface shadow-sm'
-                      : 'text-muted hover:text-primary hover:bg-hover'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        )}
-
-        {/* Right Tools: Theme Toggle, Language Selector, Data Badge, Network Indicator */}
+        {/* Right Tools: Audio Alert Section, Language Selector, Data Badge, Network Indicator, Volunteer Verification */}
         <div className="flex items-center space-x-2 shrink-0">
-          
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 sm:p-2 rounded-lg text-primary hover:bg-hover transition-colors flex items-center justify-center"
-            aria-label="Toggle dark mode"
-          >
-            {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-accent" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-muted" />}
-          </button>
+          {/* Audio Alert Section (Separated from main navigation by ~28-32px spacing & border) */}
+          <div className="hidden md:flex items-center pl-3 ml-3 sm:ml-6 sm:pl-6 border-l border-[#C7B89B]/50">
+            <button
+              onClick={toggleAudioEnabled}
+              className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors cursor-pointer ${
+                audioEnabled ? 'bg-[#23483A]/10 text-[#23483A] border-[#23483A]/30' : 'bg-[#FAF9F3] text-[#536A72] border-[#C7B89B]/50'
+              }`}
+              title={audioEnabled ? t('audio.enabled') : t('audio.disabled')}
+            >
+              {audioEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+              <span className="hidden xl:inline">{audioEnabled ? t('audio.enabled') : t('audio.disabled')}</span>
+            </button>
+          </div>
 
           {/* Language Selector */}
           <div className="relative">
             <button
               onClick={() => setShowLangDropdown(!showLangDropdown)}
-              className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-main border border-border/50 text-xs font-mono font-bold text-primary hover:bg-hover"
+              className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-[#F4F1E8] border border-[#C7B89B]/50 text-xs font-mono font-bold text-[#202622] hover:bg-[#E8E6DC] transition-colors cursor-pointer"
             >
-              <Globe className="w-3.5 h-3.5 text-accent" />
-              <span className="hidden sm:inline">{currentLang}</span>
+              <Globe className="w-3.5 h-3.5 text-[#23483A]" />
+              <span className="hidden sm:inline">{activeLangObj.nativeName}</span>
             </button>
 
             {showLangDropdown && (
-              <div className="absolute right-0 mt-2 w-44 bg-surface border border-border rounded-xl shadow-xl py-1 z-50 text-xs font-mono">
-                {LANGUAGES.map((lang) => (
+              <div className="absolute right-0 mt-2 w-48 bg-[#FAF9F3] border border-[#C7B89B] rounded-xl shadow-xl py-1 z-50 text-xs font-mono">
+                {languages.map((lang) => (
                   <button
-                    key={lang}
+                    key={lang.code}
                     onClick={() => {
-                      setCurrentLang(lang.split(' ')[0]);
+                      setLanguage(lang.code);
                       setShowLangDropdown(false);
                     }}
-                    className={`w-full text-left px-3 py-1.5 hover:bg-hover ${
-                      currentLang === lang.split(' ')[0] ? 'font-bold text-accent' : 'text-primary'
+                    className={`w-full text-left px-3 py-1.5 hover:bg-[#E8E6DC] flex items-center justify-between cursor-pointer ${
+                      language === lang.code ? 'font-bold text-[#23483A] bg-[#23483A]/10' : 'text-[#202622]'
                     }`}
                   >
-                    {lang}
+                    <span>{lang.nativeName}</span>
+                    <span className="text-[10px] text-[#536A72]">{lang.label}</span>
                   </button>
                 ))}
               </div>
@@ -111,6 +92,31 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, activeTab = 'home
 
           <DataSourceBadge type="synthetic" size="sm" />
           <NetworkIndicator status={networkStatus} />
+
+          {/* Dedicated Visually-Separated Volunteer Verification & Emergency Help Section */}
+          <div className="pl-3 ml-3 sm:ml-4 sm:pl-4 border-l border-[#C7B89B]/60 flex items-center space-x-2 shrink-0">
+            {onOpenHelp && (
+              <button
+                onClick={onOpenHelp}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#8E2F2B] text-[#FAF9F3] text-xs font-heading font-bold hover:bg-[#722421] transition-all cursor-pointer shadow-sm tactile-press"
+                title={t('nav.help')}
+              >
+                <LifeBuoy className="w-4 h-4 text-[#FAF9F3] animate-pulse" />
+                <span className="hidden sm:inline">{t('nav.help')}</span>
+              </button>
+            )}
+
+            {onOpenQrScanner && (
+              <button
+                onClick={onOpenQrScanner}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#23483A] text-[#FAF9F3] text-xs font-heading font-bold hover:bg-[#1b382d] transition-all cursor-pointer shadow-sm tactile-press"
+                title={t('qr.verifyTitle')}
+              >
+                <QrCode className="w-4 h-4 text-[#FAF9F3]" />
+                <span className="hidden md:inline">{t('qr.verifyTitle')}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>

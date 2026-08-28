@@ -9,11 +9,14 @@ import { IncidentReport } from './pages/IncidentReport';
 import { Status } from './pages/Status';
 import { FamilyPlaceholder } from './pages/FamilyPlaceholder';
 import { AlertsPlaceholder } from './pages/AlertsPlaceholder';
+import { CustomerServiceHelp } from './pages/CustomerServiceHelp';
 import { SosConfirmModal } from './components/emergency/SosConfirmModal';
+import { VolunteerQrScannerModal } from './components/emergency/VolunteerQrScannerModal';
 import { IncidentCategory, SeverityLevel, SosState } from './types/emergency';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const networkStatus = useNetworkStatus();
   const { location, refreshLocation } = useLocationStatus();
 
@@ -45,10 +48,12 @@ export function App() {
         networkStatus={networkStatus}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onOpenQrScanner={() => setIsQrScannerOpen(true)}
+        onOpenHelp={() => setActiveTab('help')}
       />
 
-      {/* Main Content Area — Expands to Widescreen Workstation Layout on Desktop */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      {/* Main Content Area — Responsive Padding Prevents Dock Overlap on Desktop (lg:pl-24) & Mobile (pb-28) */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:pl-24 py-4">
         {activeTab === 'home' && (
           <Home
             location={location}
@@ -74,12 +79,15 @@ export function App() {
             onSimulateStateChange={(state: SosState) => {
               setSosState(state);
             }}
+            onOpenQrScanner={() => setIsQrScannerOpen(true)}
           />
         )}
 
         {activeTab === 'family' && <FamilyPlaceholder />}
 
         {activeTab === 'alerts' && <AlertsPlaceholder />}
+
+        {activeTab === 'help' && <CustomerServiceHelp />}
       </main>
 
       {/* Emergency Confirmation Modal */}
@@ -90,7 +98,13 @@ export function App() {
         />
       )}
 
-      {/* Bottom Navigation (Active on Mobile, Hidden on Desktop) */}
+      {/* Volunteer QR Code Scanner Modal */}
+      <VolunteerQrScannerModal
+        isOpen={isQrScannerOpen}
+        onClose={() => setIsQrScannerOpen(false)}
+      />
+
+      {/* Single Unified Floating Navigation Dock (Left Vertical on Desktop, Bottom Horizontal on Mobile) */}
       <BottomNav
         activeTab={activeTab}
         onTabChange={setActiveTab}

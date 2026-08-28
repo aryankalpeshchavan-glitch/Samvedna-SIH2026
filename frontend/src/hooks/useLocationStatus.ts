@@ -14,30 +14,6 @@ export function useLocationStatus(): { location: LocationData; refreshLocation: 
 
   useEffect(() => {
     refreshLocation();
-
-    if ('geolocation' in navigator) {
-      const watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          setLocation({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            status: 'LOCATION_DETECTED',
-            timestamp: pos.timestamp,
-          });
-        },
-        (err) => {
-          console.warn('Geolocation watch error:', err);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
-        }
-      );
-
-      return () => navigator.geolocation.clearWatch(watchId);
-    }
   }, []);
 
   return { location, refreshLocation };

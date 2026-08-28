@@ -28,7 +28,7 @@ export const LocationBar: React.FC<LocationBarProps> = ({ location, onRefresh })
   const getStatusColor = () => {
     switch (location.status) {
       case 'LOCATION_DETECTED':
-        return 'text-accent bg-accent/10 border-accent/30';
+        return 'text-[#23483A] bg-[#23483A]/10 border-[#23483A]/30';
       case 'REQUESTING_LOCATION':
         return 'text-[#D88A32] bg-[#D88A32]/10 border-[#D88A32]/30';
       case 'PERMISSION_DENIED':
@@ -39,10 +39,10 @@ export const LocationBar: React.FC<LocationBarProps> = ({ location, onRefresh })
   };
 
   return (
-    <div className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-mono font-medium ${getStatusColor()} bg-surface`}>
+    <div className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-mono font-medium ${getStatusColor()} bg-[#FAF9F3]`}>
       <div className="flex items-center space-x-2 min-w-0 pr-2">
         {location.status === 'LOCATION_DETECTED' ? (
-          <MapPin className="w-4 h-4 shrink-0 text-accent" />
+          <MapPin className="w-4 h-4 shrink-0 text-[#23483A]" />
         ) : location.status === 'REQUESTING_LOCATION' ? (
           <Navigation className="w-4 h-4 shrink-0 text-[#D88A32] animate-spin" />
         ) : (
@@ -53,7 +53,7 @@ export const LocationBar: React.FC<LocationBarProps> = ({ location, onRefresh })
 
       <button
         onClick={onRefresh}
-        className="shrink-0 p-1.5 rounded-lg hover:bg-hover text-muted hover:text-primary transition-colors"
+        className="shrink-0 p-1.5 rounded-lg hover:bg-[#E8E6DC] text-[#536A72] hover:text-[#202622] transition-colors"
         title="Refresh GPS Coordinates"
         aria-label="Refresh GPS location coordinates"
       >

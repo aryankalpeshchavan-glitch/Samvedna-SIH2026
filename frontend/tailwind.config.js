@@ -4,26 +4,47 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        main: 'var(--bg-main)',
-        sidebar: 'var(--bg-sidebar)',
-        surface: 'var(--bg-surface)',
-        hover: 'var(--bg-hover)',
-        border: 'var(--border-subtle)',
-        primary: 'var(--text-primary)',
-        muted: 'var(--text-muted)',
-        accent: 'var(--accent-green)',
-        critical: '#8E2F2B',
-        high: '#C6533C',
-        watch: '#D88A32',
+        canvas: '#0b0c10',
+        surface: {
+          DEFAULT: '#14171f',
+          elevated: '#1c212d',
+          border: '#2e3646',
+          hover: '#242a38',
+        },
+        emergency: {
+          DEFAULT: '#dc2626',
+          bright: '#ef4444',
+          dark: '#991b1b',
+          glow: 'rgba(239, 68, 68, 0.25)',
+        },
+        warning: {
+          DEFAULT: '#f59e0b',
+          bright: '#fbbf24',
+          dark: '#b45309',
+          glow: 'rgba(245, 158, 11, 0.2)',
+        },
+        info: {
+          DEFAULT: '#3b82f6',
+          bright: '#60a5fa',
+        },
+        safe: {
+          DEFAULT: '#10b981',
+          bright: '#34d399',
+        },
+        charcoal: {
+          900: '#0b0c10',
+          800: '#14171f',
+          700: '#1c212d',
+          600: '#2a3040',
+          500: '#40495e',
+        }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'Courier New', 'monospace'],
-        heading: ['Space Grotesk', 'sans-serif'],
       },
       boxShadow: {
         'emergency-glow': '0 0 35px rgba(239, 68, 68, 0.4)',

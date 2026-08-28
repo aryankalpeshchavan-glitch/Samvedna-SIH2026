@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { SosState, SosPayload, IncidentCategory, SosStatusDetail } from '../types/emergency';
 import { getCurrentLocation } from '../services/location';
-import { savePendingSOS } from '../services/offlineStorage';
+import { savePendingAction } from '../services/offlineStorage';
 import { getNetworkStatus } from '../services/network';
 
 export function useSosState() {
@@ -45,8 +45,8 @@ export function useSosState() {
     // Simulate network delay / decision logic
     setTimeout(async () => {
       if (network === 'OFFLINE') {
-        // Save to IndexedDB
-        await savePendingSOS(payload);
+        // Save to IndexedDB queue
+        await savePendingAction('SOS', payload);
         setSosState('OFFLINE_QUEUED');
         setStatusDetail({
           state: 'OFFLINE_QUEUED',
