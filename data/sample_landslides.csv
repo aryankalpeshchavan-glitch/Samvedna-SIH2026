@@ -1,0 +1,11 @@
+event_id,date,state,district,location,latitude,longitude,rainfall_24h,rainfall_3day,rainfall_7day,slope,elevation,soil_moisture,historical_landslides,landslide,data_source_type
+L001,2022-05-15,Assam,Dima Hasao,New Haflong,25.150000,93.020000,145,310,480,38,1200,0.82,4,1,synthetic
+L002,2022-05-16,Assam,Dima Hasao,New Haflong,25.150000,93.020000,180,360,520,40,1200,0.88,5,1,synthetic
+L003,2021-06-20,Assam,Dima Hasao,Haflong,25.160000,93.020000,35,72,110,20,1100,0.42,1,0,synthetic
+L004,2021-07-12,Assam,Dima Hasao,Haflong,25.160000,93.020000,65,140,220,25,1120,0.55,2,0,synthetic
+L005,2023-06-18,Assam,Dima Hasao,Jatinga,25.130000,93.170000,110,260,390,34,1350,0.74,3,1,synthetic
+L006,2023-07-05,Assam,Dima Hasao,Jatinga,25.130000,93.170000,25,58,95,18,1350,0.38,1,0,synthetic
+L007,2024-05-21,Assam,Dima Hasao,Maibong,25.280000,93.150000,155,330,510,43,900,0.91,6,1,synthetic
+L008,2024-06-10,Assam,Dima Hasao,Maibong,25.280000,93.150000,42,90,145,22,900,0.45,1,0,synthetic
+L009,2025-06-14,Assam,Dima Hasao,Haflong,25.160000,93.020000,125,290,430,36,1120,0.79,4,1,synthetic
+L010,2025-07-02,Assam,Dima Hasao,Jatinga,25.130000,93.170000,30,70,120,19,1350,0.40,1,0,synthetic
