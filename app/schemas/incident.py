@@ -27,6 +27,8 @@ class IncidentCreate(BaseModel):
     severity: int = Field(default=1, ge=1, le=5)
     photo_url: Optional[str] = None
     idempotency_key: Optional[str] = Field(default=None, max_length=128)
+    occurred_at: Optional[datetime] = None
+    data_label: Optional[DataLabel] = None
 
 
 class IncidentOut(BaseModel):
@@ -40,6 +42,7 @@ class IncidentOut(BaseModel):
     status: str
     data_label: str
     photo_url: Optional[str] = None
+    occurred_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
@@ -55,3 +58,15 @@ class IncidentSMS(BaseModel):
     text: str
     lat: Optional[float] = None
     lng: Optional[float] = None
+    occurred_at: Optional[datetime] = None
+
+
+class IncidentBatchSyncRequest(BaseModel):
+    items: list[IncidentCreate] = Field(..., max_length=100)
+
+
+class IncidentBatchSyncResponse(BaseModel):
+    synced: list[IncidentOut] = Field(default_factory=list)
+    duplicates: list[IncidentOut] = Field(default_factory=list)
+    errors: list[dict] = Field(default_factory=list)
+

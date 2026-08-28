@@ -23,8 +23,10 @@ class Incident(Base):
     data_label = Column(String(20), default="synthetic", nullable=False)
     photo_url = Column(String(512), nullable=True)
     idempotency_key = Column(String(128), unique=True, nullable=True, index=True)
+    occurred_at = Column(DateTime, default=datetime.utcnow, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
 
     reporter = relationship("User", back_populates="incidents")
     assignments = relationship("Assignment", back_populates="incident")

@@ -1,15 +1,20 @@
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import Optional
+from sqlalchemy.exc import IntegrityError
+
 
 from app.core.database import get_db
 from app.core.auth import get_current_user, require_role
 from app.models.incident import Incident
 from app.models.user import User
-from app.schemas.incident import IncidentCreate, IncidentOut, IncidentVerify, IncidentSMS
+from app.schemas.incident import (
+    IncidentCreate, IncidentOut, IncidentVerify, IncidentSMS,
+    IncidentBatchSyncRequest, IncidentBatchSyncResponse,
+)
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
@@ -28,6 +33,9 @@ async def create_incident(
         if existing_incident:
             return existing_incident
 
+    data_label_val = data.data_label.value if data.data_label else "synthetic"
+    occurred_at_val = data.occurred_at or datetime.utcnow()
+
     incident = Incident(
         reporter_id=current_user.id,
         type=data.type.value,
@@ -37,12 +45,90 @@ async def create_incident(
         severity=data.severity,
         photo_url=data.photo_url,
         idempotency_key=data.idempotency_key,
-        data_label="synthetic",
+        data_label=data_label_val,
+        occurred_at=occurred_at_val,
     )
     db.add(incident)
-    await db.flush()
-    await db.refresh(incident)
-    return incident
+    try:
+        await db.flush()
+        await db.refresh(incident)
+        return incident
+    except IntegrityError:
+        await db.rollback()
+        if data.idempotency_key:
+            existing = await db.execute(
+                select(Incident).where(Incident.idempotency_key == data.idempotency_key)
+            )
+            existing_incident = existing.scalar_one_or_none()
+            if existing_incident:
+                return existing_incident
+        raise
+
+
+@router.post("/sync", response_model=IncidentBatchSyncResponse)
+async def sync_incidents(
+    data: IncidentBatchSyncRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("citizen", "volunteer", "officer", "admin")),
+):
+    synced = []
+    duplicates = []
+    errors = []
+
+    for item in data.items:
+        try:
+            if item.idempotency_key:
+                existing_res = await db.execute(
+                    select(Incident).where(Incident.idempotency_key == item.idempotency_key)
+                )
+                existing_incident = existing_res.scalar_one_or_none()
+                if existing_incident:
+                    duplicates.append(existing_incident)
+                    continue
+
+            data_label_val = item.data_label.value if item.data_label else "replayed"
+            occurred_at_val = item.occurred_at or datetime.utcnow()
+
+            incident = Incident(
+                reporter_id=current_user.id,
+                type=item.type.value,
+                description=item.description,
+                lat=item.lat,
+                lng=item.lng,
+                severity=item.severity,
+                photo_url=item.photo_url,
+                idempotency_key=item.idempotency_key,
+                data_label=data_label_val,
+                occurred_at=occurred_at_val,
+            )
+            db.add(incident)
+            try:
+                await db.flush()
+                await db.refresh(incident)
+                synced.append(incident)
+            except IntegrityError:
+                await db.rollback()
+                if item.idempotency_key:
+                    existing_res = await db.execute(
+                        select(Incident).where(Incident.idempotency_key == item.idempotency_key)
+                    )
+                    existing_incident = existing_res.scalar_one_or_none()
+                    if existing_incident:
+                        duplicates.append(existing_incident)
+                        continue
+                raise
+        except Exception as e:
+            errors.append({
+                "idempotency_key": item.idempotency_key,
+                "error": str(e),
+            })
+
+    return IncidentBatchSyncResponse(
+        synced=synced,
+        duplicates=duplicates,
+        errors=errors,
+    )
+
 
 
 @router.get("/{incident_id}", response_model=IncidentOut)
