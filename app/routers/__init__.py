@@ -8,3 +8,4 @@ from .risk import router as risk_router
 from .notifications import router as notifications_router
 from .mesh import router as mesh_router
 from .status import router as status_router
+from .intelligence import router as intelligence_router

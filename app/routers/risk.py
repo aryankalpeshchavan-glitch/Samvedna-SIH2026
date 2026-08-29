@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.models.risk import RiskZone
 from app.models.user import User
-from app.schemas.risk import RiskZoneOut, RiskExplainOut
+from app.schemas.risk import RiskZoneOut, RiskExplainOut, RiskPredictionRequest, RiskPredictionResponse
 
 router = APIRouter(prefix="/risk", tags=["risk"])
 
@@ -60,9 +60,6 @@ async def get_risk_zones(
         )
         for z in sorted(filtered, key=lambda z: z.risk_score, reverse=True)
     ]
-
-
-from app.schemas.risk import RiskZoneOut, RiskExplainOut, RiskPredictionRequest, RiskPredictionResponse
 
 
 @router.post("", response_model=RiskPredictionResponse)
