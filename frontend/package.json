@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/geolocation": "^8.2.2",
     "animejs": "^4.5.0",
     "gsap": "^3.15.0",
     "html5-qrcode": "^2.3.8",
@@ -23,6 +26,7 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/animejs": "^3.1.13",
     "@types/maplibre-gl": "^1.13.2",
