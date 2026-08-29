@@ -5,37 +5,46 @@ All notable changes to the CrisisCore Backend are documented in this file.
 ---
 
 ## [Day 5] — Reliability, Security & Observability Sprint
-**Status:** Implementation Complete
+**Commit:** `1474060`
+**Test Suite:** 68/68 PASSED
 
 ### Added & Hardened
-- **Data Freshness / Provenance:** Added `RISK_FRESHNESS_MINUTES` to configurable settings. Decision and Risk endpoints now strictly evaluate the age of risk models against this threshold, transitioning outdated records to a `stale` data status.
-- **Controlled Failure Handling:** Risk API and Intelligence Decision layers now gracefully return HTTP 503 instead of fabricating false `0.5` risk scores when models are unavailable or unpopulated.
-- **Security Audit:** Validated `auth.py` handles token expiry and malformed JWTs robustly. Cleaned `.env.example` of secrets. Verified RBAC rules correctly lock down operations.
-- **Idempotency & State Protection:** Verified existing state machine securely handles duplicate Volunteer ACKs and assignment completions via idempotent checks. Invalid state transitions properly raise 400s.
-- **Safe Error Responses:** Introduced global generic `Exception` handler to `main.py` ensuring unexpected server faults yield standardized 500 JSON without exposing internal stack traces or SQL details.
-- **Audit Logging Enhancement:** Masked sensitive fields (like passwords/tokens) in the central audit `_model_to_dict` serialization for safe provenance logging of entities.
+- **Data Freshness / Provenance Tracking:**
+  - Integrated `RISK_FRESHNESS_MINUTES` configuration parameter (default: 60 minutes).
+  - Decision and Risk endpoints (`/intelligence/decision`, `/risk`) strictly validate the age of stored `RiskZone` models against `computed_at`, transitioning outdated records to a `stale` provenance status.
+- **Controlled Failure Handling & Safe Degradation:**
+  - Intelligence and Risk endpoints gracefully respond with HTTP 503 (`RISK_SERVICE_UNAVAILABLE`) when hazard data is missing rather than fabricating false default risk scores.
+- **Safe Global Error Handling:**
+  - Implemented centralized exception handler in `app/main.py` converting unhandled server exceptions into sanitized JSON responses (`{"detail": "Internal server error", "error_code": "INTERNAL_ERROR"}`) preventing stack trace or SQL leakage to clients.
+- **Audit Logging Security Hardening:**
+  - Added sensitive field blacklisting (`password_hash`, `token`, `secret`, `api_key`, `jwt`) to `app/core/audit_logger.py` serialization routines to prevent credential leakage into audit records.
+- **Authentication & RBAC Edge Case Hardening:**
+  - Added comprehensive test coverage in `tests/test_day5_reliability.py` verifying behavior on expired tokens, invalid signatures, missing bearer headers, and unauthorized role escalations.
+- **Idempotency & State Safety:**
+  - Verified state machine idempotency across duplicate volunteer ACKs, repeated completions, and invalid lifecycle transitions.
 
 ---
 
 ## [Day 4] — Intelligence & Operational Decision Layer
 **Commit:** `1d0f500`
+**Test Suite:** 61/61 PASSED
 
 ### Added
 - **Operational Priority Engine (`app/intelligence/priority.py`):**
-  - Linear, explainable composite formula combining Risk (0.35), Exposure (0.30), Vulnerability (0.20), and Response Capacity Gap (0.15) into a normalized $0 \to 100$ priority score.
-  - Triage categorization: `CRITICAL` ($\ge 80$), `HIGH` ($\ge 60$), `MEDIUM` ($\ge 40$), `LOW` ($< 40$).
+  - Deterministic composite formula combining Risk (0.35), Exposure (0.30), Vulnerability (0.20), and Response Capacity Gap (0.15) into a normalized $0 \to 100$ priority score.
+  - Operational triage categorization: `CRITICAL` ($\ge 80$), `HIGH` ($\ge 60$), `MEDIUM` ($\ge 40$), `LOW` ($< 40$).
 - **Exposure Model & Storage (`app/models/exposure.py`):**
-  - `ExposureZone` table capturing population, households, schools, hospitals, critical roads, hospital distance, early-warning capabilities, and road access quality.
-  - Granular provenance tagging (`live`, `simulated`, `replayed`, `stale`) with explicit source attribution.
+  - `ExposureZone` table capturing population, households, schools, hospitals, critical roads, distance to medical centers, early-warning capabilities, and road access quality.
+  - Multi-status data provenance tagging (`live`, `simulated`, `replayed`, `stale`) with explicit source attribution.
 - **Driver Explanation Layer (`app/intelligence/explanation.py`):**
-  - Translation of model driver keys (`rainfall_24h`, `rainfall_7day`, `slope`, `soil_moisture`, `ndvi`, etc.) to human-readable labels, descriptions, and units with safe fallback for unknown keys.
+  - Human-readable translation of ML feature keys (`rainfall_24h`, `rainfall_7day`, `slope`, `soil_moisture`, `ndvi`, etc.) with physical units, hazard categories, and safe fallbacks for unmapped drivers.
 - **Action Recommendations Engine (`app/intelligence/actions.py`):**
-  - Deterministic civil defense recommendation generator producing tailored advisories (DDMA alert, evacuation planning, road access restriction, hospital readiness, school precautions, mutual aid requests).
+  - Deterministic civil defense recommendation generator producing tailored advisories (DDMA alerts, evacuation staging, road access controls, medical preparedness, school closures, inter-district mutual aid).
 - **Intelligence Router (`app/routers/intelligence.py`):**
-  - `POST /intelligence/decision` — Unified coordinate-based decision endpoint.
+  - `POST /intelligence/decision` — Coordinate-based unified decision endpoint.
   - `GET /intelligence/decision/{zone_id}` — Zone-based decision endpoint.
   - `POST /intelligence/whatif` — Scenario simulator strictly labelled `"SIMULATION — NOT A FORECAST"`.
-  - `POST /intelligence/exposure`, `GET /intelligence/exposure`, `GET /intelligence/exposure/nearby` — Exposure zone management.
+  - `POST /intelligence/exposure`, `GET /intelligence/exposure`, `GET /intelligence/exposure/nearby` — Exposure zone management endpoints.
 - **Test Suite:**
   - 29 new tests in `tests/test_day4_intelligence.py` covering unit priority math, driver mappings, deterministic action rules, and integration endpoints.
 
