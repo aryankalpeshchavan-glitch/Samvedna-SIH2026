@@ -37,10 +37,11 @@ async def record_audit_log(
 
 
 def _model_to_dict(instance) -> dict:
+    sensitive_keys = {"password_hash", "token", "secret", "api_key", "jwt"}
     return {
         c.key: str(getattr(instance, c.key))
         for c in instance.__table__.columns
-        if getattr(instance, c.key) is not None
+        if getattr(instance, c.key) is not None and not any(s in c.key.lower() for s in sensitive_keys)
     }
 
 

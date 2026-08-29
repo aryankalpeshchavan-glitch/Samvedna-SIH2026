@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
+from datetime import datetime, timezone
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.auth import get_current_user
 from app.models.risk import RiskZone
 from app.models.user import User
@@ -53,7 +55,7 @@ async def get_risk_zones(
             risk_score=z.risk_score,
             horizon_hours=z.horizon_hours,
             top_features=z.top_features or {},
-            data_label=z.data_label,
+            data_label="stale" if (datetime.now(timezone.utc) - z.computed_at.replace(tzinfo=timezone.utc)).total_seconds() > settings.RISK_FRESHNESS_MINUTES * 60 else z.data_label,
             computed_at=z.computed_at,
             lat=z.lat,
             lng=z.lng,
@@ -75,7 +77,10 @@ async def predict_risk(
     result = await db.execute(select(RiskZone).order_by(RiskZone.computed_at.desc()).limit(1))
     zone = result.scalar_one_or_none()
 
-    risk_score = zone.risk_score if zone else 0.5
+    if not zone:
+        raise HTTPException(status_code=503, detail="Risk service unavailable: no risk data found for this location", headers={"X-Error-Code": "RISK_SERVICE_UNAVAILABLE"})
+
+    risk_score = zone.risk_score
     if risk_score >= 0.7:
         risk_level = "HIGH"
     elif risk_score >= 0.4:
@@ -83,15 +88,17 @@ async def predict_risk(
     else:
         risk_level = "LOW"
 
-    features = (zone.top_features if zone else None) or data.features or {}
+    features = zone.top_features or data.features or {}
     drivers = list(features.keys())[:3] if features else ["rainfall_24h", "rainfall_7day", "rainfall_3day"]
+
+    data_status = "stale" if (datetime.now(timezone.utc) - zone.computed_at.replace(tzinfo=timezone.utc)).total_seconds() > settings.RISK_FRESHNESS_MINUTES * 60 else zone.data_label
 
     return RiskPredictionResponse(
         risk_score=risk_score,
         risk_level=risk_level,
         confidence=0.84,
         drivers=drivers,
-        data_status=zone.data_label if zone else "live",
+        data_status=data_status,
     )
 
 

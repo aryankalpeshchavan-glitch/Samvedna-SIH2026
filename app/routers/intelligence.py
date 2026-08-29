@@ -32,6 +32,7 @@ from app.schemas.intelligence import (
     WhatIfRequest, WhatIfResponse,
     DriverExplanation, ExposureSummary, PriorityResult, RiskSummary,
 )
+from app.core.config import settings
 from app.intelligence.explanation import explain_drivers
 from app.intelligence.priority import (
     compute_exposure_score, compute_vulnerability_score,
@@ -84,8 +85,15 @@ async def _build_decision(
         data_status = zone.data_label
         zone_id_str = zone.id
         confidence = 0.84
+        
+        # Check freshness
+        if zone.computed_at and (now - zone.computed_at.replace(tzinfo=timezone.utc)).total_seconds() > settings.RISK_FRESHNESS_MINUTES * 60:
+            data_status = "stale"
+            
     else:
-        risk_score = risk_override if risk_override is not None else 0.50
+        if risk_override is None:
+            raise HTTPException(status_code=503, detail="Risk service unavailable: no risk data found for this location", headers={"X-Error-Code": "RISK_SERVICE_UNAVAILABLE"})
+        risk_score = risk_override
         raw_features = {}
         drivers = ["rainfall_24h", "rainfall_7day", "rainfall_3day"]
         data_status = "simulated"

@@ -2,7 +2,8 @@ import asyncio
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import engine, Base
@@ -64,6 +65,16 @@ app.include_router(notifications_router)
 app.include_router(mesh_router)
 app.include_router(status_router)
 app.include_router(intelligence_router)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # Log the exception safely here if needed, but do not leak to client
+    import logging
+    logging.error(f"Unhandled exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "error_code": "INTERNAL_ERROR"},
+    )
 
 
 @app.websocket("/ws/status")

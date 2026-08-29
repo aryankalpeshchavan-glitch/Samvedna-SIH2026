@@ -13,6 +13,7 @@ from app.intelligence.priority import (
 from app.intelligence.explanation import explain_drivers
 from app.intelligence.actions import generate_actions
 from tests.test_api import auth_header, register_and_login, client, setup_db
+from app.models.risk import RiskZone
 
 
 # ── Unit: Priority Engine ──────────────────────────────────────────────────────
@@ -211,19 +212,13 @@ async def test_nearby_exposure(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_decision_endpoint_no_zone(client: AsyncClient):
-    """Decision endpoint should succeed even with no risk zones or exposure zones."""
+    """Decision endpoint should return 503 when no risk data is available."""
     token = await register_and_login(client, "officer")
     resp = await client.post("/intelligence/decision", json={
         "lat": 26.1, "lng": 91.7, "location_id": "test_loc_001",
     }, headers=auth_header(token))
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "risk" in data
-    assert "priority" in data
-    assert "actions" in data
-    assert "explanation" in data
-    assert len(data["actions"]) >= 1
-    assert data["priority"]["priority_level"] in ("LOW", "MEDIUM", "HIGH", "CRITICAL")
+    assert resp.status_code == 503
+    assert "Risk service unavailable" in resp.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -241,6 +236,14 @@ async def test_decision_with_exposure_zone(client: AsyncClient):
         "has_early_warning": False,
         "data_status": "simulated",
     }, headers=auth_header(token))
+    
+    # Needs a RiskZone to avoid 503
+    import datetime
+    from tests.test_api import TestSession
+    async with TestSession() as db:
+        rz = RiskZone(id="test_zone_123", lat=26.15, lng=91.75, risk_score=0.8, horizon_hours=24, computed_at=datetime.datetime.utcnow())
+        db.add(rz)
+        await db.commit()
 
     resp = await client.post("/intelligence/decision", json={
         "lat": 26.15, "lng": 91.75,
@@ -257,8 +260,18 @@ async def test_decision_with_exposure_zone(client: AsyncClient):
 async def test_whatif_endpoint_raises_priority(client: AsyncClient):
     """Adding rainfall in the what-if scenario should raise risk and possibly priority."""
     token = await register_and_login(client, "officer")
+    
+    # Needs a RiskZone to avoid 503
+    import datetime
+    from tests.test_api import TestSession
+    async with TestSession() as db:
+        rz = RiskZone(id="test_zone_whatif", lat=26.15, lng=91.75, risk_score=0.5, horizon_hours=24, computed_at=datetime.datetime.utcnow())
+        db.add(rz)
+        await db.commit()
+    
     resp = await client.post("/intelligence/whatif", json={
         "lat": 26.15, "lng": 91.75,
+        "zone_id": "test_zone_whatif",
         "scenario_rainfall_mm": 500.0,
     }, headers=auth_header(token))
     assert resp.status_code == 200
@@ -271,6 +284,15 @@ async def test_whatif_endpoint_raises_priority(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_decision_rbac_citizen_allowed(client: AsyncClient):
     """Citizens must be able to query the decision endpoint (read-only intelligence)."""
+    # Needs a RiskZone to avoid 503
+    from app.models.risk import RiskZone
+    import datetime
+    from tests.test_api import TestSession
+    async with TestSession() as db:
+        rz = RiskZone(id="test_zone_rbac", lat=26.0, lng=91.5, risk_score=0.5, horizon_hours=24, computed_at=datetime.datetime.utcnow())
+        db.add(rz)
+        await db.commit()
+    
     citizen_token = await register_and_login(client, "citizen")
     resp = await client.post("/intelligence/decision", json={
         "lat": 26.0, "lng": 91.5,
@@ -292,6 +314,15 @@ async def test_whatif_rbac_citizen_blocked(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_risk_contract_stable(client: AsyncClient):
     """POST /risk must continue to return the stable ML contract keys."""
+    # Needs a RiskZone to avoid 503
+    from app.models.risk import RiskZone
+    import datetime
+    from tests.test_api import TestSession
+    async with TestSession() as db:
+        rz = RiskZone(id="test_zone_contract", lat=26.1, lng=91.7, risk_score=0.5, horizon_hours=24, computed_at=datetime.datetime.utcnow())
+        db.add(rz)
+        await db.commit()
+    
     token = await register_and_login(client, "officer")
     resp = await client.post("/risk", json={"lat": 26.1, "lng": 91.7}, headers=auth_header(token))
     assert resp.status_code == 200

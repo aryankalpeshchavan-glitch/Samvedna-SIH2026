@@ -8,6 +8,7 @@ from app.models.incident import Incident
 from app.models.assignment import Assignment
 from app.models.audit import AuditLog
 from app.models.volunteer import Volunteer
+from app.models.risk import RiskZone
 from tests.test_api import auth_header, register_and_login, TestSession, client, setup_db
 from app.background.matching_worker import process_incident_match
 
@@ -157,6 +158,15 @@ async def test_matching_worker_no_resource_available(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_risk_api_contract(client: AsyncClient):
     """Test POST /risk contract returns expected keys."""
+    # Needs a RiskZone to avoid 503
+    from app.models.risk import RiskZone
+    import datetime
+    from tests.test_api import TestSession
+    async with TestSession() as db:
+        rz = RiskZone(id="test_zone_contract_day3", lat=26.15, lng=91.75, risk_score=0.5, horizon_hours=24, computed_at=datetime.datetime.utcnow())
+        db.add(rz)
+        await db.commit()
+    
     citizen_token = await register_and_login(client, "citizen")
 
     resp = await client.post("/risk", json={

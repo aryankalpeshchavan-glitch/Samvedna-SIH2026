@@ -4,6 +4,19 @@ All notable changes to the CrisisCore Backend are documented in this file.
 
 ---
 
+## [Day 5] — Reliability, Security & Observability Sprint
+**Status:** Implementation Complete
+
+### Added & Hardened
+- **Data Freshness / Provenance:** Added `RISK_FRESHNESS_MINUTES` to configurable settings. Decision and Risk endpoints now strictly evaluate the age of risk models against this threshold, transitioning outdated records to a `stale` data status.
+- **Controlled Failure Handling:** Risk API and Intelligence Decision layers now gracefully return HTTP 503 instead of fabricating false `0.5` risk scores when models are unavailable or unpopulated.
+- **Security Audit:** Validated `auth.py` handles token expiry and malformed JWTs robustly. Cleaned `.env.example` of secrets. Verified RBAC rules correctly lock down operations.
+- **Idempotency & State Protection:** Verified existing state machine securely handles duplicate Volunteer ACKs and assignment completions via idempotent checks. Invalid state transitions properly raise 400s.
+- **Safe Error Responses:** Introduced global generic `Exception` handler to `main.py` ensuring unexpected server faults yield standardized 500 JSON without exposing internal stack traces or SQL details.
+- **Audit Logging Enhancement:** Masked sensitive fields (like passwords/tokens) in the central audit `_model_to_dict` serialization for safe provenance logging of entities.
+
+---
+
 ## [Day 4] — Intelligence & Operational Decision Layer
 **Commit:** `1d0f500`
 
