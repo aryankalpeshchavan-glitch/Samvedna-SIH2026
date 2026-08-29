@@ -6,10 +6,11 @@ from sqlalchemy import select
 from app.core.redis import get_redis
 from app.core.database import async_session
 from app.core.audit_logger import record_audit_log
+from app.core.config import settings
 from app.models.incident import Incident
 from app.models.assignment import Assignment
 from app.matching.engine import find_best_volunteer
-from app.notifications.dispatcher import on_assignment_reassigned
+from app.notifications.dispatcher import on_assignment_created
 
 
 async def process_matching_queue():
@@ -67,7 +68,7 @@ async def process_incident_match(incident_id: str):
         existing_assignment_result = await db.execute(
             select(Assignment).where(
                 Assignment.incident_id == incident_id,
-                Assignment.status.in_(["pending", "acked", "done"])
+                Assignment.status.in_(["pending", "acked", "in_progress", "done"])
             )
         )
         if existing_assignment_result.scalars().first():
@@ -78,6 +79,16 @@ async def process_incident_match(incident_id: str):
         best = await find_best_volunteer(db, incident)
         if not best:
             print(f"[MATCHING_WORKER] No suitable volunteers found for incident {incident_id}.")
+            await record_audit_log(
+                db=db,
+                action="matching_no_resource",
+                entity_type="Incident",
+                entity_id=str(incident.id),
+                actor_id=None,
+                before=None,
+                after={"status": incident.status, "reason": "no_available_volunteers"},
+            )
+            await db.commit()
             return
             
         new_volunteer, score = best
@@ -86,7 +97,7 @@ async def process_incident_match(incident_id: str):
         new_assignment = Assignment(
             incident_id=incident.id,
             volunteer_id=new_volunteer.id,
-            sla_deadline=now + timedelta(minutes=5),
+            sla_deadline=now + timedelta(seconds=settings.ASSIGNMENT_ACK_TIMEOUT_SECONDS),
             status="pending"
         )
         db.add(new_assignment)
@@ -113,7 +124,7 @@ async def process_incident_match(incident_id: str):
         )
 
         # 7. Dispatch notification
-        await on_assignment_reassigned(
+        await on_assignment_created(
             incident_id=str(incident.id),
             volunteer_id=new_volunteer.id,
             data_label=incident.data_label,

@@ -23,6 +23,9 @@ class Settings:
     RISK_API_URL: str = os.getenv("RISK_API_URL", "")
 
     AUTO_REASSIGN_MINUTES: int = int(os.getenv("AUTO_REASSIGN_MINUTES", "5"))
+    ASSIGNMENT_ACK_TIMEOUT_SECONDS: int = int(
+        os.getenv("ASSIGNMENT_ACK_TIMEOUT_SECONDS", str(int(os.getenv("AUTO_REASSIGN_MINUTES", "5")) * 60))
+    )
 
 
 settings = Settings()

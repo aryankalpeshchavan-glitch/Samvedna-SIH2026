@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from app.core.database import async_session
 from app.core.audit_logger import record_audit_log
+from app.core.config import settings
 from app.models.assignment import Assignment
 from app.models.incident import Incident
 from app.notifications.dispatcher import on_assignment_reassigned
@@ -59,7 +60,7 @@ async def check_and_reassign_expired():
                 new_assignment = Assignment(
                     incident_id=incident.id,
                     volunteer_id=new_volunteer.id,
-                    sla_deadline=now + timedelta(minutes=5),
+                    sla_deadline=now + timedelta(seconds=settings.ASSIGNMENT_ACK_TIMEOUT_SECONDS),
                 )
                 db.add(new_assignment)
                 await db.flush()

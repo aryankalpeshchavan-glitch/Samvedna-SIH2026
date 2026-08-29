@@ -162,6 +162,12 @@ async def verify_incident(
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
 
+    if incident.status in ["rejected", "resolved"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot verify incident in '{incident.status}' state",
+        )
+
     old_status = incident.status
     incident.status = "verified"
     incident.data_label = data.data_label.value
@@ -183,6 +189,43 @@ async def verify_incident(
     # Enqueue matching job for verified incident
     import asyncio
     asyncio.create_task(enqueue_matching_job(str(incident.id)))
+
+    return incident
+
+
+@router.patch("/{incident_id}/reject", response_model=IncidentOut)
+async def reject_incident(
+    incident_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("officer", "admin")),
+):
+    result = await db.execute(select(Incident).where(Incident.id == incident_id))
+    incident = result.scalar_one_or_none()
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    if incident.status in ["resolved", "assigned"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot reject incident in '{incident.status}' state",
+        )
+
+    old_status = incident.status
+    incident.status = "rejected"
+    incident.updated_at = datetime.utcnow()
+    await db.flush()
+    await db.refresh(incident)
+
+    from app.core.audit_logger import record_audit_log
+    await record_audit_log(
+        db=db,
+        action="reject",
+        entity_type="Incident",
+        entity_id=str(incident.id),
+        actor_id=current_user.id,
+        before={"status": old_status},
+        after={"status": "rejected"},
+    )
 
     return incident
 

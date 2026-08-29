@@ -22,3 +22,18 @@ class RiskExplainOut(BaseModel):
     risk_score: float
     top_features: dict[str, Any]
     explanation: str
+
+
+class RiskPredictionRequest(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lng: float = Field(..., ge=-180, le=180)
+    horizon_hours: Optional[int] = 24
+    features: Optional[dict[str, Any]] = None
+
+
+class RiskPredictionResponse(BaseModel):
+    risk_score: float
+    risk_level: str
+    confidence: float
+    drivers: list[str]
+    data_status: str = "live"
