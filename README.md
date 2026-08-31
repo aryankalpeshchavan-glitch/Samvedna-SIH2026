@@ -206,7 +206,8 @@ app/
 | **Day 2: Ingestion & Queues** | Offline incident batch sync (`/incidents/sync`), Redis matching queue integration, real-time WebSocket status channel (`/ws/status`). | `app/routers/incidents.py`, `app/realtime/`, `app/core/redis.py` | `9dcca1c` / `6502077` | 32/32 |
 | **Day 3: Response Lifecycle** | Citizen SOS $\to$ Officer Verification $\to$ Redis Queue $\to$ Multi-factor Volunteer Matching $\to$ SLA Timeout $\to$ Volunteer ACK $\to$ Completion $\to$ Immutable Audit Trail. | `app/background/`, `app/matching/`, `app/routers/assignments.py`, `app/core/audit_logger.py` | `ace1ba7` / `6536bf4` | 32/32 |
 | **Day 4: Decision Layer** | Operational Priority Engine ($0 \to 100$), Exposure Zone management, ML driver explanations, Action Recommendation generator, What-If simulation endpoint, Unified Decision endpoint. | `app/intelligence/`, `app/models/exposure.py`, `app/routers/intelligence.py` | `1d0f500` | 61/61 |
-| **Day 5: Security & Reliability** | Data freshness TTL (`RISK_FRESHNESS_MINUTES`), 503 degradation on missing models, sanitized 500 error responses, audit log credential masking, RBAC edge testing. | `app/core/config.py`, `app/main.py`, `app/core/audit_logger.py`, `tests/test_day5_reliability.py` | `1474060` | **68/68** |
+| **Day 5: Security & Reliability** | Data freshness TTL (`RISK_FRESHNESS_MINUTES`), 503 degradation on missing models, sanitized 500 error responses, audit log credential masking, RBAC edge testing. | `app/core/config.py`, `app/main.py`, `app/core/audit_logger.py`, `tests/test_day5_reliability.py` | `1474060` | 68/68 |
+| **Day 6: Backend Integration** | End-to-end flow verification, frontend integration contract documentation ([`docs/FRONTEND_INTEGRATION.md`](docs/FRONTEND_INTEGRATION.md)), route aliasing (`/verify`, `/ack`), and integration test suite. | `docs/FRONTEND_INTEGRATION.md`, `tests/test_day6_integration.py`, `app/routers/` | Day 6 Sprint | **76/76** |
 
 ---
 
@@ -329,6 +330,8 @@ sequenceDiagram
 ---
 
 ## API Reference
+
+> **Frontend Developers:** For complete request/response JSON schemas, field constraints, provenance tagging requirements, and WebSocket protocol definitions, refer to the [**Frontend Integration Guide (`docs/FRONTEND_INTEGRATION.md`)**](docs/FRONTEND_INTEGRATION.md).
 
 ### 1. Authentication & Users
 | Method | Path | Auth / Role | Purpose |
@@ -530,9 +533,10 @@ Run tests using `pytest`:
 python -m pytest -q
 ```
 
-> **Milestone Status:** At the Day 5 milestone, the full suite contains **68 passing tests** (`68 passed`).
+> **Milestone Status:** At the Day 6 integration milestone, the full suite contains **76 passing tests** (`76 passed`).
 
 ### Test Suite Structure
+* `tests/test_day6_integration.py` — End-to-end integration tests (ML contract bounds, decision completeness, full response lifecycle, cross-role RBAC, stale TTL, 503 degradation, what-if simulator).
 * `tests/test_api.py` — Core API endpoints, user authentication, RBAC authorization, and health checks.
 * `tests/test_day3_integration.py` — Incident verification, rejection guards, and worker dispatch.
 * `tests/test_day4_intelligence.py` — Priority formula weights, driver explanation mapping, exposure CRUD, what-if simulations, and decision endpoints.

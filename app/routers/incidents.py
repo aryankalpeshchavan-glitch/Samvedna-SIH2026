@@ -151,6 +151,7 @@ async def get_incident(
 
 
 @router.patch("/{incident_id}/verify", response_model=IncidentOut)
+@router.post("/{incident_id}/verify", response_model=IncidentOut)
 async def verify_incident(
     incident_id: str,
     data: IncidentVerify,
@@ -194,6 +195,7 @@ async def verify_incident(
 
 
 @router.patch("/{incident_id}/reject", response_model=IncidentOut)
+@router.post("/{incident_id}/reject", response_model=IncidentOut)
 async def reject_incident(
     incident_id: str,
     db: AsyncSession = Depends(get_db),

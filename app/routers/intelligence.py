@@ -288,6 +288,20 @@ async def what_if_simulator(
     if data.zone_id:
         zone_result = await db.execute(select(RiskZone).where(RiskZone.id == data.zone_id))
         zone = zone_result.scalar_one_or_none()
+    else:
+        # Find nearest risk zone within 50 km or latest
+        all_zones_result = await db.execute(
+            select(RiskZone).order_by(RiskZone.computed_at.desc()).limit(50)
+        )
+        all_zones = all_zones_result.scalars().all()
+        nearest, nearest_d = None, float("inf")
+        for z in all_zones:
+            if z.lat and z.lng:
+                d = haversine_km(data.lat, data.lng, z.lat, z.lng)
+                if d < nearest_d:
+                    nearest_d = d
+                    nearest = z
+        zone = nearest
 
     # Current decision
     current = await _build_decision(lat=data.lat, lng=data.lng, db=db, zone=zone)
