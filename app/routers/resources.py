@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_role
 from app.models.resource import Resource
 from app.models.user import User
 from app.schemas.resource import ResourceCreate, ResourceOut
@@ -31,7 +31,7 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 async def create_resource(
     data: ResourceCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("citizen", "volunteer", "officer", "admin")),
 ):
     resource = Resource(
         owner_id=current_user.id,

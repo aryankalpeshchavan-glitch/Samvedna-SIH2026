@@ -1,0 +1,11 @@
+event_id,date,state,district,area_or_location,landslide_type,trigger,damage_or_impact,source
+LS001,15-16 May 2022,Assam,Dima Hasao,New Haflong Railway Station,Debris flow,,Parked train damaged; multiple landslides on slopes around the station,Landslide Atlas of India
+LS002,2011,Sikkim,North Sikkim,Chungthang area,,,Parts of road destroyed,Landslide Atlas of India
+LS003,2011,Sikkim,,Tista River area,,,Road blockage caused by landslides,Landslide Atlas of India
+LS004,2017,Mizoram,Aizawl,Aizawl,Shallow translational failure,Heavy monsoonal rain,Landslide,Landslide Atlas of India
+LS005,2017,Tripura,Dhalai,Dhalai,Shallow translational failure,Heavy monsoonal rain,Landslide,Landslide Atlas of India
+LS006,2014-2018,Mizoram,,Various locations,,,"Landslides mapped using high-resolution satellite data",Landslide Atlas of India
+LS007,2014-2018,Tripura,,Various locations,,,"Landslides mapped using high-resolution satellite data",Landslide Atlas of India
+LS008,2014-2017,Meghalaya,East Khasi Hills,East Khasi Hills,,,"Landslides mapped using high-resolution satellite data",Landslide Atlas of India
+LS009,2014-2022,Manipur,Noney,Tupul Railway Station area,,,"Landslide near Tupul Railway Station",Landslide Atlas of India
+LS010,2014-2022,Nagaland,Phek,Kikruma,,,"Landslide from Kikruma",Landslide Atlas of India

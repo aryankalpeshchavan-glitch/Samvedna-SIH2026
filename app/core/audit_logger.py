@@ -21,7 +21,10 @@ async def record_audit_log(
 ) -> AuditLog:
     """
     Explicitly logs an auditable state transition into the audit_log table.
+    Also emits a WebSocket event on the same state-change hook so audit log
+    and live status feed never disagree (single source of truth).
     """
+    import asyncio
     entry = AuditLog(
         id=str(uuid4()),
         actor_id=actor_id,
@@ -33,6 +36,26 @@ async def record_audit_log(
         timestamp=datetime.utcnow(),
     )
     db.add(entry)
+
+    # Fire-and-forget WS broadcast (keep console fallback if Redis down)
+    try:
+        from app.realtime.ws_manager import ws_manager
+
+        payload = {
+            "event": "audit",
+            "action": action,
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+            "actor_id": actor_id,
+            "timestamp": entry.timestamp.isoformat(),
+            "before": before,
+            "after": after,
+        }
+        # schedule without blocking the transaction
+        asyncio.create_task(ws_manager.broadcast(payload))
+    except Exception:
+        pass
+
     return entry
 
 

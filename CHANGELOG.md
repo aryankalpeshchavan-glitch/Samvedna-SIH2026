@@ -4,24 +4,6 @@ All notable changes to the CrisisCore Backend are documented in this file.
 
 ---
 
-## [Day 6] — Backend Integration & End-to-End Verification Sprint
-**Status:** Verification Complete
-**Test Suite:** 76/76 PASSED
-
-### Added & Verified
-- **End-to-End Disaster Response Flow:**
-  - Validated complete vertical slice: ML Risk Prediction $\to$ Driver Explanation $\to$ Exposure Assessment $\to$ Operational Priority $\to$ Action Recommendation $\to$ Citizen SOS $\to$ Officer Verification $\to$ Multi-factor Volunteer Matching $\to$ Volunteer ACK $\to$ Completion $\to$ Audit Trail.
-- **Frontend Contract Synchronization & Documentation:**
-  - Created [`docs/FRONTEND_INTEGRATION.md`](docs/FRONTEND_INTEGRATION.md) documenting exact payload structures, parameters, data provenance tags, RBAC rules, and error handling for all 18+ endpoints.
-- **API Aliasing & Route Ergonomics:**
-  - Added `POST /incidents/{id}/verify` and `POST /incidents/{id}/reject` aliases alongside existing PATCH routes.
-  - Added `POST /assignments/{id}/ack` convenience route alongside `PATCH /assignments/{id}/status`.
-  - Added coordinate-based nearest zone fallback to `POST /intelligence/whatif` matching `POST /intelligence/decision`.
-- **Comprehensive Integration Suite (`tests/test_day6_integration.py`):**
-  - Added 8 integration tests covering ML risk bounds, decision completeness, full lifecycle dispatch, cross-role RBAC enforcement, stale-data TTL handling, failure degradation (HTTP 503), what-if simulation, and idempotency deduplication.
-
----
-
 ## [Day 5] — Reliability, Security & Observability Sprint
 **Commit:** `1474060`
 **Test Suite:** 68/68 PASSED

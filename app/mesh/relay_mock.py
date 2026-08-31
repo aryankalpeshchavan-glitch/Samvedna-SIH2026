@@ -1,6 +1,9 @@
 """
 Mesh relay MOCK for demo purposes.
 NOT a real BLE/Bridgefy integration — simulates store-and-forward relay.
+TODO(Anjishnu): Bridgefy/BLE mesh is stub-only; do not let this block Levels 1-3
+(LAN/WAN push, low-bandwidth text mode, SMS/USSD). If relay becomes flaky, leave TODO
+and keep Levels 1-3 as primary. Current stub is stable for demo (test: test_api:test_mesh_simulate).
 """
 import asyncio
 from datetime import datetime

@@ -54,6 +54,21 @@ async def create_incident(
         await db.flush()
         await db.refresh(incident)
 
+        # Audit + WS broadcast via same hook (single source of truth)
+        try:
+            from app.core.audit_logger import record_audit_log
+            await record_audit_log(
+                db=db,
+                action="create",
+                entity_type="Incident",
+                entity_id=str(incident.id),
+                actor_id=current_user.id,
+                before=None,
+                after={"status": incident.status, "type": incident.type, "data_label": data_label_val},
+            )
+        except Exception:
+            pass
+
         # Enqueue matching job asynchronously
         import asyncio
         asyncio.create_task(enqueue_matching_job(str(incident.id)))
@@ -151,7 +166,6 @@ async def get_incident(
 
 
 @router.patch("/{incident_id}/verify", response_model=IncidentOut)
-@router.post("/{incident_id}/verify", response_model=IncidentOut)
 async def verify_incident(
     incident_id: str,
     data: IncidentVerify,
@@ -195,7 +209,6 @@ async def verify_incident(
 
 
 @router.patch("/{incident_id}/reject", response_model=IncidentOut)
-@router.post("/{incident_id}/reject", response_model=IncidentOut)
 async def reject_incident(
     incident_id: str,
     db: AsyncSession = Depends(get_db),

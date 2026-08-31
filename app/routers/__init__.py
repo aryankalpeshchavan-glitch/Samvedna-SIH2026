@@ -9,3 +9,4 @@ from .notifications import router as notifications_router
 from .mesh import router as mesh_router
 from .status import router as status_router
 from .intelligence import router as intelligence_router
+from .audit import router as audit_router

@@ -1,0 +1,173 @@
+import React, { useRef, useEffect, useState } from 'react';
+import { SosButton } from '../components/emergency/SosButton';
+import { LocationData, NetworkStatusType, SosState, SosStatusDetail } from '../types/emergency';
+import { SosStateViewer } from '../components/emergency/SosStateViewer';
+import { animatePageEnter } from '../animations/pageTransitions';
+import { TabType } from '../components/navigation/BottomNav';
+import { NeMap3D } from '../components/map/NeMap3D';
+import { MapControlsOverlay } from '../components/map/MapControlsOverlay';
+import { MapLayerMode, NeStateInfo, MonitoringPoint } from '../types/map';
+import { CitizenMapReport } from '../types/emergency';
+import { WhyRiskModal } from '../components/interactive/WhyRiskModal';
+import { TerrainScanner } from '../components/interactive/TerrainScanner';
+import { SafeRouteOverlay } from '../components/interactive/SafeRouteOverlay';
+import { StoryModeModal } from '../components/interactive/StoryModeModal';
+import { EmergencyModeBanner } from '../components/emergency/EmergencyModeBanner';
+import { PhoneCall, AlertOctagon } from 'lucide-react';
+
+interface HomeProps {
+  location: LocationData;
+  refreshLocation: () => void;
+  networkStatus: NetworkStatusType;
+  sosState: SosState;
+  statusDetail: SosStatusDetail;
+  onTriggerSos: () => void;
+  onResetSos: () => void;
+  onNavigate: (tab: TabType) => void;
+}
+
+export const Home: React.FC<HomeProps> = ({
+  location,
+  refreshLocation,
+  networkStatus,
+  sosState,
+  statusDetail,
+  onTriggerSos,
+  onResetSos,
+  onNavigate: _onNavigate,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 3D Map & Interactive Modals State
+  const [mapLayerMode, setMapLayerMode] = useState<MapLayerMode>('risk');
+  const [selectedState, setSelectedState] = useState<NeStateInfo | null>(null);
+  const [selectedStation, setSelectedStation] = useState<MonitoringPoint | null>(null);
+  const [selectedCitizenReport, setSelectedCitizenReport] = useState<CitizenMapReport | null>(null);
+  const [hoveredStateName, setHoveredStateName] = useState<string | null>(null);
+  const [showSafeRoute, setShowSafeRoute] = useState(false);
+  const [isEmergencyMode, setIsEmergencyMode] = useState(false);
+
+  // Interactive Explainer Modals
+  const [isWhyRiskOpen, setIsWhyRiskOpen] = useState(false);
+  const [isTerrainScanOpen, setIsTerrainScanOpen] = useState(false);
+  const [isStoryModeOpen, setIsStoryModeOpen] = useState(false);
+
+  useEffect(() => {
+    animatePageEnter(containerRef.current);
+  }, []);
+
+  const handleResetMapCamera = () => {
+    setSelectedState(null);
+    setSelectedStation(null);
+    setSelectedCitizenReport(null);
+    setShowSafeRoute(false);
+  };
+
+  const handleMyAreaClick = () => {
+    refreshLocation();
+    setSelectedState(null);
+    setSelectedStation(null);
+  };
+
+  const userLngLat: [number, number] | null =
+    location.longitude && location.latitude ? [location.longitude, location.latitude] : [91.7362, 26.1445];
+
+  return (
+    <div ref={containerRef} className="pb-16 lg:pb-4 font-sans space-y-3">
+      
+      {/* High-Stress Emergency Mode Evacuation Banner (Active when toggled or critical warning) */}
+      {isEmergencyMode && (
+        <div className="max-w-xl mx-auto px-2">
+          <EmergencyModeBanner
+            onShowRoute={() => setShowSafeRoute(true)}
+            onExitEmergencyMode={() => setIsEmergencyMode(false)}
+          />
+        </div>
+      )}
+
+      {/* 90% Viewport Hero Map Section — THE MAP IS THE HERO */}
+      <div className="relative rounded-2xl overflow-hidden shadow-lg border border-[#C7B89B]/50 bg-[#F4F1E8]">
+        <NeMap3D
+          layerMode={mapLayerMode}
+          selectedState={selectedState}
+          selectedStation={selectedStation}
+          selectedCitizenReport={selectedCitizenReport}
+          showSafeRoute={showSafeRoute}
+          userLocation={userLngLat}
+          onSelectState={setSelectedState}
+          onSelectStation={setSelectedStation}
+          onSelectCitizenReport={setSelectedCitizenReport}
+          onHoverState={setHoveredStateName}
+        />
+
+        <MapControlsOverlay
+          layerMode={mapLayerMode}
+          onLayerModeChange={setMapLayerMode}
+          hoveredStateName={hoveredStateName}
+          selectedState={selectedState}
+          selectedStation={selectedStation}
+          selectedCitizenReport={selectedCitizenReport}
+          showSafeRoute={showSafeRoute}
+          isEmergencyMode={isEmergencyMode}
+          onToggleEmergencyMode={() => setIsEmergencyMode(!isEmergencyMode)}
+          onToggleSafeRoute={() => setShowSafeRoute(!showSafeRoute)}
+          onOpenWhyRisk={() => setIsWhyRiskOpen(true)}
+          onOpenTerrainScan={() => setIsTerrainScanOpen(true)}
+          onOpenStoryMode={() => setIsStoryModeOpen(true)}
+          onMyAreaClick={handleMyAreaClick}
+          onResetView={handleResetMapCamera}
+          onCloseDetail={() => {
+            setSelectedState(null);
+            setSelectedStation(null);
+            setSelectedCitizenReport(null);
+          }}
+        />
+
+        {/* Safe Route Info Drawer Overlay */}
+        <SafeRouteOverlay isOpen={showSafeRoute} onClose={() => setShowSafeRoute(false)} />
+      </div>
+
+      {/* Floating Light SOS Action Trigger Bar sitting neatly below Hero Map */}
+      <div className="max-w-xl mx-auto px-2">
+        {sosState !== 'IDLE' ? (
+          <SosStateViewer statusDetail={statusDetail} onReset={onResetSos} />
+        ) : (
+          <SosButton onTrigger={onTriggerSos} />
+        )}
+      </div>
+
+      {/* Feature Phone / SMS Fallback Banner */}
+      <div className="max-w-xl mx-auto p-3 rounded-xl bg-[#FAF9F3] border border-[#C7B89B]/40 text-xs text-[#536A72] flex items-center justify-between font-mono shadow-sm">
+        <div className="flex items-center space-x-2">
+          <PhoneCall className="w-4 h-4 text-[#23483A]" />
+          <span>SMS Fallback: <strong className="text-[#202622]">SMS 'SOS' to 56161</strong></span>
+        </div>
+        <span className="text-[10px] text-[#23483A] font-bold">Feature Phones Ready</span>
+      </div>
+
+      {networkStatus === 'OFFLINE' && (
+        <div className="max-w-xl mx-auto p-3 rounded-xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-xs text-[#8E2F2B] font-mono flex items-center space-x-2">
+          <AlertOctagon className="w-4 h-4 shrink-0" />
+          <span>⚠️ OFFLINE MODE: SOS request saved in IndexedDB; will auto-sync on reconnect.</span>
+        </div>
+      )}
+
+      {/* Interactive Modals */}
+      <WhyRiskModal
+        isOpen={isWhyRiskOpen}
+        onClose={() => setIsWhyRiskOpen(false)}
+        onShowRoute={() => setShowSafeRoute(true)}
+      />
+
+      <TerrainScanner
+        isOpen={isTerrainScanOpen}
+        onClose={() => setIsTerrainScanOpen(false)}
+      />
+
+      <StoryModeModal
+        isOpen={isStoryModeOpen}
+        onClose={() => setIsStoryModeOpen(false)}
+      />
+    </div>
+  );
+};

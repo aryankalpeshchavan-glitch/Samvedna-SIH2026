@@ -5,17 +5,30 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://crisiscore:crisiscore@db:5432/crisiscore
-      - DATABASE_URL_SYNC=postgresql://crisiscore:crisiscore@db:5432/crisiscore
       - REDIS_URL=redis://redis:6379/0
       - JWT_SECRET=crisiscore-dev-secret-change-in-prod
+      - JWT_ACCESS_EXPIRE_MINUTES=15
+      - JWT_REFRESH_EXPIRE_DAYS=7
       - NOTIFICATION_PROVIDER=console
       - AUTO_REASSIGN_MINUTES=5
+      - ENVIRONMENT=development
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - api
 
   db:
     image: postgis/postgis:15-3.3
@@ -31,7 +44,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U crisiscore"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -42,6 +55,18 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # Optional: ML pipeline as one-shot job (run manually: docker compose run ml)
+  ml:
+    build:
+      context: .
+      dockerfile: ml/Dockerfile
+    volumes:
+      - ./data:/app/data
+    environment:
+      - API_URL=http://api:8000
+    profiles: ["ml"]
+    command: python ml/ingest_to_backend.py
 
 volumes:
   pgdata:

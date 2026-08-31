@@ -91,6 +91,22 @@ async def create_assignment(
         },
     )
 
+    # Real notification trigger (keep console as fallback via NOTIFICATION_PROVIDER=console)
+    import asyncio
+    from app.notifications.dispatcher import on_assignment_created
+    from app.core.config import settings as _settings
+    try:
+        # Use incident's data_label for provider routing; fallback is console
+        asyncio.create_task(
+            on_assignment_created(
+                incident_id=str(data.incident_id),
+                volunteer_id=data.volunteer_id,
+                data_label=getattr(incident, "data_label", "synthetic"),
+            )
+        )
+    except Exception as e:
+        print(f"[ASSIGNMENT NOTIFY ERROR] {e} (provider={_settings.NOTIFICATION_PROVIDER})")
+
     return assignment
 
 
@@ -151,7 +167,6 @@ async def list_assignments(
 
 
 @router.patch("/{assignment_id}/status", response_model=AssignmentOut)
-@router.post("/{assignment_id}/status", response_model=AssignmentOut)
 async def update_assignment_status(
     assignment_id: str,
     data: AssignmentStatusUpdate,
@@ -212,19 +227,3 @@ async def update_assignment_status(
     )
 
     return assignment
-
-
-@router.post("/{assignment_id}/ack", response_model=AssignmentOut)
-async def ack_assignment(
-    assignment_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("volunteer", "officer", "admin")),
-):
-    """Convenience endpoint to acknowledge an assignment."""
-    from app.schemas.assignment import AssignmentStatus
-    return await update_assignment_status(
-        assignment_id=assignment_id,
-        data=AssignmentStatusUpdate(status=AssignmentStatus.acked),
-        db=db,
-        current_user=current_user,
-    )
