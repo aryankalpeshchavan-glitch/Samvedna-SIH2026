@@ -1,0 +1,62 @@
+[
+  {
+    "id": "RSC-01", "type": "Rescue Team", "icon": "rescue", "driver": "Capt. Rana",
+    "status": "EN ROUTE", "eta": 1320,
+    "route": [
+      [79.150, 30.520], [79.180, 30.500], [79.210, 30.480],
+      [79.240, 30.460], [79.270, 30.440], [79.300, 30.420], [79.320, 30.405]
+    ],
+    "currentRouteIndex": 0
+  },
+  {
+    "id": "RSC-02", "type": "Rescue Team", "icon": "rescue", "driver": "Lt. Bisht",
+    "status": "EN ROUTE", "eta": 1560,
+    "route": [
+      [79.400, 30.350], [79.380, 30.365], [79.360, 30.380],
+      [79.340, 30.395], [79.325, 30.405]
+    ],
+    "currentRouteIndex": 0
+  },
+  {
+    "id": "AMB-07", "type": "Medical Unit", "icon": "ambulance", "driver": "Dr. Joshi",
+    "status": "EN ROUTE", "eta": 1080,
+    "route": [
+      [79.200, 30.450], [79.230, 30.440], [79.260, 30.425],
+      [79.290, 30.415], [79.318, 30.405]
+    ],
+    "currentRouteIndex": 0
+  },
+  {
+    "id": "AIR-01", "type": "Helicopter", "icon": "helicopter", "driver": "Cdr. Thapa",
+    "status": "EN ROUTE", "eta": 660,
+    "route": [
+      [78.980, 30.320], [79.050, 30.345], [79.130, 30.370],
+      [79.220, 30.390], [79.310, 30.405]
+    ],
+    "currentRouteIndex": 0
+  },
+  {
+    "id": "RSC-03", "type": "Rescue Team", "icon": "rescue", "driver": "Sgt. Rawat",
+    "status": "STANDBY", "eta": null,
+    "route": [[79.100, 30.550]],
+    "currentRouteIndex": 0
+  },
+  {
+    "id": "AMB-12", "type": "Medical Unit", "icon": "ambulance", "driver": "Dr. Negi",
+    "status": "STANDBY", "eta": null,
+    "route": [[79.050, 30.480]],
+    "currentRouteIndex": 0
+  },
+  {
+    "id": "ENG-04", "type": "Engineering", "icon": "rescue", "driver": "Eng. Dimri",
+    "status": "ON SITE", "eta": 0,
+    "route": [[79.320, 30.402]],
+    "currentRouteIndex": 0
+  },
+  {
+    "id": "AMB-03", "type": "Medical Unit", "icon": "ambulance", "driver": "Dr. Pandey",
+    "status": "ON SITE", "eta": 0,
+    "route": [[79.315, 30.408]],
+    "currentRouteIndex": 0
+  }
+]
