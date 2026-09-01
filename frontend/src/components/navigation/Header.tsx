@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { NetworkIndicator } from '../ui/NetworkIndicator';
 import { DataSourceBadge } from '../ui/DataSourceBadge';
 import { NetworkStatusType } from '../../types/emergency';
 import { TabType } from './BottomNav';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { useAudioAlert } from '../../hooks/useAudioAlert';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import { QrCode, Shield, Globe, Volume2, VolumeX, LifeBuoy } from 'lucide-react';
-
-import { SpecularHeading } from '../ui/SpecularHeading';
 
 interface HeaderProps {
   networkStatus: NetworkStatusType;
@@ -21,6 +20,9 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
   const { language, setLanguage, languages, t } = useTranslation();
   const { audioEnabled, toggleAudioEnabled } = useAudioAlert();
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(langDropdownRef, () => setShowLangDropdown(false), showLangDropdown);
 
   const activeLangObj = languages.find((l) => l.code === language) || languages[0];
 
@@ -35,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
           </div>
           <div>
             <h1 className="text-lg font-heading font-black tracking-wider text-[#202622] uppercase leading-none px-1.5 py-0.5">
-              CRISISCORE
+              SAMVEDNA
             </h1>
             <span className="text-[10px] font-mono text-[#536A72] tracking-tight block mt-0.5 uppercase">
               {t('nav.subtitle')}
@@ -48,7 +50,10 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
           {/* Audio Alert Section (Separated from main navigation by ~28-32px spacing & border) */}
           <div className="hidden md:flex items-center pl-3 ml-3 sm:ml-6 sm:pl-6 border-l border-[#C7B89B]/50">
             <button
-              onClick={toggleAudioEnabled}
+              onClick={() => {
+                setShowLangDropdown(false);
+                toggleAudioEnabled();
+              }}
               className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors cursor-pointer ${
                 audioEnabled ? 'bg-[#23483A]/10 text-[#23483A] border-[#23483A]/30' : 'bg-[#FAF9F3] text-[#536A72] border-[#C7B89B]/50'
               }`}
@@ -59,8 +64,8 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
             </button>
           </div>
 
-          {/* Language Selector */}
-          <div className="relative">
+          {/* Language Selector Dropdown Container with Click-Outside Detection */}
+          <div ref={langDropdownRef} className="relative">
             <button
               onClick={() => setShowLangDropdown(!showLangDropdown)}
               className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-[#F4F1E8] border border-[#C7B89B]/50 text-xs font-mono font-bold text-[#202622] hover:bg-[#E8E6DC] transition-colors cursor-pointer"

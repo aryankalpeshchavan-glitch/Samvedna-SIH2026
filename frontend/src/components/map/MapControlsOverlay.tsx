@@ -1,10 +1,13 @@
-import React from 'react';
-import { MapLayerMode, NeStateInfo, MonitoringPoint } from '../../types/map';
+import React, { useState, useRef, useEffect } from 'react';
+import { MapLayerMode, MapViewStyle, NeStateInfo, MonitoringPoint } from '../../types/map';
 import { CitizenMapReport } from '../../types/emergency';
 import { useTranslation } from '../../i18n/LanguageContext';
-import { Compass, RotateCcw, MapPin, X, Activity, Mountain, CloudRain, Droplets, Gauge, Sparkles, Navigation, Layers, HelpCircle } from 'lucide-react';
+import { useClickOutside } from '../../hooks/useClickOutside';
+import { Compass, RotateCcw, MapPin, X, Activity, Mountain, CloudRain, Droplets, Gauge, Sparkles, Navigation, Layers, HelpCircle, Globe, Check, ChevronDown } from 'lucide-react';
 
 interface MapControlsOverlayProps {
+  mapViewStyle?: MapViewStyle;
+  onMapViewStyleChange?: (style: MapViewStyle) => void;
   layerMode: MapLayerMode;
   onLayerModeChange: (mode: MapLayerMode) => void;
   hoveredStateName: string | null;
@@ -24,6 +27,8 @@ interface MapControlsOverlayProps {
 }
 
 export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
+  mapViewStyle = 'satellite',
+  onMapViewStyleChange,
   layerMode,
   onLayerModeChange,
   hoveredStateName,
@@ -42,6 +47,28 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
   onCloseDetail,
 }) => {
   const { t } = useTranslation();
+  
+  // Separate menu state for MAP VIEW (Top-Right) and RISK OVERLAYS (Bottom)
+  const [showMapViewMenu, setShowMapViewMenu] = useState(false);
+  const mapViewMenuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(mapViewMenuRef, () => setShowMapViewMenu(false), showMapViewMenu);
+
+  const [showLayersMenu, setShowLayersMenu] = useState(false);
+  const layersMenuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(layersMenuRef, () => setShowLayersMenu(false), showLayersMenu);
+
+  // Close menus on Escape key
+  useEffect(() => {
+    if (!showMapViewMenu && !showLayersMenu) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowMapViewMenu(false);
+        setShowLayersMenu(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showMapViewMenu, showLayersMenu]);
 
   return (
     <div className="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between z-10 font-sans">
@@ -64,7 +91,67 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
           </button>
         </div>
 
+        {/* Top-Right Control Group: [ MAP VIEW ▾ ] [ STORY MODE ] [ RESET ] */}
         <div className="flex items-center space-x-2">
+          {/* MAP VIEW SWITCHER POPOVER */}
+          <div ref={mapViewMenuRef} className="relative">
+            <button
+              onClick={() => setShowMapViewMenu(!showMapViewMenu)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-heading font-bold bg-[#FAF9F3]/90 backdrop-blur-md text-[#202622] border border-[#C7B89B]/50 hover:bg-[#E8E6DC] transition-colors shadow-sm cursor-pointer"
+            >
+              {mapViewStyle === 'satellite' ? (
+                <Globe className="w-3.5 h-3.5 text-[#23483A]" />
+              ) : (
+                <Mountain className="w-3.5 h-3.5 text-[#A87C58]" />
+              )}
+              <span>{mapViewStyle === 'satellite' ? 'Satellite' : 'Terrain'}</span>
+              <ChevronDown className="w-3 h-3 text-[#536A72]" />
+            </button>
+
+            {showMapViewMenu && (
+              <div className="absolute top-full mt-1.5 right-0 w-44 bg-[#FAF9F3] border border-[#C7B89B] rounded-2xl shadow-xl p-2 z-50 text-xs font-mono font-sans space-y-1">
+                <span className="text-[10px] font-heading font-bold uppercase text-[#536A72] block px-2 py-1 border-b border-[#C7B89B]/40">
+                  MAP VIEW
+                </span>
+                <button
+                  onClick={() => {
+                    if (onMapViewStyleChange) onMapViewStyleChange('satellite');
+                    setShowMapViewMenu(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                    mapViewStyle === 'satellite'
+                      ? 'bg-[#23483A]/10 text-[#23483A] font-bold border border-[#23483A]/30'
+                      : 'text-[#202622] hover:bg-[#E8E6DC]'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Globe className="w-3.5 h-3.5 text-[#23483A]" />
+                    <span>Satellite</span>
+                  </div>
+                  {mapViewStyle === 'satellite' && <Check className="w-3.5 h-3.5 text-[#23483A]" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (onMapViewStyleChange) onMapViewStyleChange('terrain');
+                    setShowMapViewMenu(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                    mapViewStyle === 'terrain'
+                      ? 'bg-[#23483A]/10 text-[#23483A] font-bold border border-[#23483A]/30'
+                      : 'text-[#202622] hover:bg-[#E8E6DC]'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Mountain className="w-3.5 h-3.5 text-[#A87C58]" />
+                    <span>Terrain (3D DEM)</span>
+                  </div>
+                  {mapViewStyle === 'terrain' && <Check className="w-3.5 h-3.5 text-[#23483A]" />}
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={onOpenStoryMode}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-heading font-bold bg-[#FAF9F3]/90 backdrop-blur-md text-[#23483A] border border-[#23483A]/30 hover:bg-[#23483A] hover:text-[#FAF9F3] transition-colors shadow-sm cursor-pointer"
@@ -238,35 +325,90 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
             <span>{showSafeRoute ? t('home.hideSafeRoute') : t('home.showSafeRoute')}</span>
           </button>
 
-          <button
-            onClick={() => {
-              if (layerMode === 'terrain') onLayerModeChange('risk');
-              else if (layerMode === 'risk') onLayerModeChange('rainfall');
-              else onLayerModeChange('terrain');
-            }}
-            className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-heading font-bold transition-all shadow-sm cursor-pointer ${
-              layerMode === 'rainfall'
-                ? 'bg-[#536A72] text-[#FAF9F3] border border-[#536A72]'
-                : 'bg-[#FAF9F3]/95 backdrop-blur-md text-[#202622] border border-[#C7B89B] hover:bg-[#E8E6DC]'
-            }`}
-          >
-            {layerMode === 'rainfall' ? (
-              <CloudRain className="w-3.5 h-3.5 text-[#FAF9F3]" />
-            ) : (
-              <Layers className="w-3.5 h-3.5 text-[#536A72]" />
+          {/* DEDICATED RISK OVERLAYS MENU POPOVER */}
+          <div ref={layersMenuRef} className="relative">
+            <button
+              onClick={() => setShowLayersMenu(!showLayersMenu)}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-heading font-bold bg-[#FAF9F3]/95 backdrop-blur-md text-[#202622] border border-[#C7B89B] hover:bg-[#E8E6DC] transition-all shadow-sm cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#23483A]" />
+              <span>{t('home.layers')}: {layerMode.toUpperCase()}</span>
+            </button>
+
+            {showLayersMenu && (
+              <div className="absolute bottom-full mb-2 right-0 w-48 bg-[#FAF9F3] border border-[#C7B89B] rounded-2xl shadow-2xl p-2.5 z-50 text-xs font-mono space-y-2 font-sans">
+                <span className="text-[10px] font-heading font-bold uppercase text-[#536A72] block pb-1 border-b border-[#C7B89B]/40">
+                  RISK OVERLAYS
+                </span>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => {
+                      onLayerModeChange(layerMode === 'risk' ? 'terrain' : 'risk');
+                      setShowLayersMenu(false);
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                      layerMode === 'risk'
+                        ? 'bg-[#23483A]/10 text-[#23483A] font-bold'
+                        : 'text-[#202622] hover:bg-[#E8E6DC]'
+                    }`}
+                  >
+                    <span>Risk Zones</span>
+                    {layerMode === 'risk' && <Check className="w-3.5 h-3.5 text-[#23483A]" />}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onLayerModeChange(layerMode === 'rainfall' ? 'risk' : 'rainfall');
+                      setShowLayersMenu(false);
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                      layerMode === 'rainfall'
+                        ? 'bg-[#536A72]/15 text-[#536A72] font-bold'
+                        : 'text-[#202622] hover:bg-[#E8E6DC]'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <CloudRain className="w-3.5 h-3.5 text-[#536A72]" />
+                      <span>Rain Intensity</span>
+                    </div>
+                    {layerMode === 'rainfall' && <Check className="w-3.5 h-3.5 text-[#536A72]" />}
+                  </button>
+                </div>
+              </div>
             )}
-            <span>{t('home.layers')}: {layerMode.toUpperCase()}</span>
-          </button>
+          </div>
         </div>
 
-        {/* Risk Forecast Timeline Bar */}
-        <div className="bg-[#FAF9F3]/90 backdrop-blur-md px-4 py-2 rounded-xl border border-[#C7B89B]/50 flex items-center justify-between max-w-xl mx-auto text-xs font-mono shadow-sm">
-          <span className="text-[#536A72] font-heading font-bold uppercase text-[10px]">{t('controls.riskForecast')}</span>
-          <div className="flex items-center space-x-4">
-            <span>{t('controls.now')} <strong className="text-[#23483A]">{t('severity.LOW')}</strong></span>
-            <span>+3h: <strong className="text-[#D88A32]">{t('severity.WATCH')}</strong></span>
-            <span>+6h: <strong className="text-[#C6533C]">{t('severity.HIGH')}</strong></span>
-            <span>+12h: <strong className="text-[#C6533C]">{t('severity.HIGH')}</strong></span>
+        {/* Risk Forecast Timeline Bar — Light Samvedna Theme with High Readability */}
+        <div className="bg-[#FAF9F3]/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-[#C7B89B]/60 shadow-md flex flex-wrap items-center justify-between gap-2.5 max-w-xl mx-auto text-xs font-mono text-[#202622]">
+          <span className="text-[#536A72] font-heading font-extrabold uppercase text-[11px] tracking-wider shrink-0">
+            {t('controls.riskForecast')}
+          </span>
+          <div className="flex items-center space-x-3 shrink-0">
+            <span className="flex items-center space-x-1">
+              <span className="text-[#536A72] font-medium">{t('controls.now')}</span>
+              <strong className="px-2 py-0.5 rounded-md bg-[#23483A]/15 text-[#23483A] font-bold text-xs border border-[#23483A]/30">
+                {t('severity.LOW')}
+              </strong>
+            </span>
+            <span className="flex items-center space-x-1">
+              <span className="text-[#536A72] font-medium">+3h:</span>
+              <strong className="px-2 py-0.5 rounded-md bg-[#D88A32]/20 text-[#965C22] font-bold text-xs border border-[#D88A32]/40">
+                {t('severity.WATCH')}
+              </strong>
+            </span>
+            <span className="flex items-center space-x-1">
+              <span className="text-[#536A72] font-medium">+6h:</span>
+              <strong className="px-2 py-0.5 rounded-md bg-[#C6533C]/15 text-[#C6533C] font-bold text-xs border border-[#C6533C]/30">
+                {t('severity.HIGH')}
+              </strong>
+            </span>
+            <span className="flex items-center space-x-1">
+              <span className="text-[#536A72] font-medium">+12h:</span>
+              <strong className="px-2 py-0.5 rounded-md bg-[#C6533C]/15 text-[#C6533C] font-bold text-xs border border-[#C6533C]/30">
+                {t('severity.HIGH')}
+              </strong>
+            </span>
           </div>
         </div>
       </div>

@@ -133,7 +133,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     'status.noQueued': 'NO (QUEUED)',
     'status.title': 'EMERGENCY SIGNAL STATUS TRACKER',
     'status.stateSending': 'Transmitting SOS Signal...',
-    'status.stateSent': 'Signal Transmitted to CrisisCore Relay',
+    'status.stateSent': 'Signal Transmitted to Samvedna Relay',
     'status.stateOfflineQueued': 'Saved Locally in Offline Queue',
     'status.stateVerified': 'Verified by Emergency Operator',
     'status.stateEnRoute': 'Volunteer Dispatched En Route',

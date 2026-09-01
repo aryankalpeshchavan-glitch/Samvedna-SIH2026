@@ -2,7 +2,7 @@ import { openDB, IDBPDatabase } from 'idb';
 import { SosPayload, IncidentReportPayload } from '../types/emergency';
 import { PendingActionEntry, PendingActionType, PendingItemStatus, PendingSosEntry } from '../types/storage';
 
-const DB_NAME = 'crisiscore_offline_db';
+const DB_NAME = 'samvedna_offline_db';
 const STORE_ACTIONS = 'pending_actions';
 const STORE_SOS = 'pending_sos';
 const DB_VERSION = 2;

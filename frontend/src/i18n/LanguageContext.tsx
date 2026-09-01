@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { LanguageCode, LanguageOption, SUPPORTED_LANGUAGES, TRANSLATIONS } from './translations';
 
-const STORAGE_KEY = 'crisiscore_active_language';
+const STORAGE_KEY = 'samvedna_active_language';
 
 interface LanguageContextType {
   language: LanguageCode;

@@ -1,5 +1,5 @@
-// Service Worker for CrisisCore Citizen Emergency Application
-const CACHE_NAME = 'crisiscore-shell-v1';
+// Service Worker for Samvedna Citizen Emergency Application
+const CACHE_NAME = 'samvedna-shell-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

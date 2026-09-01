@@ -6,7 +6,7 @@ import { animatePageEnter } from '../animations/pageTransitions';
 import { TabType } from '../components/navigation/BottomNav';
 import { NeMap3D } from '../components/map/NeMap3D';
 import { MapControlsOverlay } from '../components/map/MapControlsOverlay';
-import { MapLayerMode, NeStateInfo, MonitoringPoint } from '../types/map';
+import { MapLayerMode, MapViewStyle, NeStateInfo, MonitoringPoint } from '../types/map';
 import { CitizenMapReport } from '../types/emergency';
 import { WhyRiskModal } from '../components/interactive/WhyRiskModal';
 import { TerrainScanner } from '../components/interactive/TerrainScanner';
@@ -37,6 +37,16 @@ export const Home: React.FC<HomeProps> = ({
   onNavigate: _onNavigate,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Map View Style ('satellite' by default, optional 'terrain' CrisisCore view)
+  const [mapViewStyle, setMapViewStyle] = useState<MapViewStyle>(() => {
+    const saved = localStorage.getItem('samvedna_map_view_style');
+    return saved === 'terrain' || saved === 'satellite' ? saved : 'satellite';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('samvedna_map_view_style', mapViewStyle);
+  }, [mapViewStyle]);
 
   // 3D Map & Interactive Modals State
   const [mapLayerMode, setMapLayerMode] = useState<MapLayerMode>('risk');
@@ -88,6 +98,7 @@ export const Home: React.FC<HomeProps> = ({
       {/* 90% Viewport Hero Map Section — THE MAP IS THE HERO */}
       <div className="relative rounded-2xl overflow-hidden shadow-lg border border-[#C7B89B]/50 bg-[#F4F1E8]">
         <NeMap3D
+          mapViewStyle={mapViewStyle}
           layerMode={mapLayerMode}
           selectedState={selectedState}
           selectedStation={selectedStation}
@@ -101,6 +112,8 @@ export const Home: React.FC<HomeProps> = ({
         />
 
         <MapControlsOverlay
+          mapViewStyle={mapViewStyle}
+          onMapViewStyleChange={setMapViewStyle}
           layerMode={mapLayerMode}
           onLayerModeChange={setMapLayerMode}
           hoveredStateName={hoveredStateName}

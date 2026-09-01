@@ -10,6 +10,8 @@ export type NeStateId =
   | 'tripura'
   | 'sikkim';
 
+export type MapViewStyle = 'satellite' | 'terrain';
+
 export type MapLayerMode = 
   | 'terrain' 
   | 'risk' 

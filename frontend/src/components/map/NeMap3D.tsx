@@ -1,13 +1,15 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { getNeStatesGeoJson, MONITORING_POINTS, NE_CENTER, NORTHEAST_STATES } from '../../data/northeastGeoData';
 import { CITIZEN_MAP_REPORTS, MOCK_SAFE_ROUTE } from '../../data/mockStoryData';
-import { MapLayerMode, NeStateInfo, MonitoringPoint } from '../../types/map';
+import { MapLayerMode, MapViewStyle, NeStateInfo, MonitoringPoint } from '../../types/map';
 import { CitizenMapReport } from '../../types/emergency';
 import { RainCanvasOverlay } from './RainCanvasOverlay';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { Loader2 } from 'lucide-react';
 
 interface NeMap3DProps {
+  mapViewStyle?: MapViewStyle;
   layerMode: MapLayerMode;
   selectedState: NeStateInfo | null;
   selectedStation: MonitoringPoint | null;
@@ -20,15 +22,59 @@ interface NeMap3DProps {
   onHoverState: (stateName: string | null) => void;
 }
 
-// MapLibre Light Cartographic Style with Warm Paper Topography & DEM Terrain Relief
-const WARM_CARTOGRAPHIC_STYLE: maplibregl.StyleSpecification = {
+// 1. Single Continuous 2D Overhead High-Resolution Satellite Hybrid Map Style (Satellite + Roads + Cities/Towns/Places)
+const SATELLITE_HYBRID_MAP_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    'satellite-base': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, USDA, USGS',
+    },
+    'hybrid-transportation': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+        'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+    },
+    'hybrid-labels': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+        'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: 'satellite-base-layer',
+      type: 'raster',
+      source: 'satellite-base',
+      minzoom: 0,
+      maxzoom: 22,
+    },
+  ],
+};
+
+// 2. Original CrisisCore Warm Cartographic 3D DEM Terrain Relief Map Style
+const WARM_TERRAIN_MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
     'carto-light': {
       type: 'raster',
       tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
       tileSize: 256,
-      attribution: '&copy; CartoDB &copy; OpenStreetMap contributors',
+      attribution: '&copy; OpenStreetMap contributors',
     },
     'terrain-dem': {
       type: 'raster-dem',
@@ -60,92 +106,137 @@ const WARM_CARTOGRAPHIC_STYLE: maplibregl.StyleSpecification = {
   ],
   terrain: {
     source: 'terrain-dem',
-    exaggeration: 3,
+    exaggeration: 2.5,
   },
 };
 
-export const NeMap3D: React.FC<NeMap3DProps> = ({
-  layerMode,
-  selectedState,
-  selectedStation,
-  selectedCitizenReport,
-  showSafeRoute,
-  userLocation,
-  onSelectState,
-  onSelectStation,
-  onSelectCitizenReport,
-  onHoverState,
-}) => {
-  const { t, language } = useTranslation();
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const stationMarkersRef = useRef<maplibregl.Marker[]>([]);
-  const citizenMarkersRef = useRef<maplibregl.Marker[]>([]);
-  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
-  const hoveredIdRef = useRef<string | number | null>(null);
+function setupMapSourcesAndLayers(map: maplibregl.Map, styleMode: MapViewStyle, showSafeRoute: boolean) {
+  if (!map.getSource('ne-states-source')) {
+    map.addSource('ne-states-source', {
+      type: 'geojson',
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      data: getNeStatesGeoJson() as any,
+      generateId: true,
+    });
+  }
 
-  // Initialize MapLibre GL JS Map instance
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
+  if (!map.getSource('safe-route-source')) {
+    map.addSource('safe-route-source', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: MOCK_SAFE_ROUTE.safePathCoords,
+        },
+      },
+    });
+  }
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: WARM_CARTOGRAPHIC_STYLE,
-      center: NE_CENTER,
-      zoom: 6.3,
-      pitch: 54,
-      bearing: -14,
-      maxPitch: 85,
-      minZoom: 5,
-      maxZoom: 13,
-      attributionControl: false,
+  if (styleMode === 'satellite') {
+    if (map.getTerrain()) map.setTerrain(null);
+
+    // Layer 1: Subtle Translucent 2D Risk Area Polygon Fill Overlay (15% - 28% opacity)
+    if (!map.getLayer('ne-states-fill')) {
+      map.addLayer({
+        id: 'ne-states-fill',
+        type: 'fill',
+        source: 'ne-states-source',
+        paint: {
+          'fill-color': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            '#23483A',
+            ['==', ['get', 'riskLevel'], 'CRITICAL'], '#8E2F2B',
+            ['==', ['get', 'riskLevel'], 'HIGH'], '#C6533C',
+            ['==', ['get', 'riskLevel'], 'WATCH'], '#D88A32',
+            '#23483A',
+          ],
+          'fill-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            0.28,
+            0.15,
+          ],
+        },
+      });
+    }
+
+    // Layer 2: Thin Clean 2D Risk Boundary Lines
+    if (!map.getLayer('ne-states-line')) {
+      map.addLayer({
+        id: 'ne-states-line',
+        type: 'line',
+        source: 'ne-states-source',
+        paint: {
+          'line-color': [
+            'case',
+            ['==', ['get', 'riskLevel'], 'CRITICAL'], '#FF5252',
+            ['==', ['get', 'riskLevel'], 'HIGH'], '#FF7A59',
+            ['==', ['get', 'riskLevel'], 'WATCH'], '#FFC107',
+            '#66BB6A',
+          ],
+          'line-width': 1.2,
+          'line-opacity': 0.60,
+        },
+      });
+    }
+
+    // Layer 3: Safe Route Line Layer (Green Evacuation Corridor)
+    if (!map.getLayer('safe-route-line')) {
+      map.addLayer({
+        id: 'safe-route-line',
+        type: 'line',
+        source: 'safe-route-source',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#00FF66',
+          'line-width': 4.5,
+          'line-dasharray': [2, 1],
+          'line-opacity': showSafeRoute ? 0.95 : 0,
+        },
+      });
+    }
+
+    // Layer 4: Hybrid Roads & Transportation Network Overlay
+    if (!map.getLayer('hybrid-transportation-layer') && map.getSource('hybrid-transportation')) {
+      map.addLayer({
+        id: 'hybrid-transportation-layer',
+        type: 'raster',
+        source: 'hybrid-transportation',
+        minzoom: 0,
+        maxzoom: 22,
+        paint: {
+          'raster-opacity': 0.85,
+        },
+      });
+    }
+
+    // Layer 5: Hybrid Place Names, City/Town Labels & State Boundaries Overlay
+    if (!map.getLayer('hybrid-labels-layer') && map.getSource('hybrid-labels')) {
+      map.addLayer({
+        id: 'hybrid-labels-layer',
+        type: 'raster',
+        source: 'hybrid-labels',
+        minzoom: 0,
+        maxzoom: 22,
+        paint: {
+          'raster-opacity': 0.95,
+        },
+      });
+    }
+  } else {
+    // Terrain 3D DEM Relief Setup
+    map.setTerrain({
+      source: 'terrain-dem',
+      exaggeration: 2.5,
     });
 
-    mapRef.current = map;
-
-    map.on('load', () => {
-      // Enable True 3D DEM Elevation Terrain Mesh in MapLibre GL JS v6
-      map.setTerrain({
-        source: 'terrain-dem',
-        exaggeration: 2.5,
-      });
-
-      // 1. Add NE States GeoJSON Source
-      map.addSource('ne-states-source', {
-        type: 'geojson',
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-        data: getNeStatesGeoJson() as any,
-        generateId: true,
-      });
-
-      // 2. Add Safe Evacuation Route GeoJSON Source
-      map.addSource('safe-route-source', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: MOCK_SAFE_ROUTE.safePathCoords,
-          },
-        },
-      });
-
-      // Layer 1: Ground Contact Base Shadow (Underneath hillshading for 3D depth anchor)
-      map.addLayer(
-        {
-          id: 'ne-states-ground-shadow',
-          type: 'fill',
-          source: 'ne-states-source',
-          paint: {
-            'fill-color': '#101412',
-            'fill-opacity': 0.18,
-          },
-        },
-        'hills'
-      );
-
-      // Layer 2: Draped Terrain Strata Tint (Underneath hillshading so mountain topography shines through)
+    if (!map.getLayer('ne-states-fill')) {
       map.addLayer(
         {
           id: 'ne-states-fill',
@@ -171,8 +262,9 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
         },
         'hills'
       );
+    }
 
-      // Layer 3: Main 3D Volumetric Geological Mass Extrusion (Volumetric 3D Risk Blocks with 3D Side Walls)
+    if (!map.getLayer('ne-states-extrusion')) {
       map.addLayer({
         id: 'ne-states-extrusion',
         type: 'fill-extrusion',
@@ -204,65 +296,9 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
           'fill-extrusion-vertical-gradient': true,
         },
       });
+    }
 
-      // Layer 4: Elevated Sunlit Top Cap Layer (Crowns the top face of each 3D volumetric risk block)
-      map.addLayer({
-        id: 'ne-states-extrusion-cap',
-        type: 'fill-extrusion',
-        source: 'ne-states-source',
-        paint: {
-          'fill-extrusion-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            '#346854',
-            ['==', ['get', 'riskLevel'], 'CRITICAL'], '#B8433E',
-            ['==', ['get', 'riskLevel'], 'HIGH'], '#DC674E',
-            ['==', ['get', 'riskLevel'], 'WATCH'], '#E69E46',
-            '#2E5A49',
-          ],
-          'fill-extrusion-base': [
-            'case',
-            ['==', ['get', 'riskLevel'], 'CRITICAL'], 34400,
-            ['==', ['get', 'riskLevel'], 'HIGH'], 23400,
-            ['==', ['get', 'riskLevel'], 'WATCH'], 14400,
-            7400,
-          ],
-          'fill-extrusion-height': [
-            'case',
-            ['==', ['get', 'riskLevel'], 'CRITICAL'], 35000,
-            ['==', ['get', 'riskLevel'], 'HIGH'], 24000,
-            ['==', ['get', 'riskLevel'], 'WATCH'], 15000,
-            8000,
-          ],
-          'fill-extrusion-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            0.88,
-            0.70,
-          ],
-          'fill-extrusion-vertical-gradient': false,
-        },
-      });
-
-      // Layer 5: Soft Environmental Transition Edge Halo
-      map.addLayer({
-        id: 'ne-states-edge-halo',
-        type: 'line',
-        source: 'ne-states-source',
-        paint: {
-          'line-color': [
-            'case',
-            ['==', ['get', 'riskLevel'], 'CRITICAL'], '#8E2F2B',
-            ['==', ['get', 'riskLevel'], 'HIGH'], '#C6533C',
-            ['==', ['get', 'riskLevel'], 'WATCH'], '#D88A32',
-            '#23483A',
-          ],
-          'line-width': 4.5,
-          'line-opacity': 0.35,
-        },
-      });
-
-      // Layer 6: Structural Contour Boundary Line
+    if (!map.getLayer('ne-states-line')) {
       map.addLayer({
         id: 'ne-states-line',
         type: 'line',
@@ -274,8 +310,9 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
           'line-opacity': 0.85,
         },
       });
+    }
 
-      // 6. Add Safe Route Line Layer (Green Forest Evacuation Corridor)
+    if (!map.getLayer('safe-route-line')) {
       map.addLayer({
         id: 'safe-route-line',
         type: 'line',
@@ -291,13 +328,91 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
           'line-opacity': showSafeRoute ? 0.95 : 0,
         },
       });
+    }
+  }
+}
 
-      // 7. Hover Interactions
+export const NeMap3D: React.FC<NeMap3DProps> = ({
+  mapViewStyle = 'satellite',
+  layerMode,
+  selectedState,
+  selectedStation,
+  selectedCitizenReport,
+  showSafeRoute,
+  userLocation,
+  onSelectState,
+  onSelectStation,
+  onSelectCitizenReport,
+  onHoverState,
+}) => {
+  const { t, language } = useTranslation();
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const stationMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const citizenMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const hoveredIdRef = useRef<string | number | null>(null);
+  const [isMapLoading, setIsMapLoading] = useState(true);
+
+  // Maintain stable callback refs to avoid destroying & recreating the map on every parent render
+  const onHoverStateRef = useRef(onHoverState);
+  const onSelectStateRef = useRef(onSelectState);
+  const onSelectStationRef = useRef(onSelectStation);
+  const onSelectCitizenReportRef = useRef(onSelectCitizenReport);
+
+  useEffect(() => {
+    onHoverStateRef.current = onHoverState;
+    onSelectStateRef.current = onSelectState;
+    onSelectStationRef.current = onSelectStation;
+    onSelectCitizenReportRef.current = onSelectCitizenReport;
+  });
+
+  // Initialize MapLibre GL JS Map Instance ONCE on component mount
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    const initialStyle = mapViewStyle === 'terrain' ? WARM_TERRAIN_MAP_STYLE : SATELLITE_HYBRID_MAP_STYLE;
+
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: initialStyle,
+      center: NE_CENTER,
+      zoom: 6.3,
+      pitch: mapViewStyle === 'terrain' ? 52 : 0,
+      bearing: mapViewStyle === 'terrain' ? -14 : 0,
+      maxPitch: mapViewStyle === 'terrain' ? 85 : 0,
+      minZoom: 4.5,
+      maxZoom: 18,
+      fadeDuration: 0,     // Instant tile swap on zoom without slow blur cross-fading
+      maxTileCacheSize: 120, // High-performance tile memory caching
+      renderWorldCopies: false,
+      maxBounds: [
+        [68.0, 6.0],       // Southwest coordinates [lng, lat] (India / Arabian Sea)
+        [100.0, 37.0],      // Northeast coordinates [lng, lat] (NE Region / Border)
+      ],
+      attributionControl: false,
+    });
+
+    mapRef.current = map;
+
+    // Handle container resize cleanly
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    map.on('load', () => {
+      setIsMapLoading(false);
+      setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute);
+
+      // Hover Interactions for States using stable ref
       const handleMouseMove = (e: maplibregl.MapLayerMouseEvent) => {
         if (e.features && e.features.length > 0) {
           map.getCanvas().style.cursor = 'pointer';
           const feature = e.features[0];
-          onHoverState(feature.properties?.name || null);
+          onHoverStateRef.current(feature.properties?.name || null);
 
           if (hoveredIdRef.current !== null) {
             map.setFeatureState(
@@ -315,7 +430,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
 
       const handleMouseLeave = () => {
         map.getCanvas().style.cursor = '';
-        onHoverState(null);
+        onHoverStateRef.current(null);
         if (hoveredIdRef.current !== null) {
           map.setFeatureState(
             { source: 'ne-states-source', id: hoveredIdRef.current },
@@ -330,35 +445,28 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
           const stateId = e.features[0].properties?.id;
           const foundState = NORTHEAST_STATES.find((s) => s.id === stateId);
           if (foundState) {
-            onSelectState(foundState);
-            onSelectStation(null);
-            onSelectCitizenReport(null);
+            onSelectStateRef.current(foundState);
+            onSelectStationRef.current(null);
+            onSelectCitizenReportRef.current(null);
             map.flyTo({
               center: [foundState.center[1], foundState.center[0]],
               zoom: 7.5,
-              pitch: 52,
-              duration: 1400,
+              pitch: mapViewStyle === 'terrain' ? 52 : 0,
+              bearing: mapViewStyle === 'terrain' ? -14 : 0,
+              duration: 1200,
             });
           }
         }
       };
 
-      map.on('mousemove', 'ne-states-extrusion', handleMouseMove);
-      map.on('mouseleave', 'ne-states-extrusion', handleMouseLeave);
-      map.on('click', 'ne-states-extrusion', handleClick);
-
-      map.on('mousemove', 'ne-states-extrusion-cap', handleMouseMove);
-      map.on('mouseleave', 'ne-states-extrusion-cap', handleMouseLeave);
-      map.on('click', 'ne-states-extrusion-cap', handleClick);
-
       map.on('mousemove', 'ne-states-fill', handleMouseMove);
       map.on('mouseleave', 'ne-states-fill', handleMouseLeave);
       map.on('click', 'ne-states-fill', handleClick);
 
-      // 8. Monitoring Station Markers (Muted Cartographic Pins anchored to 3D terrain)
+      // Monitoring Station Markers
       MONITORING_POINTS.forEach((station) => {
         const el = document.createElement('div');
-        el.className = 'group relative cursor-pointer';
+        el.className = 'group relative cursor-pointer z-30';
 
         const colorBg =
           station.riskLevel === 'CRITICAL' || station.riskLevel === 'HIGH'
@@ -368,26 +476,24 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
             : 'bg-[#23483A]';
 
         el.innerHTML = `
-          <div class="relative flex flex-col items-center justify-center">
-            <div class="relative flex items-center justify-center">
-              <span class="animate-ping absolute inline-flex h-5 w-5 rounded-full opacity-60 ${colorBg}"></span>
-              <div class="relative inline-flex rounded-full h-4 w-4 border-2 border-[#FAF9F3] items-center justify-center font-mono text-[8px] font-black text-white shadow-md ${colorBg}">
-                ●
-              </div>
+          <div class="relative flex items-center justify-center">
+            <span class="animate-ping absolute inline-flex h-5 w-5 rounded-full opacity-60 ${colorBg}"></span>
+            <div class="relative inline-flex rounded-full h-4 w-4 border-2 border-[#FAF9F3] items-center justify-center font-mono text-[8px] font-black text-white shadow-md ${colorBg}">
+              ●
             </div>
-            <div class="w-[2px] h-3 bg-gradient-to-b from-[#23483A] to-transparent opacity-75 mt-0.5"></div>
           </div>
         `;
 
         el.addEventListener('click', (ev) => {
           ev.stopPropagation();
-          onSelectStation(station);
-          onSelectState(null);
-          onSelectCitizenReport(null);
+          onSelectStationRef.current(station);
+          onSelectStateRef.current(null);
+          onSelectCitizenReportRef.current(null);
           map.flyTo({
             center: [station.lng, station.lat],
             zoom: 8.5,
-            pitch: 50,
+            pitch: mapViewStyle === 'terrain' ? 50 : 0,
+            bearing: mapViewStyle === 'terrain' ? -14 : 0,
             duration: 1200,
           });
         });
@@ -399,10 +505,10 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
         stationMarkersRef.current.push(marker);
       });
 
-      // 9. Citizen Report Markers on Map (Anchored with 3D pin stems)
+      // Citizen Report Markers
       CITIZEN_MAP_REPORTS.forEach((report) => {
         const el = document.createElement('div');
-        el.className = 'group relative cursor-pointer';
+        el.className = 'group relative cursor-pointer z-30';
         const label = t(`hazards.${report.category}`);
         el.innerHTML = `
           <div class="relative flex flex-col items-center">
@@ -410,19 +516,19 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
               <span>📍</span>
               <span class="report-marker-text" data-category="${report.category}">${label}</span>
             </div>
-            <div class="w-[2px] h-2.5 bg-gradient-to-b from-[#A87C58] to-transparent opacity-80 mt-0.5"></div>
           </div>
         `;
 
         el.addEventListener('click', (ev) => {
           ev.stopPropagation();
-          onSelectCitizenReport(report);
-          onSelectState(null);
-          onSelectStation(null);
+          onSelectCitizenReportRef.current(report);
+          onSelectStateRef.current(null);
+          onSelectStationRef.current(null);
           map.flyTo({
             center: [report.lng, report.lat],
             zoom: 9.0,
-            pitch: 45,
+            pitch: mapViewStyle === 'terrain' ? 45 : 0,
+            bearing: mapViewStyle === 'terrain' ? -14 : 0,
             duration: 1200,
           });
         });
@@ -436,12 +542,39 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     });
 
     return () => {
+      window.removeEventListener('resize', handleResize);
       stationMarkersRef.current.forEach((m) => m.remove());
       citizenMarkersRef.current.forEach((m) => m.remove());
       if (userMarkerRef.current) userMarkerRef.current.remove();
       map.remove();
     };
-  }, [onHoverState, onSelectCitizenReport, onSelectState, onSelectStation]);
+  }, []); // Mount ONCE with empty dependency array!
+
+  // Dynamically update map style and camera perspective when switching between Satellite and Terrain modes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    const currentCenter = map.getCenter();
+    const currentZoom = map.getZoom();
+
+    if (mapViewStyle === 'satellite') {
+      map.setStyle(SATELLITE_HYBRID_MAP_STYLE);
+      map.setMaxPitch(0);
+      map.setPitch(0);
+      map.setBearing(0);
+    } else {
+      map.setStyle(WARM_TERRAIN_MAP_STYLE);
+      map.setMaxPitch(85);
+      map.setPitch(52);
+      map.setBearing(-14);
+    }
+
+    map.once('style.load', () => {
+      map.jumpTo({ center: currentCenter, zoom: currentZoom });
+      setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute);
+    });
+  }, [mapViewStyle, showSafeRoute]);
 
   // Live update map marker text when language changes without re-creating map
   useEffect(() => {
@@ -473,7 +606,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
 
     if (!userMarkerRef.current) {
       const el = document.createElement('div');
-      el.className = 'relative flex items-center justify-center';
+      el.className = 'relative flex items-center justify-center z-30';
       el.innerHTML = `
         <span class="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-[#23483A] opacity-40"></span>
         <span class="animate-pulse absolute inline-flex h-5 w-5 rounded-full border-2 border-[#23483A]"></span>
@@ -487,7 +620,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     }
   }, [userLocation]);
 
-  // Update Layer mode paint properties for draped terrain fill, 3D volumetric extrusion, and sunlit top cap
+  // Update Layer mode paint properties for 2D/3D Risk / Rainfall Overlay
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
@@ -498,71 +631,25 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
           'case',
           ['boolean', ['feature-state', 'hover'], false],
           '#23483A',
-          ['==', ['get', 'riskLevel'], 'CRITICAL'], '#5C1D1A',
-          ['==', ['get', 'riskLevel'], 'HIGH'], '#8A3525',
-          ['==', ['get', 'riskLevel'], 'WATCH'], '#965C22',
-          '#183328',
+          ['==', ['get', 'riskLevel'], 'CRITICAL'], mapViewStyle === 'terrain' ? '#5C1D1A' : '#8E2F2B',
+          ['==', ['get', 'riskLevel'], 'HIGH'], mapViewStyle === 'terrain' ? '#8A3525' : '#C6533C',
+          ['==', ['get', 'riskLevel'], 'WATCH'], mapViewStyle === 'terrain' ? '#965C22' : '#D88A32',
+          '#23483A',
         ]);
         map.setPaintProperty('ne-states-fill', 'fill-opacity', [
           'case',
           ['boolean', ['feature-state', 'hover'], false],
-          0.45,
-          0.25,
+          mapViewStyle === 'terrain' ? 0.45 : 0.28,
+          mapViewStyle === 'terrain' ? 0.25 : 0.15,
         ]);
       } else if (layerMode === 'rainfall') {
         map.setPaintProperty('ne-states-fill', 'fill-color', '#536A72');
-        map.setPaintProperty('ne-states-fill', 'fill-opacity', 0.28);
+        map.setPaintProperty('ne-states-fill', 'fill-opacity', 0.20);
       }
     }
+  }, [layerMode, mapViewStyle]);
 
-    if (map.getLayer('ne-states-extrusion')) {
-      if (layerMode === 'risk' || layerMode === 'terrain') {
-        map.setPaintProperty('ne-states-extrusion', 'fill-extrusion-color', [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false],
-          '#23483A',
-          ['==', ['get', 'riskLevel'], 'CRITICAL'], '#8E2F2B',
-          ['==', ['get', 'riskLevel'], 'HIGH'], '#C6533C',
-          ['==', ['get', 'riskLevel'], 'WATCH'], '#D88A32',
-          '#23483A',
-        ]);
-        map.setPaintProperty('ne-states-extrusion', 'fill-extrusion-opacity', [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false],
-          0.68,
-          0.45,
-        ]);
-      } else if (layerMode === 'rainfall') {
-        map.setPaintProperty('ne-states-extrusion', 'fill-extrusion-color', '#536A72');
-        map.setPaintProperty('ne-states-extrusion', 'fill-extrusion-opacity', 0.30);
-      }
-    }
-
-    if (map.getLayer('ne-states-extrusion-cap')) {
-      if (layerMode === 'risk' || layerMode === 'terrain') {
-        map.setPaintProperty('ne-states-extrusion-cap', 'fill-extrusion-color', [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false],
-          '#346854',
-          ['==', ['get', 'riskLevel'], 'CRITICAL'], '#B8433E',
-          ['==', ['get', 'riskLevel'], 'HIGH'], '#DC674E',
-          ['==', ['get', 'riskLevel'], 'WATCH'], '#E69E46',
-          '#2E5A49',
-        ]);
-        map.setPaintProperty('ne-states-extrusion-cap', 'fill-extrusion-opacity', [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false],
-          0.88,
-          0.70,
-        ]);
-      } else if (layerMode === 'rainfall') {
-        map.setPaintProperty('ne-states-extrusion-cap', 'fill-extrusion-color', '#71856B');
-        map.setPaintProperty('ne-states-extrusion-cap', 'fill-extrusion-opacity', 0.40);
-      }
-    }
-  }, [layerMode]);
-
-  // Fly camera to selection
+  // Fly camera to selection cleanly
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -571,24 +658,36 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
       map.flyTo({
         center: [selectedStation.lng, selectedStation.lat],
         zoom: 8.5,
-        pitch: 50,
+        pitch: mapViewStyle === 'terrain' ? 50 : 0,
+        bearing: mapViewStyle === 'terrain' ? -14 : 0,
         duration: 1200,
       });
     } else if (selectedState) {
       map.flyTo({
         center: [selectedState.center[1], selectedState.center[0]],
         zoom: 7.5,
-        pitch: 52,
+        pitch: mapViewStyle === 'terrain' ? 52 : 0,
+        bearing: mapViewStyle === 'terrain' ? -14 : 0,
         duration: 1400,
       });
     }
-  }, [selectedState, selectedStation]);
+  }, [selectedState, selectedStation, mapViewStyle]);
 
   return (
     <div
       ref={mapContainerRef}
-      className="relative w-full h-[85vh] sm:h-[88vh] min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-[#C7B89B]/40 bg-[#F4F1E8]"
+      className="relative w-full h-[85vh] sm:h-[88vh] min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-[#C7B89B]/40 bg-[#101412]"
     >
+      {/* Subtle Map Loading Overlay */}
+      {isMapLoading && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#101412]/85 backdrop-blur-sm text-[#FAF9F3] transition-opacity duration-300 pointer-events-none">
+          <div className="flex items-center space-x-2.5 px-4 py-2.5 rounded-xl bg-[#202622]/90 border border-[#C7B89B]/30 shadow-lg">
+            <Loader2 className="w-4 h-4 text-[#D88A32] animate-spin" />
+            <span className="text-xs font-mono font-bold tracking-wide">Loading Satellite Map...</span>
+          </div>
+        </div>
+      )}
+
       <RainCanvasOverlay isActive={layerMode === 'rainfall'} />
     </div>
   );
