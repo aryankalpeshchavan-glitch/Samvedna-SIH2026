@@ -21,34 +21,55 @@ async def process_matching_queue():
     """
     Background worker that continuously pulls from the matching queue
     and assigns incidents to the best available volunteer.
+    Retries Redis connection with bounded exponential backoff if unavailable.
     """
-    redis = await get_redis()
-    if not redis:
-        logger.warning("[MATCHING_WORKER] Redis not available, shutting down worker.")
-        return
+    backoff = 1
+    max_backoff = 30
 
-    logger.info("[MATCHING_WORKER] Started listening to matching_queue...")
     while True:
         try:
-            # Block until a job is available in the matching_queue (timeout 5s)
-            result = await redis.brpop("matching_queue", timeout=5)
-            if not result:
+            redis = await get_redis()
+            if not redis:
+                logger.warning(
+                    "[MATCHING_WORKER] Redis not available, retrying in %ss...", backoff
+                )
+                await asyncio.sleep(backoff)
+                backoff = min(max_backoff, backoff * 2)
                 continue
 
-            queue_name, payload_bytes = result
-            payload = json.loads(payload_bytes)
-            incident_id = payload.get("incident_id")
-            if not incident_id:
-                continue
+            backoff = 1
+            logger.info("[MATCHING_WORKER] Started listening to matching_queue...")
 
-            await process_incident_match(incident_id)
+            while True:
+                try:
+                    # Block until a job is available in the matching_queue (timeout 5s)
+                    result = await redis.brpop("matching_queue", timeout=5)
+                    if not result:
+                        continue
+
+                    queue_name, payload_bytes = result
+                    payload = json.loads(payload_bytes)
+                    incident_id = payload.get("incident_id")
+                    if not incident_id:
+                        continue
+
+                    await process_incident_match(incident_id)
+
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:
+                    logger.error("[MATCHING_WORKER] Error processing queue: %s", e)
+                    await asyncio.sleep(backoff)
+                    backoff = min(max_backoff, backoff * 2)
+                    break
 
         except asyncio.CancelledError:
             logger.info("[MATCHING_WORKER] Shutting down...")
             break
         except Exception as e:
-            logger.error("[MATCHING_WORKER] Error processing queue: %s", e)
-            await asyncio.sleep(5)
+            logger.error("[MATCHING_WORKER] Unexpected error in worker loop: %s", e)
+            await asyncio.sleep(backoff)
+            backoff = min(max_backoff, backoff * 2)
 
 
 async def process_incident_match(incident_id: str):

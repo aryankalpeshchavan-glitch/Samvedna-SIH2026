@@ -239,3 +239,88 @@ async def test_auto_reassign_preserves_unrelated_active_and_acked_assignments():
 
         res2 = (await db.execute(select(Assignment).where(Assignment.id == already_acked.id))).scalar_one()
         assert res2.status == "acked"
+
+
+@pytest.mark.asyncio
+async def test_auto_reassign_integrity_error_collision():
+    """
+    Simulates a race condition where creating the replacement assignment raises IntegrityError
+    due to a concurrent assignment on the same incident.
+    Verifies:
+    1. The IntegrityError is caught cleanly without crashing check_and_reassign_expired()
+    2. Session rollback is invoked
+    3. Loop does not crash
+    4. Database constraint uix_active_assignment_per_incident guarantees no duplicates
+    """
+    async with async_session() as db:
+        user1 = User(
+            phone="+910000000010", password_hash="x", name="Officer",
+            role="officer", lang="en",
+        )
+        user2 = User(
+            phone="+910000000020", password_hash="x", name="Vol1",
+            role="volunteer", lang="en",
+        )
+        user3 = User(
+            phone="+910000000030", password_hash="x", name="Vol2",
+            role="volunteer", lang="en",
+        )
+        user4 = User(
+            phone="+910000000040", password_hash="x", name="Vol3",
+            role="volunteer", lang="en",
+        )
+        db.add_all([user1, user2, user3, user4])
+        await db.flush()
+
+        incident = Incident(
+            reporter_id=user1.id, type="flood", description="Collision test",
+            lat=26.14, lng=91.73, severity=3, status="assigned",
+        )
+        db.add(incident)
+        await db.flush()
+
+        vol1 = Volunteer(user_id=user2.id, skills="rescue", lat=26.15, lng=91.74)
+        vol2 = Volunteer(user_id=user3.id, skills="rescue", lat=26.16, lng=91.75)
+        vol3 = Volunteer(user_id=user4.id, skills="rescue", lat=26.17, lng=91.76)
+        db.add_all([vol1, vol2, vol3])
+        await db.flush()
+
+        expired_assign = Assignment(
+            incident_id=incident.id, volunteer_id=vol1.id,
+            status="pending",
+            sla_deadline=datetime.utcnow() - timedelta(minutes=5),
+        )
+        db.add(expired_assign)
+        await db.commit()
+
+    # Simulate race: during find_best_volunteer, another active assignment is flushed in DB for this incident
+    async def mock_find_with_concurrent_insert(db_sess, inc, exclude_volunteer_ids=None):
+        concurrent_assign = Assignment(
+            incident_id=inc.id,
+            volunteer_id=vol2.id,
+            status="in_progress",
+            sla_deadline=datetime.utcnow() + timedelta(minutes=15),
+        )
+        db_sess.add(concurrent_assign)
+        await db_sess.flush()
+        return (vol3, 0.95)
+
+    with patch("app.background.auto_reassign.find_best_volunteer", side_effect=mock_find_with_concurrent_insert):
+        with patch("app.notifications.dispatcher.dispatch_notification", new_callable=AsyncMock):
+            with patch("app.realtime.ws_manager.ws_manager.broadcast", new_callable=AsyncMock):
+                # Must complete gracefully without raising IntegrityError
+                await check_and_reassign_expired()
+
+    # Verify no duplicate active assignment was created:
+    # Because rollback occurred, the replacement assignment was not created.
+    async with async_session() as db:
+        from sqlalchemy import select
+        res = await db.execute(
+            select(Assignment).where(
+                Assignment.incident_id == incident.id,
+                Assignment.status.in_(["pending", "acked", "in_progress"]),
+            )
+        )
+        active_assignments = res.scalars().all()
+        assert len(active_assignments) == 1
+        assert active_assignments[0].id == expired_assign.id
