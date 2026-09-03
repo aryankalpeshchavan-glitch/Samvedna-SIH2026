@@ -6,6 +6,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
 from app.core.auth import require_role, get_current_user
@@ -76,8 +77,15 @@ async def create_assignment(
     incident.status = "assigned"
     incident.updated_at = datetime.utcnow()
 
-    await db.flush()
-    await db.refresh(assignment)
+    try:
+        await db.flush()
+        await db.refresh(assignment)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="An active assignment already exists for this incident",
+        )
 
     await record_audit_log(
         db=db,

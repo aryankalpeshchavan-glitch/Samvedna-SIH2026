@@ -165,6 +165,15 @@ async def get_incident(
     return incident
 
 
+VALID_INCIDENT_TRANSITIONS = {
+    "reported": {"verified", "rejected", "assigned"},
+    "verified": {"assigned", "rejected"},
+    "assigned": {"resolved"},
+    "resolved": set(),
+    "rejected": set(),
+}
+
+
 @router.patch("/{incident_id}/verify", response_model=IncidentOut)
 async def verify_incident(
     incident_id: str,
@@ -177,7 +186,11 @@ async def verify_incident(
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
 
-    if incident.status in ["rejected", "resolved"]:
+    # Idempotent re-verification: no-op, no duplicate audit or matching job
+    if incident.status == "verified":
+        return incident
+
+    if incident.status != "reported":
         raise HTTPException(
             status_code=400,
             detail=f"Cannot verify incident in '{incident.status}' state",
@@ -237,7 +250,7 @@ async def reject_incident(
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
 
-    if incident.status in ["resolved", "assigned"]:
+    if incident.status not in ["reported", "verified"]:
         raise HTTPException(
             status_code=400,
             detail=f"Cannot reject incident in '{incident.status}' state",

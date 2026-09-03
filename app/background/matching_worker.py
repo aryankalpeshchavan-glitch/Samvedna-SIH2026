@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.core.redis import get_redis
 from app.core.database import async_session
@@ -111,12 +112,21 @@ async def process_incident_match(incident_id: str):
             status="pending"
         )
         db.add(new_assignment)
-        await db.flush()
-        await db.refresh(new_assignment)
 
         # 5. Update incident status
         incident.status = "assigned"
         incident.updated_at = now
+
+        try:
+            await db.flush()
+            await db.refresh(new_assignment)
+        except IntegrityError:
+            await db.rollback()
+            logger.info(
+                "[MATCHING_WORKER] Active assignment already exists for incident %s (collision with concurrent assignment). Skipping.",
+                incident_id,
+            )
+            return
 
         # 6. Audit log for assignment creation
         await record_audit_log(

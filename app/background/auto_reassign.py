@@ -92,5 +92,24 @@ async def check_and_reassign_expired():
                     "[AUTO_REASSIGN] Reassigned incident %s from volunteer %s to %s (score=%s)",
                     incident.id, old_vol_id, new_volunteer.id, score,
                 )
+            else:
+                incident.status = "verified"
+                incident.updated_at = now
+                await db.flush()
+
+                await record_audit_log(
+                    db=db,
+                    action="reassign_exhausted",
+                    entity_type="Incident",
+                    entity_id=str(incident.id),
+                    actor_id=None,
+                    before={"status": "assigned", "assignment_id": str(assignment.id), "volunteer_id": old_vol_id},
+                    after={"status": "verified", "reason": "no_available_replacement_volunteers"},
+                )
+
+                logger.warning(
+                    "[AUTO_REASSIGN] No replacement volunteer available for incident %s (expired assignment %s). Reverted incident status to 'verified' for re-matching/review.",
+                    incident.id, assignment.id,
+                )
 
         await db.commit()
