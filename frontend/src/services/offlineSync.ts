@@ -4,37 +4,64 @@ import { PendingActionEntry } from '../types/storage';
 export type SyncState = 'IDLE' | 'SYNCING' | 'SYNCED' | 'ERROR';
 
 /**
- * Real API Transmission Layer — syncs queued SOS to backend /incidents
- * Falls back to mock if backend unavailable
+ * Real API Transmission Layer — syncs queued SOS to backend /incidents.
+ * Returns true ONLY on HTTP 2xx server acknowledgement.
+ * Returns false on missing auth token, non-2xx response, or network failure.
  */
 export async function mockApiSyncItem(item: PendingActionEntry): Promise<boolean> {
   console.log(`[OfflineSync] Transmitting pending [${item.type}] ${item.id} to CrisisCore Server...`);
+
+  // 1. Check for authentication token before attempting network request
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('crisiscore_token') : null;
+  if (!token || !token.trim()) {
+    console.warn(`[OfflineSync] Missing authentication token. Cannot sync pending item: ${item.id}`);
+    return false;
+  }
+
   try {
-    const payload = item.payload as unknown as { sosId?: string; location?: { latitude: number; longitude: number }; incidentType?: string; note?: string };
+    const payload = item.payload as unknown as {
+      sosId?: string;
+      location?: { latitude: number; longitude: number };
+      incidentType?: string;
+      note?: string;
+    };
     const lat = payload.location?.latitude ?? 26.14;
     const lng = payload.location?.longitude ?? 91.73;
-    const token = localStorage.getItem('crisiscore_token');
-    const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+
     const res = await fetch('/incidents', {
       method: 'POST',
       headers,
       body: JSON.stringify({
         type: (payload.incidentType || 'other').toLowerCase(),
         description: payload.note || `Queued SOS ${item.id}`,
-        lat, lng, severity: 3,
+        lat,
+        lng,
+        severity: 3,
         idempotency_key: item.id,
       }),
     });
-    if (res.ok) return true;
-    console.warn('[OfflineSync] backend rejected', await res.text());
+
+    if (res.ok) {
+      return true;
+    }
+
+    let errorBody = '';
+    try {
+      errorBody = await res.text();
+    } catch {
+      // ignore body read error
+    }
+    console.warn(`[OfflineSync] Backend rejected item ${item.id} (HTTP ${res.status}):`, errorBody);
+    return false;
   } catch (e) {
-    console.warn('[OfflineSync] network error, will retry', e);
+    console.warn(`[OfflineSync] Network error syncing item ${item.id}, will retry:`, e);
     return false;
   }
-  // If no token/backend, treat as synced for demo
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return true;
 }
 
 /**
@@ -64,7 +91,7 @@ export async function processPendingQueue(
         await removePendingAction(item.id);
         syncedCount++;
       } else {
-        await markActionStatus(item.id, 'FAILED', 'Server responded with rejection');
+        await markActionStatus(item.id, 'FAILED', 'Server rejected or missing authentication token');
         failedCount++;
       }
     } catch (err) {
