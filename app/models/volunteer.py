@@ -17,6 +17,6 @@ class Volunteer(Base):
     lat = Column(Float, default=0.0)
     lng = Column(Float, default=0.0)
     availability_status = Column(String(20), default="available", nullable=False)
-    last_heartbeat = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_heartbeat = Column(DateTime, default=datetime.utcnow, nullable=True)
 
     assignments = relationship("Assignment", back_populates="volunteer")

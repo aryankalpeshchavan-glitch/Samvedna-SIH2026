@@ -69,10 +69,6 @@ async def create_incident(
         except Exception:
             pass
 
-        # Enqueue matching job asynchronously
-        import asyncio
-        asyncio.create_task(enqueue_matching_job(str(incident.id)))
-
         return incident
     except IntegrityError:
         await db.rollback()
@@ -332,8 +328,4 @@ async def create_incident_sms(
     db.add(incident)
     await db.flush()
     await db.refresh(incident)
-
-    import asyncio
-    asyncio.create_task(enqueue_matching_job(str(incident.id)))
-
     return incident

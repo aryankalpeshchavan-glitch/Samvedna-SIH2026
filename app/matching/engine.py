@@ -1,8 +1,10 @@
 import math
+from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.volunteer import Volunteer
 from app.models.incident import Incident
 from app.routers.resources import get_nearby_resources_for_matching
@@ -82,7 +84,12 @@ async def find_best_volunteer(
 ) -> Optional[tuple[Volunteer, float]]:
     from sqlalchemy import select
 
-    query = select(Volunteer).where(Volunteer.availability_status == "available")
+    cutoff = datetime.utcnow() - timedelta(minutes=settings.VOLUNTEER_HEARTBEAT_TIMEOUT_MINUTES)
+    query = select(Volunteer).where(
+        Volunteer.availability_status == "available",
+        Volunteer.last_heartbeat.isnot(None),
+        Volunteer.last_heartbeat >= cutoff,
+    )
     if exclude_volunteer_ids:
         query = query.where(~Volunteer.id.in_(exclude_volunteer_ids))
     result = await db.execute(query)

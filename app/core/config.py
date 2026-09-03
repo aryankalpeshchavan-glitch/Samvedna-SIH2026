@@ -27,6 +27,7 @@ class Settings:
     ASSIGNMENT_ACK_TIMEOUT_SECONDS: int = int(
         os.getenv("ASSIGNMENT_ACK_TIMEOUT_SECONDS", str(int(os.getenv("AUTO_REASSIGN_MINUTES", "5")) * 60))
     )
+    VOLUNTEER_HEARTBEAT_TIMEOUT_MINUTES: int = int(os.getenv("VOLUNTEER_HEARTBEAT_TIMEOUT_MINUTES", "30"))
     
     RISK_FRESHNESS_MINUTES: int = int(os.getenv("RISK_FRESHNESS_MINUTES", "60"))
 

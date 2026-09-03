@@ -51,6 +51,7 @@ async def check_and_reassign_expired():
                 before={"status": "pending", "volunteer_id": old_vol_id},
                 after={"status": "reassigned", "volunteer_id": old_vol_id},
             )
+            await db.flush()
 
             incident_result = await db.execute(
                 select(Incident).where(Incident.id == inc_id_str)
@@ -59,7 +60,14 @@ async def check_and_reassign_expired():
             if not incident:
                 continue
 
-            best = await find_best_volunteer(db, incident, exclude_volunteer_ids=[old_vol_id])
+            # Exclude all volunteers with assignment history on this incident
+            hist_res = await db.execute(
+                select(Assignment.volunteer_id).where(Assignment.incident_id == inc_id_str)
+            )
+            historical_vol_ids = set(hist_res.scalars().all())
+            historical_vol_ids.add(old_vol_id)
+
+            best = await find_best_volunteer(db, incident, exclude_volunteer_ids=list(historical_vol_ids))
             if best:
                 new_volunteer, score = best
                 from datetime import timedelta

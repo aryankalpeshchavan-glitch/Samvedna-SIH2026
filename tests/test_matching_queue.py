@@ -39,7 +39,7 @@ async def test_enqueue_matching_job_redis_unavailable():
 
 
 @pytest.mark.asyncio
-async def test_incident_creation_enqueues_job(client: AsyncClient):
+async def test_incident_creation_does_not_enqueue_until_verified(client: AsyncClient):
     with patch("app.routers.incidents.enqueue_matching_job", new_callable=AsyncMock) as mock_enqueue:
         mock_enqueue.return_value = True
         
@@ -55,5 +55,13 @@ async def test_incident_creation_enqueues_job(client: AsyncClient):
         assert resp.status_code == 201
         incident_id = resp.json()["id"]
         
-        # Ensure it was called with the new incident_id
+        # POST /incidents creates reported incident; must NOT enqueue matching yet
+        mock_enqueue.assert_not_called()
+
+        # Verifying the incident MUST enqueue matching
+        verify_resp = await client.patch(f"/incidents/{incident_id}/verify", json={
+            "data_label": "live"
+        }, headers=auth_header(token))
+        assert verify_resp.status_code == 200
+
         mock_enqueue.assert_called_with(incident_id)
