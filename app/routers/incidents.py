@@ -208,6 +208,24 @@ async def verify_incident(
     return incident
 
 
+# ─── Alias: POST /incidents/{id}/verify ─────────────────────────────────────
+# Backward-compatible alias for PATCH /incidents/{id}/verify
+
+@router.post("/{incident_id}/verify", response_model=IncidentOut)
+async def verify_incident_post_alias(
+    incident_id: str,
+    data: IncidentVerify,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("officer", "admin")),
+):
+    """
+    POST alias for PATCH /incidents/{incident_id}/verify.
+    Accepts the same body. Kept for frontend clients that prefer POST.
+    """
+    return await verify_incident(incident_id=incident_id, data=data, db=db, current_user=current_user)
+
+
+
 @router.patch("/{incident_id}/reject", response_model=IncidentOut)
 async def reject_incident(
     incident_id: str,

@@ -2,10 +2,10 @@
 Day 4 — Operational Priority Engine
 =====================================
 Computes an explainable priority score from:
-  1. ML Risk Score       (weight: W_RISK)
-  2. Exposure Score      (weight: W_EXPOSURE)
-  3. Vulnerability Score (weight: W_VULNERABILITY)
-  4. Response Gap        (weight: W_RESPONSE_GAP)
+  1. ML Risk Score       (weight: settings.PRIORITY_W_RISK)
+  2. Exposure Score      (weight: settings.PRIORITY_W_EXPOSURE)
+  3. Vulnerability Score (weight: settings.PRIORITY_W_VULNERABILITY)
+  4. Response Gap        (weight: settings.PRIORITY_W_RESPONSE_GAP)
 
 Formula:
   priority_score = (
@@ -15,20 +15,15 @@ Formula:
     + W_RESPONSE_GAP * response_gap_score
   )  * 100   [clamped to 0–100]
 
-All weights configurable via environment.
+All weights configurable via environment (PRIORITY_W_RISK, etc.)
+Managed through app.core.config.Settings.
 
 This is an explicit, rule-based, explainable function — NOT an ML model.
 """
 import math
-import os
 from typing import Optional
 
-
-# ─── Configurable weights ─────────────────────────────────────────────────────
-W_RISK           = float(os.getenv("PRIORITY_W_RISK",           "0.35"))
-W_EXPOSURE       = float(os.getenv("PRIORITY_W_EXPOSURE",       "0.30"))
-W_VULNERABILITY  = float(os.getenv("PRIORITY_W_VULNERABILITY",  "0.20"))
-W_RESPONSE_GAP   = float(os.getenv("PRIORITY_W_RESPONSE_GAP",   "0.15"))
+from app.core.config import settings
 
 
 # ─── Exposure scoring ─────────────────────────────────────────────────────────
@@ -124,21 +119,28 @@ def compute_priority(
     vulnerability_score: float,
     response_gap_score: float,
 ) -> dict:
+    # Read weights from settings so they can be overridden via env at runtime.
+    # Importing here avoids a module-level circular import risk.
+    w_risk = settings.PRIORITY_W_RISK
+    w_exposure = settings.PRIORITY_W_EXPOSURE
+    w_vulnerability = settings.PRIORITY_W_VULNERABILITY
+    w_response_gap = settings.PRIORITY_W_RESPONSE_GAP
+
     raw = (
-        W_RISK          * risk_score
-        + W_EXPOSURE      * exposure_score
-        + W_VULNERABILITY * vulnerability_score
-        + W_RESPONSE_GAP  * response_gap_score
+        w_risk          * risk_score
+        + w_exposure      * exposure_score
+        + w_vulnerability * vulnerability_score
+        + w_response_gap  * response_gap_score
     )
     score = round(min(100.0, raw * 100), 1)
     return {
         "priority_score": score,
         "priority_level": priority_level(score),
         "weights": {
-            "risk": W_RISK,
-            "exposure": W_EXPOSURE,
-            "vulnerability": W_VULNERABILITY,
-            "response_gap": W_RESPONSE_GAP,
+            "risk": w_risk,
+            "exposure": w_exposure,
+            "vulnerability": w_vulnerability,
+            "response_gap": w_response_gap,
         },
         "factors": {
             "risk": round(risk_score, 4),

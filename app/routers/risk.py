@@ -15,15 +15,26 @@ router = APIRouter(prefix="/risk", tags=["risk"])
 
 
 def parse_horizon(horizon_str: str) -> int:
+    """
+    Convert a horizon string like '24h', '7d', '90m' to hours.
+    Raises ValueError for unknown units so callers can return 422.
+    """
+    if not horizon_str or len(horizon_str) < 2:
+        raise ValueError(f"Invalid horizon format: '{horizon_str}'. Expected e.g. '24h', '7d', '90m'.")
     unit = horizon_str[-1]
-    value = int(horizon_str[:-1])
+    try:
+        value = int(horizon_str[:-1])
+    except ValueError:
+        raise ValueError(f"Invalid horizon value in '{horizon_str}'. Expected integer followed by h/d/m.")
+    if value <= 0:
+        raise ValueError(f"Horizon value must be positive, got '{horizon_str}'.")
     if unit == "h":
         return value
     elif unit == "d":
         return value * 24
     elif unit == "m":
         return max(1, value // 60)
-    return 24
+    raise ValueError(f"Unknown horizon unit '{unit}' in '{horizon_str}'. Use h (hours), d (days), or m (minutes).")
 
 
 @router.get("", response_model=list[RiskZoneOut])
@@ -33,20 +44,43 @@ async def get_risk_zones(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    horizon_hours = parse_horizon(horizon)
-    query = select(RiskZone).where(RiskZone.horizon_hours <= horizon_hours)
+    # Validate horizon format
+    try:
+        horizon_hours = parse_horizon(horizon)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
+    # Validate bbox format and coordinate bounds if provided
+    bbox_parts: Optional[list[float]] = None
+    if bbox:
+        raw = bbox.split(",")
+        if len(raw) != 4:
+            raise HTTPException(
+                status_code=422,
+                detail="bbox must be exactly 4 comma-separated numbers: south,west,north,east",
+            )
+        try:
+            bbox_parts = [float(x) for x in raw]
+        except ValueError:
+            raise HTTPException(status_code=422, detail="bbox values must all be numeric")
+        south, west, north, east = bbox_parts
+        if not (-90 <= south <= 90 and -90 <= north <= 90):
+            raise HTTPException(status_code=422, detail="bbox latitude values must be in [-90, 90]")
+        if not (-180 <= west <= 180 and -180 <= east <= 180):
+            raise HTTPException(status_code=422, detail="bbox longitude values must be in [-180, 180]")
+        if south > north:
+            raise HTTPException(status_code=422, detail="bbox south must be <= north")
+
+    query = select(RiskZone).where(RiskZone.horizon_hours <= horizon_hours)
     result = await db.execute(query)
     zones = result.scalars().all()
 
     filtered = []
     for z in zones:
-        if bbox and z.lat is not None and z.lng is not None:
-            parts = [float(x) for x in bbox.split(",")]
-            if len(parts) == 4:
-                south, west, north, east = parts
-                if not (south <= z.lat <= north and west <= z.lng <= east):
-                    continue
+        if bbox_parts and z.lat is not None and z.lng is not None:
+            south, west, north, east = bbox_parts
+            if not (south <= z.lat <= north and west <= z.lng <= east):
+                continue
         filtered.append(z)
 
     return [

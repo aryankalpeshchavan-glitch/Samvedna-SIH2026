@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,8 @@ from app.models.incident import Incident
 from app.models.volunteer import Volunteer
 from app.models.user import User
 from app.schemas.assignment import AssignmentCreate, AssignmentOut, AssignmentStatusUpdate
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/assignments", tags=["assignments"])
 
@@ -105,7 +108,10 @@ async def create_assignment(
             )
         )
     except Exception as e:
-        print(f"[ASSIGNMENT NOTIFY ERROR] {e} (provider={_settings.NOTIFICATION_PROVIDER})")
+        logger.warning(
+            "[ASSIGNMENT NOTIFY ERROR] %s (provider=%s)",
+            e, _settings.NOTIFICATION_PROVIDER,
+        )
 
     return assignment
 
@@ -224,6 +230,64 @@ async def update_assignment_status(
         actor_id=current_user.id,
         before={"status": old_status},
         after={"status": target_status},
+    )
+
+    return assignment
+
+
+# ─── Alias: POST /assignments/{id}/ack ────────────────────────────────────────
+# Backward-compatible shorthand for PATCH /assignments/{id}/status {"status":"acked"}
+
+@router.post("/{assignment_id}/ack", response_model=AssignmentOut)
+async def ack_assignment(
+    assignment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("volunteer", "officer", "admin")),
+):
+    """
+    Shorthand ACK endpoint — equivalent to
+    PATCH /assignments/{id}/status  body: {"status": "acked"}.
+    Kept as a canonical alias so frontends can POST without a request body.
+    """
+    result = await db.execute(select(Assignment).where(Assignment.id == assignment_id))
+    assignment = result.scalar_one_or_none()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    # Volunteer can only ACK their own assignment
+    if current_user.role == "volunteer":
+        vol_result = await db.execute(select(Volunteer).where(Volunteer.user_id == current_user.id))
+        vol = vol_result.scalar_one_or_none()
+        if not vol or assignment.volunteer_id != vol.id:
+            raise HTTPException(status_code=403, detail="Forbidden: You can only acknowledge your own assignment")
+
+    old_status = assignment.status
+
+    # Idempotent — already acked
+    if old_status == "acked":
+        return assignment
+
+    allowed = VALID_ASSIGNMENT_TRANSITIONS.get(old_status, set())
+    if "acked" not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot ACK assignment in '{old_status}' state",
+        )
+
+    assignment.status = "acked"
+    assignment.acked_at = datetime.utcnow()
+
+    await db.flush()
+    await db.refresh(assignment)
+
+    await record_audit_log(
+        db=db,
+        action="status_acked",
+        entity_type="Assignment",
+        entity_id=str(assignment.id),
+        actor_id=current_user.id,
+        before={"status": old_status},
+        after={"status": "acked"},
     )
 
     return assignment

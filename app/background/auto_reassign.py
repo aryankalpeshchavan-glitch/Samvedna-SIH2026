@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime
 
 from sqlalchemy import select
@@ -11,13 +12,15 @@ from app.models.incident import Incident
 from app.notifications.dispatcher import on_assignment_reassigned
 from app.matching.engine import find_best_volunteer
 
+logger = logging.getLogger(__name__)
+
 
 async def auto_reassign_loop(interval_seconds: int = 60):
     while True:
         try:
             await check_and_reassign_expired()
         except Exception as e:
-            print(f"[AUTO_REASSIGN ERROR] {e}")
+            logger.error("[AUTO_REASSIGN ERROR] %s", e)
         await asyncio.sleep(interval_seconds)
 
 
@@ -85,10 +88,9 @@ async def check_and_reassign_expired():
                     data_label=incident.data_label,
                 )
 
-                print(
-                    f"[AUTO_REASSIGN] Reassigned incident {incident.id} "
-                    f"from volunteer {old_vol_id} to {new_volunteer.id} "
-                    f"(score={score})"
+                logger.info(
+                    "[AUTO_REASSIGN] Reassigned incident %s from volunteer %s to %s (score=%s)",
+                    incident.id, old_vol_id, new_volunteer.id, score,
                 )
 
         await db.commit()

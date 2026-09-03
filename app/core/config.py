@@ -1,3 +1,4 @@
+import json
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -28,6 +29,27 @@ class Settings:
     )
     
     RISK_FRESHNESS_MINUTES: int = int(os.getenv("RISK_FRESHNESS_MINUTES", "60"))
+
+    # Operational Priority Engine weights — must sum to 1.0
+    PRIORITY_W_RISK: float = float(os.getenv("PRIORITY_W_RISK", "0.35"))
+    PRIORITY_W_EXPOSURE: float = float(os.getenv("PRIORITY_W_EXPOSURE", "0.30"))
+    PRIORITY_W_VULNERABILITY: float = float(os.getenv("PRIORITY_W_VULNERABILITY", "0.20"))
+    PRIORITY_W_RESPONSE_GAP: float = float(os.getenv("PRIORITY_W_RESPONSE_GAP", "0.15"))
+
+    # CORS — comma-separated or JSON list of allowed origins.
+    # Defaults to ["*"] for local development.
+    # In production, set: CORS_ORIGINS='["https://your-domain.com"]'
+    @property
+    def CORS_ORIGINS(self) -> list[str]:
+        raw = os.getenv("CORS_ORIGINS", "[\"*\"]")
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                return parsed
+        except (json.JSONDecodeError, ValueError):
+            pass
+        # Fallback: treat as a plain string
+        return [raw.strip()]
 
 
 settings = Settings()

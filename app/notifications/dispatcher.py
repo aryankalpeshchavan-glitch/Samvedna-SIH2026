@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any
 from datetime import datetime
 
@@ -9,6 +10,8 @@ from app.core.redis import redis_client
 from app.models.notification import NotificationLog
 from app.models.user import User
 from app.notifications.provider import get_provider
+
+logger = logging.getLogger(__name__)
 
 
 async def dispatch_notification(
@@ -53,27 +56,41 @@ async def dispatch_notification(
             await db.commit()
 
             if not success:
-                await redis_client.lpush(
-                    "notification_queue",
-                    json.dumps({
-                        "notification_id": str(log.id),
-                        "retry_count": 0,
-                    }),
-                )
+                try:
+                    await redis_client.lpush(
+                        "notification_queue",
+                        json.dumps({
+                            "notification_id": str(log.id),
+                            "retry_count": 0,
+                        }),
+                    )
+                except Exception as redis_err:
+                    logger.warning(
+                        "[DISPATCHER] Redis unavailable — could not enqueue retry for notification %s: %s",
+                        log.id, redis_err,
+                    )
 
     except Exception as e:
-        print(f"[DISPATCHER ERROR] {e}")
-        await redis_client.lpush(
-            "notification_queue",
-            json.dumps({
-                "incident_id": incident_id,
-                "recipient_id": recipient_id,
-                "channel": channel,
-                "message": message,
-                "data_label": data_label,
-                "retry_count": 0,
-            }),
-        )
+        logger.error("[DISPATCHER ERROR] %s", e)
+        # Best-effort: try to enqueue for retry. Guard Redis call so a Redis
+        # outage cannot cause this exception handler to itself throw.
+        try:
+            await redis_client.lpush(
+                "notification_queue",
+                json.dumps({
+                    "incident_id": incident_id,
+                    "recipient_id": recipient_id,
+                    "channel": channel,
+                    "message": message,
+                    "data_label": data_label,
+                    "retry_count": 0,
+                }),
+            )
+        except Exception as redis_err:
+            logger.warning(
+                "[DISPATCHER] Redis unavailable — could not enqueue retry notification for incident %s: %s",
+                incident_id, redis_err,
+            )
 
 
 async def on_incident_verified(incident_id: str, reporter_id: int, data_label: str):

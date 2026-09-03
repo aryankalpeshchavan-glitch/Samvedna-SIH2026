@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import engine, Base
 from app.core.audit_logger import setup_audit_listeners
+from app.core.config import settings
 from app.routers import (
     auth_router, health_router, incidents_router, volunteers_router,
     assignments_router, resources_router, risk_router,
@@ -49,7 +50,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

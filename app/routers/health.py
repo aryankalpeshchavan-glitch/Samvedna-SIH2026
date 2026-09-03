@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,8 +33,12 @@ async def health(db: AsyncSession = Depends(get_db), redis=Depends(get_redis)):
         checks["notification_queue_depth"] = "unknown"
 
     healthy = all(v == "ok" for k, v in checks.items() if k in ("db", "redis"))
+
+    # Import here to avoid circular import; version is set on the FastAPI app instance.
+    from app.main import app as _app
     return {
         "status": "healthy" if healthy else "degraded",
-        "timestamp": datetime.utcnow().isoformat(),
+        "version": getattr(_app, "version", "0.1.0"),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "checks": checks,
     }

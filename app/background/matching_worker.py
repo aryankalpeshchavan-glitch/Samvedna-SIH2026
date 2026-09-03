@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from datetime import datetime, timedelta
 from sqlalchemy import select
 
@@ -12,6 +13,8 @@ from app.models.assignment import Assignment
 from app.matching.engine import find_best_volunteer
 from app.notifications.dispatcher import on_assignment_created
 
+logger = logging.getLogger(__name__)
+
 
 async def process_matching_queue():
     """
@@ -20,10 +23,10 @@ async def process_matching_queue():
     """
     redis = await get_redis()
     if not redis:
-        print("[MATCHING_WORKER] Redis not available, shutting down worker.")
+        logger.warning("[MATCHING_WORKER] Redis not available, shutting down worker.")
         return
 
-    print("[MATCHING_WORKER] Started listening to matching_queue...")
+    logger.info("[MATCHING_WORKER] Started listening to matching_queue...")
     while True:
         try:
             # Block until a job is available in the matching_queue (timeout 5s)
@@ -40,28 +43,31 @@ async def process_matching_queue():
             await process_incident_match(incident_id)
 
         except asyncio.CancelledError:
-            print("[MATCHING_WORKER] Shutting down...")
+            logger.info("[MATCHING_WORKER] Shutting down...")
             break
         except Exception as e:
-            print(f"[MATCHING_WORKER] Error processing queue: {e}")
+            logger.error("[MATCHING_WORKER] Error processing queue: %s", e)
             await asyncio.sleep(5)
 
 
 async def process_incident_match(incident_id: str):
     async with async_session() as db:
         now = datetime.utcnow()
-        
+
         # 1. Fetch the incident
         result = await db.execute(select(Incident).where(Incident.id == incident_id))
         incident = result.scalar_one_or_none()
-        
+
         if not incident:
-            print(f"[MATCHING_WORKER] Incident {incident_id} not found.")
+            logger.warning("[MATCHING_WORKER] Incident %s not found.", incident_id)
             return
-            
+
         # Only process if verified
         if incident.status != "verified":
-            print(f"[MATCHING_WORKER] Incident {incident_id} is {incident.status}, skipping match.")
+            logger.info(
+                "[MATCHING_WORKER] Incident %s is %s, skipping match.",
+                incident_id, incident.status,
+            )
             return
 
         # 2. Check if already assigned (safety check)
@@ -72,13 +78,17 @@ async def process_incident_match(incident_id: str):
             )
         )
         if existing_assignment_result.scalars().first():
-            print(f"[MATCHING_WORKER] Incident {incident_id} already has an active assignment.")
+            logger.info(
+                "[MATCHING_WORKER] Incident %s already has an active assignment.", incident_id
+            )
             return
 
         # 3. Find the best volunteer
         best = await find_best_volunteer(db, incident)
         if not best:
-            print(f"[MATCHING_WORKER] No suitable volunteers found for incident {incident_id}.")
+            logger.warning(
+                "[MATCHING_WORKER] No suitable volunteers found for incident %s.", incident_id
+            )
             await record_audit_log(
                 db=db,
                 action="matching_no_resource",
@@ -90,7 +100,7 @@ async def process_incident_match(incident_id: str):
             )
             await db.commit()
             return
-            
+
         new_volunteer, score = best
 
         # 4. Create assignment
@@ -131,4 +141,7 @@ async def process_incident_match(incident_id: str):
         )
 
         await db.commit()
-        print(f"[MATCHING_WORKER] Successfully matched incident {incident_id} to volunteer {new_volunteer.id} (score: {score})")
+        logger.info(
+            "[MATCHING_WORKER] Successfully matched incident %s to volunteer %s (score: %s)",
+            incident_id, new_volunteer.id, score,
+        )
