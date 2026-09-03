@@ -30,6 +30,11 @@ class Settings:
     
     RISK_FRESHNESS_MINUTES: int = int(os.getenv("RISK_FRESHNESS_MINUTES", "60"))
 
+    # Sensor health & liveness timeouts
+    SENSOR_STALE_TIMEOUT_SECONDS: int = int(os.getenv("SENSOR_STALE_TIMEOUT_SECONDS", "300"))
+    SENSOR_OFFLINE_TIMEOUT_SECONDS: int = int(os.getenv("SENSOR_OFFLINE_TIMEOUT_SECONDS", "1800"))
+    SENSOR_CLOCK_SKEW_TOLERANCE_SECONDS: int = int(os.getenv("SENSOR_CLOCK_SKEW_TOLERANCE_SECONDS", "60"))
+
     # Operational Priority Engine weights — must sum to 1.0
     PRIORITY_W_RISK: float = float(os.getenv("PRIORITY_W_RISK", "0.35"))
     PRIORITY_W_EXPOSURE: float = float(os.getenv("PRIORITY_W_EXPOSURE", "0.30"))

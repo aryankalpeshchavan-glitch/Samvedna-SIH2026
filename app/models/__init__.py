@@ -8,3 +8,4 @@ from .risk import RiskZone
 from .notification import NotificationLog
 from .mesh import MeshMessage
 from .exposure import ExposureZone
+from .sensor import Sensor, SensorReading

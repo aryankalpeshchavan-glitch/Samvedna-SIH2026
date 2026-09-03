@@ -13,7 +13,7 @@ from app.routers import (
     auth_router, health_router, incidents_router, volunteers_router,
     assignments_router, resources_router, risk_router,
     notifications_router, mesh_router, status_router, intelligence_router,
-    audit_router,
+    audit_router, sensors_router,
 )
 from app.realtime.ws_manager import ws_manager
 
@@ -68,6 +68,7 @@ app.include_router(mesh_router)
 app.include_router(status_router)
 app.include_router(intelligence_router)
 app.include_router(audit_router)
+app.include_router(sensors_router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

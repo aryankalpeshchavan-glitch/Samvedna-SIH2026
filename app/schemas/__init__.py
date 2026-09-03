@@ -9,3 +9,7 @@ from .resource import ResourceCreate, ResourceOut
 from .risk import RiskZoneOut, RiskExplainOut
 from .notification import NotificationLogOut
 from .mesh import MeshMessageCreate, MeshSimulateResponse
+from .sensor import (
+    SensorRegisterCreate, SensorReadingCreate, SensorHeartbeat,
+    SensorOut, SensorReadingOut,
+)
