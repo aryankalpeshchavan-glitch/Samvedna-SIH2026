@@ -57,3 +57,41 @@ async def test_matching_worker_graceful_shutdown():
     with patch("app.background.matching_worker.get_redis", AsyncMock(return_value=mock_redis)):
         # Calling process_matching_queue should exit cleanly on CancelledError
         await process_matching_queue()
+
+
+@pytest.mark.asyncio
+async def test_matching_worker_mid_stream_redis_disconnect_and_reconnect():
+    """
+    Verifies that if Redis raises an exception during an active brpop (mid-stream),
+    the worker catches it, applies backoff, reconnects, and processes subsequent jobs,
+    and cleanly handles CancelledError on shutdown.
+    """
+    mock_redis1 = MagicMock()
+    # First active connection encounters a connection drop mid-stream
+    mock_redis1.brpop = AsyncMock(side_effect=ConnectionError("Redis mid-stream disconnect"))
+
+    mock_redis2 = MagicMock()
+    # Reconnected instance processes job, then receives CancelledError for clean shutdown
+    mock_redis2.brpop = AsyncMock(
+        side_effect=[
+            ("matching_queue", json.dumps({"incident_id": "INC-RECONNECT-4C"}).encode()),
+            asyncio.CancelledError(),
+        ]
+    )
+
+    get_redis_mock = AsyncMock(side_effect=[mock_redis1, mock_redis2])
+
+    with patch("app.background.matching_worker.get_redis", get_redis_mock):
+        with patch("app.background.matching_worker.process_incident_match", new_callable=AsyncMock) as mock_match:
+            with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+                await process_matching_queue()
+
+                # Reconnection occurred (get_redis called at least twice)
+                assert get_redis_mock.call_count >= 2
+
+                # Backoff sleep was called due to the mid-stream connection error
+                assert mock_sleep.call_count >= 1
+                assert mock_sleep.call_args_list[0][0][0] == 1  # initial backoff is 1s
+
+                # The subsequent job after reconnect was processed
+                mock_match.assert_called_once_with("INC-RECONNECT-4C")
