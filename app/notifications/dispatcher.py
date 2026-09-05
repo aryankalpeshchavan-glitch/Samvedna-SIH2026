@@ -1,5 +1,5 @@
 import json
-from typing import Any
+import logging
 from datetime import datetime
 
 from sqlalchemy import select
@@ -10,6 +10,8 @@ from app.models.notification import NotificationLog
 from app.models.user import User
 from app.notifications.provider import get_provider
 
+logger = logging.getLogger(__name__)
+
 
 async def dispatch_notification(
     incident_id: str | None,
@@ -17,7 +19,7 @@ async def dispatch_notification(
     channel: str,
     message: str,
     data_label: str,
-    extra: dict[str, Any] | None = None,
+    extra: dict | None = None,
 ):
     provider = get_provider()
 
@@ -62,7 +64,7 @@ async def dispatch_notification(
                 )
 
     except Exception as e:
-        print(f"[DISPATCHER ERROR] {e}")
+        logger.error("[DISPATCHER ERROR] %s", e)
         await redis_client.lpush(
             "notification_queue",
             json.dumps({
@@ -74,16 +76,6 @@ async def dispatch_notification(
                 "retry_count": 0,
             }),
         )
-
-
-async def on_incident_verified(incident_id: str, reporter_id: int, data_label: str):
-    await dispatch_notification(
-        incident_id=incident_id,
-        recipient_id=reporter_id,
-        channel="console",
-        message=f"Incident {incident_id} has been verified by an officer.",
-        data_label=data_label,
-    )
 
 
 async def on_assignment_created(

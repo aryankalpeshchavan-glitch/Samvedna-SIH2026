@@ -19,3 +19,5 @@ class RiskZone(Base):
     top_features = Column(JSON, default={})
     data_label = Column(String(20), default="synthetic", nullable=False)
     computed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    confidence = Column(Float, nullable=True)
+    model_version = Column(String(50), nullable=True)

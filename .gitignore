@@ -14,3 +14,10 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+
+# merged frontend + ml
+frontend/node_modules/
+frontend/dist/
+data/raw/
+*.nc
+ml/__pycache__/

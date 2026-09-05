@@ -1,6 +1,9 @@
 import os
+import logging
 from abc import ABC, abstractmethod
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationProvider(ABC):
@@ -25,9 +28,9 @@ class ConsoleProvider(NotificationProvider):
         data_label: str,
         extra: dict[str, Any] | None = None,
     ) -> bool:
-        print(
-            f"[NOTIFICATION] channel={channel} recipient={recipient} "
-            f"data_label={data_label} message={message}"
+        logger.info(
+            "[NOTIFICATION] channel=%s recipient=%s data_label=%s message=%s",
+            channel, recipient, data_label, message,
         )
         return True
 
@@ -47,7 +50,7 @@ class TwilioSMSProvider(NotificationProvider):
         extra: dict[str, Any] | None = None,
     ) -> bool:
         if not self.account_sid:
-            print(f"[TWILIO STUB] No credentials set. Would SMS {recipient}: {message}")
+            logger.warning("[TWILIO STUB] No credentials set. Would SMS %s: %s", recipient, message)
             return False
         try:
             from twilio.rest import Client
@@ -55,7 +58,7 @@ class TwilioSMSProvider(NotificationProvider):
             client.messages.create(body=message, from_=self.from_number, to=recipient)
             return True
         except Exception as e:
-            print(f"[TWILIO ERROR] {e}")
+            logger.error("[TWILIO ERROR] %s", e)
             return False
 
 
@@ -70,7 +73,7 @@ class FCMProvider(NotificationProvider):
     ) -> bool:
         fcm_key = os.getenv("FCM_SERVER_KEY", "")
         if not fcm_key:
-            print(f"[FCM STUB] No server key. Would push to {recipient}: {message}")
+            logger.warning("[FCM STUB] No server key. Would push to %s: %s", recipient, message)
             return False
         return True
 
@@ -84,7 +87,7 @@ class USSDProvider(NotificationProvider):
         data_label: str,
         extra: dict[str, Any] | None = None,
     ) -> bool:
-        print(f"[USSD MOCK] recipient={recipient} message={message} data_label={data_label}")
+        logger.info("[USSD MOCK] recipient=%s message=%s data_label=%s", recipient, message, data_label)
         return True
 
 

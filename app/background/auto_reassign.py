@@ -1,13 +1,19 @@
 import asyncio
+import logging
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.core.database import async_session
+from app.core.audit_logger import record_audit_log
+from app.core.config import settings
 from app.models.assignment import Assignment
 from app.models.incident import Incident
 from app.notifications.dispatcher import on_assignment_reassigned
 from app.matching.engine import find_best_volunteer
+
+logger = logging.getLogger(__name__)
 
 
 async def auto_reassign_loop(interval_seconds: int = 60):
@@ -15,7 +21,7 @@ async def auto_reassign_loop(interval_seconds: int = 60):
         try:
             await check_and_reassign_expired()
         except Exception as e:
-            print(f"[AUTO_REASSIGN ERROR] {e}")
+            logger.error("[AUTO_REASSIGN ERROR] %s", e)
         await asyncio.sleep(interval_seconds)
 
 
@@ -31,27 +37,70 @@ async def check_and_reassign_expired():
         expired = result.scalars().all()
 
         for assignment in expired:
+            old_vol_id = assignment.volunteer_id
+            assign_id_str = str(assignment.id)
+            inc_id_str = str(assignment.incident_id)
             assignment.status = "reassigned"
 
+            await record_audit_log(
+                db=db,
+                action="reassign",
+                entity_type="Assignment",
+                entity_id=assign_id_str,
+                actor_id=None,
+                before={"status": "pending", "volunteer_id": old_vol_id},
+                after={"status": "reassigned", "volunteer_id": old_vol_id},
+            )
+            await db.flush()
+
             incident_result = await db.execute(
-                select(Incident).where(Incident.id == assignment.incident_id)
+                select(Incident).where(Incident.id == inc_id_str)
             )
             incident = incident_result.scalar_one_or_none()
             if not incident:
                 continue
 
-            best = await find_best_volunteer(db, incident)
+            # Exclude all volunteers with assignment history on this incident
+            hist_res = await db.execute(
+                select(Assignment.volunteer_id).where(Assignment.incident_id == inc_id_str)
+            )
+            historical_vol_ids = set(hist_res.scalars().all())
+            historical_vol_ids.add(old_vol_id)
+
+            best = await find_best_volunteer(db, incident, exclude_volunteer_ids=list(historical_vol_ids))
             if best:
                 new_volunteer, score = best
                 from datetime import timedelta
                 new_assignment = Assignment(
                     incident_id=incident.id,
                     volunteer_id=new_volunteer.id,
-                    sla_deadline=now + timedelta(minutes=5),
+                    sla_deadline=now + timedelta(seconds=settings.ASSIGNMENT_ACK_TIMEOUT_SECONDS),
                 )
                 db.add(new_assignment)
                 incident.status = "assigned"
                 incident.updated_at = now
+
+                try:
+                    await db.flush()
+                    await db.refresh(new_assignment)
+                except IntegrityError:
+                    await db.rollback()
+                    logger.warning(
+                        "[AUTO_REASSIGN] Collision: active assignment already exists for incident %s (expired assignment %s). Skipping replacement.",
+                        inc_id_str,
+                        assign_id_str,
+                    )
+                    continue
+
+                await record_audit_log(
+                    db=db,
+                    action="create",
+                    entity_type="Assignment",
+                    entity_id=str(new_assignment.id),
+                    actor_id=None,
+                    before=None,
+                    after={"status": "pending", "volunteer_id": new_volunteer.id, "incident_id": str(incident.id)},
+                )
 
                 await on_assignment_reassigned(
                     incident_id=str(incident.id),
@@ -59,10 +108,28 @@ async def check_and_reassign_expired():
                     data_label=incident.data_label,
                 )
 
-                print(
-                    f"[AUTO_REASSIGN] Reassigned incident {incident.id} "
-                    f"from volunteer {assignment.volunteer_id} to {new_volunteer.id} "
-                    f"(score={score})"
+                logger.info(
+                    "[AUTO_REASSIGN] Reassigned incident %s from volunteer %s to %s (score=%s)",
+                    incident.id, old_vol_id, new_volunteer.id, score,
+                )
+            else:
+                incident.status = "verified"
+                incident.updated_at = now
+                await db.flush()
+
+                await record_audit_log(
+                    db=db,
+                    action="reassign_exhausted",
+                    entity_type="Incident",
+                    entity_id=str(incident.id),
+                    actor_id=None,
+                    before={"status": "assigned", "assignment_id": str(assignment.id), "volunteer_id": old_vol_id},
+                    after={"status": "verified", "reason": "no_available_replacement_volunteers"},
                 )
 
-        await db.commit()
+                logger.warning(
+                    "[AUTO_REASSIGN] No replacement volunteer available for incident %s (expired assignment %s). Reverted incident status to 'verified' for re-matching/review.",
+                    incident.id, assignment.id,
+                )
+
+            await db.commit()

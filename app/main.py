@@ -2,15 +2,18 @@ import asyncio
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import engine, Base
 from app.core.audit_logger import setup_audit_listeners
+from app.core.config import settings
 from app.routers import (
     auth_router, health_router, incidents_router, volunteers_router,
     assignments_router, resources_router, risk_router,
-    notifications_router, mesh_router, status_router,
+    notifications_router, mesh_router, status_router, intelligence_router,
+    audit_router, sensors_router,
 )
 from app.realtime.ws_manager import ws_manager
 
@@ -22,14 +25,21 @@ async def lifespan(app: FastAPI):
 
     setup_audit_listeners()
 
+    # Load ML prediction service
+    from app.services.prediction_service import prediction_service
+    prediction_service.load()
+
     from app.background.auto_reassign import auto_reassign_loop
+    from app.background.matching_worker import process_matching_queue
     task = asyncio.create_task(auto_reassign_loop())
+    matching_task = asyncio.create_task(process_matching_queue())
 
     yield
 
     task.cancel()
+    matching_task.cancel()
     try:
-        await task
+        await asyncio.gather(task, matching_task, return_exceptions=True)
     except asyncio.CancelledError:
         pass
     await engine.dispose()
@@ -44,7 +54,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,6 +70,19 @@ app.include_router(risk_router)
 app.include_router(notifications_router)
 app.include_router(mesh_router)
 app.include_router(status_router)
+app.include_router(intelligence_router)
+app.include_router(audit_router)
+app.include_router(sensors_router)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # Log the exception safely here if needed, but do not leak to client
+    import logging
+    logging.error(f"Unhandled exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "error_code": "INTERNAL_ERROR"},
+    )
 
 
 @app.websocket("/ws/status")
