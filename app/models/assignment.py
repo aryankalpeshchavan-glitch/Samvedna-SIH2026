@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, Integer, DateTime, ForeignKey, String,
+    Column, Integer, DateTime, ForeignKey, String, Index, text,
 )
 from sqlalchemy.orm import relationship
 
@@ -22,3 +22,13 @@ class Assignment(Base):
 
     incident = relationship("Incident", back_populates="assignments")
     volunteer = relationship("Volunteer", back_populates="assignments")
+
+    __table_args__ = (
+        Index(
+            "uix_active_assignment_per_incident",
+            "incident_id",
+            unique=True,
+            postgresql_where=text("status IN ('pending', 'acked', 'in_progress')"),
+            sqlite_where=text("status IN ('pending', 'acked', 'in_progress')"),
+        ),
+    )

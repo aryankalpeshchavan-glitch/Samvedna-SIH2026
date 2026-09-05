@@ -1,6 +1,6 @@
 """WebSocket reconnect correctness test."""
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from app.realtime.ws_manager import WSManager
 
 
@@ -20,7 +20,8 @@ async def test_ws_manager_reconnect_receives_current_state():
     await manager.connect(mock_ws2, "client_1")
     assert "client_1" in manager.active_connections
 
-    await manager.broadcast({"incident_id": "test", "status": "verified"})
+    with patch("app.realtime.ws_manager.redis_client.publish", new_callable=AsyncMock):
+        await manager.broadcast({"incident_id": "test", "status": "verified"})
     mock_ws2.send_json.assert_called_once_with({"incident_id": "test", "status": "verified"})
 
 
@@ -36,8 +37,10 @@ async def test_ws_broadcast_does_not_crash_on_dead_connection():
     await manager.connect(dead_ws, "c1")
     await manager.connect(alive_ws, "c1")
 
-    await manager.broadcast({"test": True})
+    with patch("app.realtime.ws_manager.redis_client.publish", new_callable=AsyncMock):
+        await manager.broadcast({"test": True})
 
     dead_ws.send_json.assert_called_once()
     alive_ws.send_json.assert_called_once_with({"test": True})
     assert dead_ws not in manager.active_connections["c1"]
+

@@ -1,30 +1,41 @@
 # CrisisCore — Security Notes
 
-## PII Stored Per Module
+## PII & Sensitive Attributes Stored Per Module
 
-| Module | PII Field | Type | Risk |
-|--------|-----------|------|------|
-| **Auth/Users** | `phone` | Phone number (10-15 chars) | High — direct identifier |
-| **Incidents** | `lat`, `lng` | Precise GPS coordinates | High — reveals victim location |
-| **Incidents** | `photo_url` | URL to uploaded photo | Medium — may contain faces/locations |
-| **Volunteers** | `lat`, `lng` | Last-known GPS position | Medium — tracks volunteer location |
-| **Resources** | `lat`, `lng` | GPS coordinates of resource | Low — asset location, not personal |
-| **Risk Zones** | `lat`, `lng` | Geographic center of risk area | Low — aggregate spatial data |
-| **Notifications** | `recipient_id` | Foreign key to user | Medium — links to user identity |
-| **Mesh Messages** | `origin_device_id` | Device identifier | Medium — can track device |
+| Module | Sensitive Field | Type | Risk Level | Protection / Sanitization |
+|---|---|---|---|---|
+| **Auth/Users** | `phone` | Phone number (10-15 chars) | High — Direct Identifier | Stored hashed or restricted to admin roles. |
+| **Auth/Users** | `hashed_password` | Bcrypt hash | Critical | Never logged or returned in user responses. |
+| **Incidents** | `lat`, `lng` | GPS coordinates | High — Victim Location | Guarded by RBAC; sanitized on aggregate exports. |
+| **Incidents** | `photo_url` | URL to uploaded image | Medium — Visual context | Restricted access. |
+| **Volunteers** | `lat`, `lng` | Last-known GPS position | Medium — Tracking location | Accessible only for dispatch and officer triage. |
+| **Resources** | `lat`, `lng` | GPS coordinates of resource | Low — Asset location | Public safety asset tracking. |
+| **Risk Zones** | `lat`, `lng` | Spatial centroid of risk area | Low — Aggregate data | Geospatial bounding. |
+| **Notifications** | `recipient_id` | Foreign key to user | Medium — Links to identity | Redacted in public responses. |
+| **Mesh Messages** | `origin_device_id` | Device identifier | Medium — Device tracking | Mesh relay routing metadata. |
 
-## Encryption & Transport
+---
 
-- **In transit:** TLS is required in production. The Docker Compose setup does NOT enable TLS by default (demo/dev mode). For deployment behind a reverse proxy (nginx/caddy), terminate TLS there.
-- **At rest:** PostgreSQL does not encrypt at rest by default. For production, enable disk encryption or PostgreSQL TDE.
-- **Passwords:** Hashed with bcrypt via `passlib`. Raw passwords are never stored or logged.
-- **JWT tokens:** Signed with HS256. Token expiry is configurable via `JWT_EXPIRE_MINUTES` (default 1440 = 24h). Tokens contain only `user_id` and `role` — no PII.
+## Encryption, Transport & Storage
 
-## Recommendations for Production
+- **In Transit:** TLS is required in production. For deployment behind a reverse proxy (Nginx, Caddy, Cloudflare), terminate TLS at the ingress.
+- **At Rest:** Database disk encryption (LUKS or PostgreSQL TDE) should be enabled in production environments.
+- **Passwords:** Hashed with bcrypt via `passlib`. Raw passwords are never stored or logged in plain text.
+- **JWT Tokens:** Signed with HMAC-SHA256 (`HS256`). Configurable expiry via `JWT_EXPIRE_MINUTES` (default: 1440 min = 24h). Tokens carry only `user_id` and `role` claims — no PII.
 
-1. **Phone numbers:** Store only hashed phone numbers for lookup, or use a separate encrypted column for display.
-2. **GPS precision:** Round coordinates to ~3 decimal places (~111m precision) for incident locations to reduce re-identification risk.
-3. **Photo URLs:** Use pre-signed, time-limited URLs. Never store raw photos on the same server.
-4. **Audit log:** The `audit_log` table captures before/after state of entities — restrict access to admin role only.
-5. **Rate limiting:** Add rate limiting on `/auth/login` and `/incidents` endpoints to prevent abuse.
-6. **CORS:** In production, restrict `allow_origins` to specific frontend domains, not `*`.
+---
+
+## Day 5 Security & Reliability Hardening
+
+1. **Audit Log Credential Redaction:** The central audit logger (`app/core/audit_logger.py`) automatically strips sensitive keys (`password_hash`, `token`, `secret`, `api_key`, `jwt`) during entity delta serialization, ensuring credentials never leak into the `audit_logs` table.
+2. **Sanitized Error Responses:** A global exception handler in `app/main.py` catches unhandled runtime faults and returns standard sanitized JSON (`{"detail": "Internal server error", "error_code": "INTERNAL_ERROR"}`), preventing internal stack traces or SQL errors from being exposed to clients.
+3. **Data Freshness / TTL Enforcement:** The backend enforces `RISK_FRESHNESS_MINUTES` on risk intelligence models to prevent outdated predictions from being treated as active field data.
+4. **Controlled Service Degradation:** Returns explicit HTTP 503 (`RISK_SERVICE_UNAVAILABLE`) when model outputs are missing rather than fabricating false default values.
+
+---
+
+## Recommendations for Production Deployment
+
+1. **JWT Secrets:** In production, generate a high-entropy secret via `openssl rand -hex 32` and provide via secure secret managers (e.g. AWS Secrets Manager, Vault).
+2. **CORS:** Restrict `allow_origins` in `app/main.py` from `*` to verified frontend domain names.
+3. **Rate Limiting:** Place an API gateway (e.g. Nginx, Cloudflare, AWS WAF) in front of `/auth/login` and `/incidents` endpoints to mitigate brute-force and DoS attacks.

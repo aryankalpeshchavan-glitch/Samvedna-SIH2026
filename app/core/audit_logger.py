@@ -6,11 +6,65 @@ from sqlalchemy import event
 from app.models.audit import AuditLog
 
 
+from typing import Optional, Any
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+async def record_audit_log(
+    db: AsyncSession,
+    action: str,
+    entity_type: str,
+    entity_id: str,
+    actor_id: Optional[int] = None,
+    before: Optional[dict[str, Any]] = None,
+    after: Optional[dict[str, Any]] = None,
+) -> AuditLog:
+    """
+    Explicitly logs an auditable state transition into the audit_log table.
+    Also emits a WebSocket event on the same state-change hook so audit log
+    and live status feed never disagree (single source of truth).
+    """
+    import asyncio
+    entry = AuditLog(
+        id=str(uuid4()),
+        actor_id=actor_id,
+        action=action,
+        entity_type=entity_type,
+        entity_id=str(entity_id),
+        before=before,
+        after=after,
+        timestamp=datetime.utcnow(),
+    )
+    db.add(entry)
+
+    # Fire-and-forget WS broadcast (keep console fallback if Redis down)
+    try:
+        from app.realtime.ws_manager import ws_manager
+
+        payload = {
+            "event": "audit",
+            "action": action,
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+            "actor_id": actor_id,
+            "timestamp": entry.timestamp.isoformat(),
+            "before": before,
+            "after": after,
+        }
+        # schedule without blocking the transaction
+        asyncio.create_task(ws_manager.broadcast(payload))
+    except Exception:
+        pass
+
+    return entry
+
+
 def _model_to_dict(instance) -> dict:
+    sensitive_keys = {"password_hash", "token", "secret", "api_key", "jwt"}
     return {
         c.key: str(getattr(instance, c.key))
         for c in instance.__table__.columns
-        if getattr(instance, c.key) is not None
+        if getattr(instance, c.key) is not None and not any(s in c.key.lower() for s in sensitive_keys)
     }
 
 
@@ -26,7 +80,7 @@ def setup_audit_listeners():
     def after_insert(mapper, connection, target):
         if type(target).__name__ not in tracked:
             return
-        actor_id = getattr(target, "reporter_id", None) or getattr(target, "owner_id", None) or 0
+        actor_id = getattr(target, "reporter_id", None) or getattr(target, "owner_id", None) or getattr(target, "user_id", None) or None
         connection.execute(
             AuditLog.__table__.insert().values(
                 id=str(uuid4()), actor_id=actor_id, action="create",
@@ -38,7 +92,7 @@ def setup_audit_listeners():
     def after_update(mapper, connection, target):
         if type(target).__name__ not in tracked:
             return
-        actor_id = getattr(target, "reporter_id", None) or getattr(target, "owner_id", None) or 0
+        actor_id = getattr(target, "reporter_id", None) or getattr(target, "owner_id", None) or getattr(target, "user_id", None) or None
         connection.execute(
             AuditLog.__table__.insert().values(
                 id=str(uuid4()), actor_id=actor_id, action="update",
