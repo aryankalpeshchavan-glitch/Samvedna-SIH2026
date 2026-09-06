@@ -1,0 +1,25 @@
+{
+  "n_ner_records": 11023,
+  "n_exact_date_events": 1465,
+  "n_events_in_rainfall_range": 1269,
+  "n_joinable_events": 1223,
+  "feature_readiness": {
+    "rainfall_mm": true,
+    "rainfall_24h": true,
+    "rainfall_3day": true,
+    "rainfall_7day": true,
+    "rainfall_14day": true,
+    "rainfall_30day": true,
+    "heavy_rain_flag": true,
+    "very_heavy_rain_flag": true,
+    "rainfall_previous_day": true,
+    "rainfall_2day_lag": true,
+    "rainfall_3day_lag": true,
+    "rainfall_risk_score": true
+  },
+  "class_imbalance": "SEVERE",
+  "recommended_strategy": "class_weight='balanced' + temporal split",
+  "leakage_mitigation": "Temporal split (earlier train, later test); no future rainfall in predictors",
+  "ml_readiness_flag": "READY",
+  "ml_readiness_flag_reason": "1223 joinable events available"
+}

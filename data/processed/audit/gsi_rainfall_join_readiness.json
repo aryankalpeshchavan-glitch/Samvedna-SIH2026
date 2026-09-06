@@ -1,0 +1,55 @@
+{
+  "rainfall_dataset": "data\\processed\\rainfall\\risk_prediction_dataset.csv",
+  "rainfall_total_rows": 462070,
+  "rainfall_date_range": {
+    "min": "2015-01-01",
+    "max": "2025-12-31"
+  },
+  "rainfall_states": [
+    "ARUNACHAL PRADESH",
+    "ASSAM",
+    "MANIPUR",
+    "MEGHALAYA",
+    "MIZORAM",
+    "NAGALAND",
+    "SIKKIM",
+    "TRIPURA"
+  ],
+  "rainfall_district_count": 115,
+  "exact_date_ner_events": 1465,
+  "events_inside_2015_2025": 1269,
+  "state_matched_events": 1465,
+  "district_name_matched_events": 1246,
+  "spatial_matched_events": 164,
+  "unmatched_events": 55,
+  "date_compatible_events": 1269,
+  "joinable_events": 1223,
+  "join_strategy": [
+    "1. Match by state (NER states subset of rainfall states)",
+    "2. Match by district name (case-insensitive + normalised)",
+    "3. For unmatched districts: spatial lookup via lat/lon + boundary GeoJSON",
+    "4. Match by date (event date within 2015-2025 rainfall range)"
+  ],
+  "unmatched_district_list": [
+    "Chumoukedima",
+    "Dima Hasao (N.C. Hills)",
+    "East Sikkim",
+    "Eastern-West Khasi Hill",
+    "Gangtok District",
+    "Geyzing",
+    "Gyalshing",
+    "Jaintia Hills",
+    "Kamrup (Metro)",
+    "Khawzawl",
+    "Mangan",
+    "Namchi",
+    "North Sikkim",
+    "Pakyong",
+    "Ri-Bhoi",
+    "Siaha",
+    "Soreng",
+    "South Sikkim",
+    "Tseminyu",
+    "West Sikkim"
+  ]
+}

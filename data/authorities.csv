@@ -1,0 +1,5 @@
+authority_id,authority_name,authority_type,state,district,phone,latitude,longitude,source
+AUTH001,Emergency Response Support System,EMERGENCY,ALL,ALL,112,,,Government of India ERSS
+AUTH002,Police Emergency,EMERGENCY,ALL,ALL,112,,,Government of India ERSS
+AUTH003,Fire and Rescue,EMERGENCY,ALL,ALL,112,,,Government of India ERSS
+AUTH004,Ambulance Emergency,EMERGENCY,ALL,ALL,112,,,Government of India ERSS

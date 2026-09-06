@@ -1,0 +1,24 @@
+CrisisCore Landslide 24h XGBoost Threshold Selection
+============================================================
+
+Target: landslide_24h
+Model: XGBoost
+Trees: 200
+Validation period: 2023-2024
+
+Validation PR-AUC: 0.019522
+Validation ROC-AUC: 0.902613
+
+Selected threshold: 0.500
+Precision: 0.010633
+Recall: 0.709402
+F1: 0.020952
+Alerts: 7806
+True positives: 83
+False positives: 7723
+False negatives: 34
+
+Operational notes:
+Threshold selected using validation data only.
+The 2025 test set remains untouched.
+Final test evaluation must be performed only after model and threshold are locked.

@@ -1,0 +1,31 @@
+{
+  "input_file": "data\\processed\\landslide\\gsi_field_validated_inventory_v2.csv",
+  "input_records": 11023,
+  "improvements_applied": [
+    "Date parsing (strict, non-fabricating) using parse_gsi_event_dates.py",
+    "Temporal classification of History column",
+    "Source field preservation (source_* mirror columns)",
+    "State normalisation (uppercase)",
+    "Latitude/longitude numeric conversion",
+    "Only exact duplicate removal",
+    "Invalid coordinates preserved and flagged"
+  ],
+  "date_precision_distribution": {
+    "UNKNOWN": 6865,
+    "EXACT_DAY": 1465,
+    "YEAR": 2163,
+    "MONTH": 469,
+    "RANGE": 61
+  },
+  "temporal_bucket_distribution": {
+    "DESCRIPTIVE": 6887,
+    "EXACT_DATE": 1471,
+    "YEAR": 2128,
+    "MONTH_DATE": 474,
+    "DATE_RANGE": 62,
+    "NA_OR_EMPTY": 1
+  },
+  "exact_date_count": 1465,
+  "potential_for_target_creation": true,
+  "coverage_note": "PDF extraction captured 36,071 records from 904 pages. BhuSanket portal advertises ~36,072 records."
+}

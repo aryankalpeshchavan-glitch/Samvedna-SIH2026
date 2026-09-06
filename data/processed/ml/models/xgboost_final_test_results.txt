@@ -1,0 +1,51 @@
+CrisisCore Landslide Risk Model - Final Test Results
+============================================================
+
+TEST PERIOD: 2025
+TARGET: landslide_24h
+
+LOCKED MODEL
+------------------------------------------------------------
+Model: XGBoost
+Trees: 200
+Max depth: 4
+Learning rate: 0.03
+Min child weight: 5
+Subsample: 0.8
+Column sampling: 0.8
+Gamma: 0.1
+Reg alpha: 0.1
+Reg lambda: 2.0
+Operational threshold: 0.870
+
+TEST DATA
+------------------------------------------------------------
+Rows: 41975
+Positive events: 73
+Positive rate: 0.173913%
+
+PERFORMANCE
+------------------------------------------------------------
+PR-AUC: 0.019099
+ROC-AUC: 0.918334
+Precision: 0.028436
+Recall: 0.164384
+F1: 0.048485
+
+CONFUSION MATRIX
+------------------------------------------------------------
+True negatives: 41492
+False positives: 410
+False negatives: 61
+True positives: 12
+
+OPERATIONAL ALERTS
+------------------------------------------------------------
+Alerts: 422
+Alert rate: 1.005360%
+
+IMPORTANT
+------------------------------------------------------------
+The model and threshold were selected using training and validation data.
+The 2025 test set was not used for model or threshold selection.
+These results represent the final held-out test evaluation.

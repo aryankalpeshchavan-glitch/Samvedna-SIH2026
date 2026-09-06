@@ -1,0 +1,9 @@
+CrisisCore XGBoost Landslide 24h Model
+========================================
+Best iteration: None
+Best validation PR-AUC: None
+Validation PR-AUC: 0.012782
+Validation ROC-AUC: 0.858797
+Validation precision @ 0.50: 0.020541
+Validation recall @ 0.50: 0.162393
+Validation F1 @ 0.50: 0.036468

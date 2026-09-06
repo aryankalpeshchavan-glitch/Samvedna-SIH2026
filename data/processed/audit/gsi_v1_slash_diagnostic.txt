@@ -1,0 +1,81 @@
+
+--------------------------------------------------------------------------
+Leaked value in state column: 'AS/DIH/83G08/2020/20'
+Found as raw text on PDF page 5
+Raw text lines around the value on that page:
+    | Slide
+    | 2016
+    | 155
+    | AS/DIH/83G08/2020/20
+    | Assam
+    | Dima Hasao
+    | Below Hangrum village.
+    | 25.14
+    | 93.31
+    | Debris
+    | Slide
+find_tables row(s) containing the value:
+    cols: 155 || AS/DIH/83G08/2020/ || Assam || Dima Hasao ||  || Below Hangrum vill || 25.14 || 93.31 || Debris || Slide || NA
+
+--------------------------------------------------------------------------
+Leaked value in state column: 'ASM/DH/83G4/2016/39'
+Found as raw text on PDF page 6
+Raw text lines around the value on that page:
+    | Slide
+    | 2016
+    | 216
+    | ASM/DH/83G4/2016/39
+    | Assam
+    | Dima Hasao
+    | Haflong-Gunjung road section slide-10 Lower Haflong
+    | 25.199722
+    | 93.016722
+    | Debris
+    | Slide
+find_tables row(s) containing the value:
+    cols: 216 || ASM/DH/83G4/2016/3 || Assam || Dima Hasao || Haflong-Gunjung ro || Lower Haflong || 25.199722 || 93.016722 || Debris || Slide || 2016
+
+--------------------------------------------------------------------------
+Leaked value in state column: 'AS/JOR/83J06/2020/10'
+Found as raw text on PDF page 17
+Raw text lines around the value on that page:
+    | Slide
+    | 2019
+    | 555
+    | AS/JOR/83J06/2020/10
+    | Assam
+    | Jorhat
+    | Mariani-Chanki Rd
+    | 26.54
+    | 94.37
+    | Earth
+    | Slide
+find_tables row(s) containing the value:
+    cols: 555 || AS/JOR/83J06/2020/ || Assam || Jorhat ||  || Mariani-Chanki Rd || 26.54 || 94.37 || Earth || Slide || 2019
+
+--------------------------------------------------------------------------
+Leaked value in state column: 'AS/JOR/83J06/2020/6'
+Found as raw text on PDF page 17
+Raw text lines around the value on that page:
+    | Slide
+    | 2019
+    | 558
+    | AS/JOR/83J06/2020/6
+    | Assam
+    | Jorhat
+    | Mariani-Chanki Rd
+    | 26.55
+    | 94.36
+    | Earth
+    | Slide
+find_tables row(s) containing the value:
+    cols: 558 || AS/JOR/83J06/2020/ || Assam || Jorhat ||  || Mariani-Chanki Rd || 26.55 || 94.36 || Earth || Slide || 2019
+
+==========================================================================
+CONCLUSION (cause hypothesis, evidenced by raw text + find_tables):
+The v1 fixed-offset line parser shifted columns whenever a cell
+wrapped to multiple lines or the table had no Slide_No, so values
+such as Slide_No identifiers landed in the state column.
+The v2 find_tables-based extractor reads column positions and
+re-aligns these rows correctly.
+==========================================================================

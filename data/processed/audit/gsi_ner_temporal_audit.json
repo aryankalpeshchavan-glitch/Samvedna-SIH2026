@@ -1,0 +1,30 @@
+{
+  "total_ner_records": 11023,
+  "temporal_bucket_counts": {
+    "DESCRIPTIVE": 6887,
+    "EXACT_DATE": 1471,
+    "YEAR": 2128,
+    "MONTH_DATE": 474,
+    "DATE_RANGE": 62,
+    "NA_OR_EMPTY": 1
+  },
+  "date_precision_counts": {
+    "UNKNOWN": 6865,
+    "EXACT_DAY": 1465,
+    "YEAR": 2163,
+    "MONTH": 469,
+    "RANGE": 61
+  },
+  "exact_date_ner_events": 1465,
+  "events_inside_2015_2025": 1269,
+  "exact_date_range": {
+    "min": "1995-05-22",
+    "max": "2026-07-13"
+  },
+  "provenance": {
+    "input": "data\\processed\\landslide\\gsi_field_validated_inventory_v2.csv",
+    "date_parser": "parse_gsi_event_dates.py",
+    "classifier": "gsi_history_classify.py",
+    "timestamp_utc": "2026-09-01T02:03:18.349565+00:00"
+  }
+}
