@@ -91,6 +91,24 @@ DRIVER_LABELS: dict[str, dict] = {
         "unit": "degrees",
         "category": "terrain",
     },
+    "slope_mean_deg": {
+        "label": "Mean Terrain Slope",
+        "description": "Average slope gradient across the district; steeper slopes accelerate debris flows.",
+        "unit": "degrees",
+        "category": "terrain",
+    },
+    "slope_max_deg": {
+        "label": "Maximum Terrain Slope",
+        "description": "Peak steepness gradient indicating presence of high-risk escarpments.",
+        "unit": "degrees",
+        "category": "terrain",
+    },
+    "slope_std_deg": {
+        "label": "Slope Gradient Variation",
+        "description": "Variability in terrain slope reflecting complex undulating geography.",
+        "unit": "degrees",
+        "category": "terrain",
+    },
     "elevation": {
         "label": "Elevation",
         "description": "Elevation influences runoff dynamics and exposure to altitude-related hazards.",
@@ -100,6 +118,30 @@ DRIVER_LABELS: dict[str, dict] = {
     "elevation_m": {
         "label": "Elevation",
         "description": "Elevation influences runoff dynamics and exposure to altitude-related hazards.",
+        "unit": "m",
+        "category": "terrain",
+    },
+    "elevation_mean_m": {
+        "label": "Mean District Elevation",
+        "description": "Average altitude influencing precipitation orographic effects.",
+        "unit": "m",
+        "category": "terrain",
+    },
+    "elevation_min_m": {
+        "label": "Minimum District Elevation",
+        "description": "Valley bottom altitude indicating runoff collection zones.",
+        "unit": "m",
+        "category": "terrain",
+    },
+    "elevation_max_m": {
+        "label": "Peak District Elevation",
+        "description": "Highest mountain ridge altitude in district.",
+        "unit": "m",
+        "category": "terrain",
+    },
+    "elevation_std_m": {
+        "label": "Elevation Relief Variation",
+        "description": "Topographical relief indicating vertical potential energy for mass movements.",
         "unit": "m",
         "category": "terrain",
     },

@@ -104,7 +104,7 @@ async def _build_decision(
     else:
         # No zone and no override — try live prediction service
         if prediction_service.is_available:
-            live_result = prediction_service.predict()
+            live_result = prediction_service.predict_hazard(lat=lat, lng=lng)
             if live_result is not None:
                 risk_score = live_result.risk_score
                 raw_features = live_result.feature_importances
@@ -307,6 +307,22 @@ async def what_if_simulator(
     if data.zone_id:
         zone_result = await db.execute(select(RiskZone).where(RiskZone.id == data.zone_id))
         zone = zone_result.scalar_one_or_none()
+    else:
+        # Fall back to nearest risk zone by coordinates or latest zone
+        all_zones_res = await db.execute(select(RiskZone))
+        all_zones = all_zones_res.scalars().all()
+        nearest_zone = None
+        min_dist = float("inf")
+        for z in all_zones:
+            if z.lat is not None and z.lng is not None:
+                d = haversine_km(data.lat, data.lng, z.lat, z.lng)
+                if d < min_dist:
+                    min_dist = d
+                    nearest_zone = z
+        if nearest_zone and min_dist <= 100.0:
+            zone = nearest_zone
+        elif all_zones:
+            zone = sorted(all_zones, key=lambda z: z.computed_at, reverse=True)[0]
 
     # Current decision
     current = await _build_decision(lat=data.lat, lng=data.lng, db=db, zone=zone)

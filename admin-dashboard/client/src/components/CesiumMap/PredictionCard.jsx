@@ -10,6 +10,7 @@ export default function PredictionCard() {
       <div className="prediction-card-title">
         <span className="badge badge-high">HIGH</span>
         AI Prediction Summary
+        <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.7, fontFamily: 'monospace' }}>[Demo Scenario]</span>
       </div>
 
       <div className="prediction-stat">
@@ -34,12 +35,12 @@ export default function PredictionCard() {
       </div>
       <div className="prediction-stat">
         <span className="prediction-stat-label">Model</span>
-        <span className="prediction-stat-value">LSTM-v3 ensemble</span>
+        <span className="prediction-stat-value">XGBoost 24h (NER)</span>
       </div>
 
       <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-        High susceptibility due to sustained rainfall exceeding 130mm/6hr threshold,
-        saturated soil (87%), and 4.2° ground tilt detected at ridge stations.
+        Simulation scenario based on sustained rainfall exceeding threshold,
+        saturated soil, and ground tilt detected at ridge stations.
       </div>
     </div>
   );

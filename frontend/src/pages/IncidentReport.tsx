@@ -189,7 +189,7 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ onSubmit }) => {
             <MapPin className="w-4 h-4 text-[#23483A]" />
             <span>{t('report.gpsLabel')} <strong className="text-[#202622]">{t('report.gpsAuto')}</strong></span>
           </div>
-          <span className="text-[#23483A] font-bold">26.14° N, 91.73° E</span>
+          <span className="text-[#23483A] font-bold">26.14° N, 91.73° E (Demo GPS)</span>
         </div>
 
         {/* 4. Severity Toggles */}
