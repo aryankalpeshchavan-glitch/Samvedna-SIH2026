@@ -9,7 +9,7 @@ class Settings:
         "DATABASE_URL",
         f"sqlite+aiosqlite:///{os.path.join(BASE_DIR, 'crisiscore.db')}",
     )
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6380/0")
     JWT_SECRET: str = os.getenv("JWT_SECRET", "crisiscore-dev-secret-change-in-prod")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
