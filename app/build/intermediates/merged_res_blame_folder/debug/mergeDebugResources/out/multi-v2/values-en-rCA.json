@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.crisiscore.app-mergeDebugResources-57:/values-en-rCA/values-en-rCA.xml",
+            "outputFile": "com.crisiscore.app-mergeDebugResources-61:/values-en-rCA/values-en-rCA.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Rick\\.gradle\\caches\\8.11.1\\transforms\\9cffded84fa4f4b37586a7b202bb782e\\transformed\\core-1.13.1\\res\\values-en-rCA\\values-en-rCA.xml",

@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.crisiscore.app-mergeDebugResources-57:/values-uz/values-uz.xml",
+            "outputFile": "com.crisiscore.app-mergeDebugResources-61:/values-uz/values-uz.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Rick\\.gradle\\caches\\8.11.1\\transforms\\0f273679b0db360542403461563e31fe\\transformed\\foundation-release\\res\\values-uz\\values-uz.xml",

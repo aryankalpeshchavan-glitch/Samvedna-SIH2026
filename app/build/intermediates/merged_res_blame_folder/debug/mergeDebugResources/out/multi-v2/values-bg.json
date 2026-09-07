@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.crisiscore.app-mergeDebugResources-57:/values-bg/values-bg.xml",
+            "outputFile": "com.crisiscore.app-mergeDebugResources-61:/values-bg/values-bg.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Rick\\.gradle\\caches\\8.11.1\\transforms\\0f273679b0db360542403461563e31fe\\transformed\\foundation-release\\res\\values-bg\\values-bg.xml",

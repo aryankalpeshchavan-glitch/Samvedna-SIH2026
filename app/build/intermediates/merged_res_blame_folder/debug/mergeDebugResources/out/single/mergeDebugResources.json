@@ -1,22 +1,22 @@
 [
     {
-        "merged": "com.crisiscore.app-debug-59:/xml_network_security_config.xml.flat",
-        "source": "com.crisiscore.app-main-61:/xml/network_security_config.xml"
+        "merged": "com.crisiscore.app-debug-63:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.crisiscore.app-main-65:/mipmap-anydpi-v26/ic_launcher.xml"
     },
     {
-        "merged": "com.crisiscore.app-debug-59:/drawable_ic_launcher_foreground.xml.flat",
-        "source": "com.crisiscore.app-main-61:/drawable/ic_launcher_foreground.xml"
+        "merged": "com.crisiscore.app-debug-63:/xml_data_extraction_rules.xml.flat",
+        "source": "com.crisiscore.app-main-65:/xml/data_extraction_rules.xml"
     },
     {
-        "merged": "com.crisiscore.app-debug-59:/mipmap-anydpi-v26_ic_launcher.xml.flat",
-        "source": "com.crisiscore.app-main-61:/mipmap-anydpi-v26/ic_launcher.xml"
+        "merged": "com.crisiscore.app-debug-63:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.crisiscore.app-main-65:/drawable/ic_launcher_foreground.xml"
     },
     {
-        "merged": "com.crisiscore.app-debug-59:/drawable_ic_launcher_background.xml.flat",
-        "source": "com.crisiscore.app-main-61:/drawable/ic_launcher_background.xml"
+        "merged": "com.crisiscore.app-debug-63:/xml_network_security_config.xml.flat",
+        "source": "com.crisiscore.app-main-65:/xml/network_security_config.xml"
     },
     {
-        "merged": "com.crisiscore.app-debug-59:/xml_data_extraction_rules.xml.flat",
-        "source": "com.crisiscore.app-main-61:/xml/data_extraction_rules.xml"
+        "merged": "com.crisiscore.app-debug-63:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.crisiscore.app-main-65:/drawable/ic_launcher_background.xml"
     }
 ]

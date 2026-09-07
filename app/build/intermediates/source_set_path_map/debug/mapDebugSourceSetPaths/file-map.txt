@@ -32,31 +32,35 @@ com.crisiscore.app-savedstate-ktx-1.2.1-30 C:\Users\Rick\.gradle\caches\8.11.1\t
 com.crisiscore.app-customview-poolingcontainer-1.0.0-31 C:\Users\Rick\.gradle\caches\8.11.1\transforms\a10583f8d8f558729f270d08edf28454\transformed\customview-poolingcontainer-1.0.0\res
 com.crisiscore.app-lifecycle-viewmodel-savedstate-2.8.6-32 C:\Users\Rick\.gradle\caches\8.11.1\transforms\a4af3bbfdd817ba714ae32d2f2b5e34b\transformed\lifecycle-viewmodel-savedstate-2.8.6\res
 com.crisiscore.app-fragment-1.8.2-33 C:\Users\Rick\.gradle\caches\8.11.1\transforms\a5aca934dc118b2dce1f0a1b7d2bb584\transformed\fragment-1.8.2\res
-com.crisiscore.app-annotation-experimental-1.4.1-34 C:\Users\Rick\.gradle\caches\8.11.1\transforms\a9b4e32fd101fdd6099a176676e4c318\transformed\annotation-experimental-1.4.1\res
-com.crisiscore.app-sqlite-framework-2.4.0-35 C:\Users\Rick\.gradle\caches\8.11.1\transforms\afad2329897b672271abf71dfa80046c\transformed\sqlite-framework-2.4.0\res
-com.crisiscore.app-ui-tooling-release-36 C:\Users\Rick\.gradle\caches\8.11.1\transforms\b5c33ef1586d52ee4c595548b1877980\transformed\ui-tooling-release\res
-com.crisiscore.app-lifecycle-runtime-ktx-release-37 C:\Users\Rick\.gradle\caches\8.11.1\transforms\b8cefa116a131423e226dc6ffc17550b\transformed\lifecycle-runtime-ktx-release\res
-com.crisiscore.app-runtime-saveable-release-38 C:\Users\Rick\.gradle\caches\8.11.1\transforms\cbac41b8d6285583d3638b9e126f4614\transformed\runtime-saveable-release\res
-com.crisiscore.app-core-runtime-2.2.0-39 C:\Users\Rick\.gradle\caches\8.11.1\transforms\cc136c9472dcd34b7dd5590189209856\transformed\core-runtime-2.2.0\res
-com.crisiscore.app-animation-core-release-40 C:\Users\Rick\.gradle\caches\8.11.1\transforms\cd6f8cfbbbbdb61d6b0700e1d8489b78\transformed\animation-core-release\res
-com.crisiscore.app-lifecycle-livedata-core-2.8.6-41 C:\Users\Rick\.gradle\caches\8.11.1\transforms\d0d4951a1e12662d15fc13154143e31f\transformed\lifecycle-livedata-core-2.8.6\res
-com.crisiscore.app-activity-1.9.2-42 C:\Users\Rick\.gradle\caches\8.11.1\transforms\d58c3b0d72e8e18cd471453531db6e05\transformed\activity-1.9.2\res
-com.crisiscore.app-lifecycle-viewmodel-ktx-2.8.6-43 C:\Users\Rick\.gradle\caches\8.11.1\transforms\d8d3042b3e0b8d3f275918158e59aff6\transformed\lifecycle-viewmodel-ktx-2.8.6\res
-com.crisiscore.app-startup-runtime-1.1.1-44 C:\Users\Rick\.gradle\caches\8.11.1\transforms\d9ad31862ac275d0c3689228634d6162\transformed\startup-runtime-1.1.1\res
-com.crisiscore.app-core-ktx-1.13.1-45 C:\Users\Rick\.gradle\caches\8.11.1\transforms\dac6921aa2e8aab5a8dca1f7470feee8\transformed\core-ktx-1.13.1\res
-com.crisiscore.app-animation-release-46 C:\Users\Rick\.gradle\caches\8.11.1\transforms\dacc545cbef3e6336134da30d37a48ee\transformed\animation-release\res
-com.crisiscore.app-runtime-release-47 C:\Users\Rick\.gradle\caches\8.11.1\transforms\e22b53d639bfd21ee5e9641d9fadc111\transformed\runtime-release\res
-com.crisiscore.app-activity-ktx-1.9.2-48 C:\Users\Rick\.gradle\caches\8.11.1\transforms\e7b1ff838890d561deb8e7ba49b4b621\transformed\activity-ktx-1.9.2\res
-com.crisiscore.app-foundation-layout-release-49 C:\Users\Rick\.gradle\caches\8.11.1\transforms\e7d7ec1288d01e2e96c922ccf2feee25\transformed\foundation-layout-release\res
-com.crisiscore.app-lifecycle-viewmodel-release-50 C:\Users\Rick\.gradle\caches\8.11.1\transforms\f372459e74d2fc3ec2a4c005c118bdfa\transformed\lifecycle-viewmodel-release\res
-com.crisiscore.app-lifecycle-livedata-2.8.6-51 C:\Users\Rick\.gradle\caches\8.11.1\transforms\f4b61859ab329eee3d05e4e7aaa65596\transformed\lifecycle-livedata-2.8.6\res
-com.crisiscore.app-lifecycle-runtime-compose-release-52 C:\Users\Rick\.gradle\caches\8.11.1\transforms\faa5008315d1e20ace96daa0e576f086\transformed\lifecycle-runtime-compose-release\res
-com.crisiscore.app-android-sdk-11.11.0-53 C:\Users\Rick\.gradle\caches\8.11.1\transforms\fefa0934fdf02b8dec52476fe80dc91e\transformed\android-sdk-11.11.0\res
-com.crisiscore.app-play-services-base-18.5.0-54 C:\Users\Rick\.gradle\caches\8.11.1\transforms\ffb2cd34d7f53159ac93accfa8f35eba\transformed\play-services-base-18.5.0\res
-com.crisiscore.app-pngs-55 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\generated\res\pngs\debug
-com.crisiscore.app-resValues-56 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\generated\res\resValues\debug
-com.crisiscore.app-packageDebugResources-57 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
-com.crisiscore.app-packageDebugResources-58 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
-com.crisiscore.app-debug-59 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\intermediates\merged_res\debug\mergeDebugResources
-com.crisiscore.app-debug-60 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\src\debug\res
-com.crisiscore.app-main-61 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\src\main\res
+com.crisiscore.app-lifecycle-service-2.8.6-34 C:\Users\Rick\.gradle\caches\8.11.1\transforms\a6d31b233aa81795587aff7bce2577dd\transformed\lifecycle-service-2.8.6\res
+com.crisiscore.app-annotation-experimental-1.4.1-35 C:\Users\Rick\.gradle\caches\8.11.1\transforms\a9b4e32fd101fdd6099a176676e4c318\transformed\annotation-experimental-1.4.1\res
+com.crisiscore.app-sqlite-framework-2.4.0-36 C:\Users\Rick\.gradle\caches\8.11.1\transforms\afad2329897b672271abf71dfa80046c\transformed\sqlite-framework-2.4.0\res
+com.crisiscore.app-ui-tooling-release-37 C:\Users\Rick\.gradle\caches\8.11.1\transforms\b5c33ef1586d52ee4c595548b1877980\transformed\ui-tooling-release\res
+com.crisiscore.app-lifecycle-runtime-ktx-release-38 C:\Users\Rick\.gradle\caches\8.11.1\transforms\b8cefa116a131423e226dc6ffc17550b\transformed\lifecycle-runtime-ktx-release\res
+com.crisiscore.app-work-runtime-ktx-2.9.1-39 C:\Users\Rick\.gradle\caches\8.11.1\transforms\c2c21e1cc96322a9499d58de702676fc\transformed\work-runtime-ktx-2.9.1\res
+com.crisiscore.app-runtime-saveable-release-40 C:\Users\Rick\.gradle\caches\8.11.1\transforms\cbac41b8d6285583d3638b9e126f4614\transformed\runtime-saveable-release\res
+com.crisiscore.app-core-runtime-2.2.0-41 C:\Users\Rick\.gradle\caches\8.11.1\transforms\cc136c9472dcd34b7dd5590189209856\transformed\core-runtime-2.2.0\res
+com.crisiscore.app-animation-core-release-42 C:\Users\Rick\.gradle\caches\8.11.1\transforms\cd6f8cfbbbbdb61d6b0700e1d8489b78\transformed\animation-core-release\res
+com.crisiscore.app-lifecycle-livedata-core-2.8.6-43 C:\Users\Rick\.gradle\caches\8.11.1\transforms\d0d4951a1e12662d15fc13154143e31f\transformed\lifecycle-livedata-core-2.8.6\res
+com.crisiscore.app-activity-1.9.2-44 C:\Users\Rick\.gradle\caches\8.11.1\transforms\d58c3b0d72e8e18cd471453531db6e05\transformed\activity-1.9.2\res
+com.crisiscore.app-lifecycle-viewmodel-ktx-2.8.6-45 C:\Users\Rick\.gradle\caches\8.11.1\transforms\d8d3042b3e0b8d3f275918158e59aff6\transformed\lifecycle-viewmodel-ktx-2.8.6\res
+com.crisiscore.app-startup-runtime-1.1.1-46 C:\Users\Rick\.gradle\caches\8.11.1\transforms\d9ad31862ac275d0c3689228634d6162\transformed\startup-runtime-1.1.1\res
+com.crisiscore.app-core-ktx-1.13.1-47 C:\Users\Rick\.gradle\caches\8.11.1\transforms\dac6921aa2e8aab5a8dca1f7470feee8\transformed\core-ktx-1.13.1\res
+com.crisiscore.app-animation-release-48 C:\Users\Rick\.gradle\caches\8.11.1\transforms\dacc545cbef3e6336134da30d37a48ee\transformed\animation-release\res
+com.crisiscore.app-work-runtime-2.9.1-49 C:\Users\Rick\.gradle\caches\8.11.1\transforms\dafba6c93b938a9b354fe72de608b778\transformed\work-runtime-2.9.1\res
+com.crisiscore.app-runtime-release-50 C:\Users\Rick\.gradle\caches\8.11.1\transforms\e22b53d639bfd21ee5e9641d9fadc111\transformed\runtime-release\res
+com.crisiscore.app-activity-ktx-1.9.2-51 C:\Users\Rick\.gradle\caches\8.11.1\transforms\e7b1ff838890d561deb8e7ba49b4b621\transformed\activity-ktx-1.9.2\res
+com.crisiscore.app-foundation-layout-release-52 C:\Users\Rick\.gradle\caches\8.11.1\transforms\e7d7ec1288d01e2e96c922ccf2feee25\transformed\foundation-layout-release\res
+com.crisiscore.app-ui-text-google-fonts-1.7.3-53 C:\Users\Rick\.gradle\caches\8.11.1\transforms\ee7ad347a347f8fd0893d3c0da33e7b7\transformed\ui-text-google-fonts-1.7.3\res
+com.crisiscore.app-lifecycle-viewmodel-release-54 C:\Users\Rick\.gradle\caches\8.11.1\transforms\f372459e74d2fc3ec2a4c005c118bdfa\transformed\lifecycle-viewmodel-release\res
+com.crisiscore.app-lifecycle-livedata-2.8.6-55 C:\Users\Rick\.gradle\caches\8.11.1\transforms\f4b61859ab329eee3d05e4e7aaa65596\transformed\lifecycle-livedata-2.8.6\res
+com.crisiscore.app-lifecycle-runtime-compose-release-56 C:\Users\Rick\.gradle\caches\8.11.1\transforms\faa5008315d1e20ace96daa0e576f086\transformed\lifecycle-runtime-compose-release\res
+com.crisiscore.app-android-sdk-11.11.0-57 C:\Users\Rick\.gradle\caches\8.11.1\transforms\fefa0934fdf02b8dec52476fe80dc91e\transformed\android-sdk-11.11.0\res
+com.crisiscore.app-play-services-base-18.5.0-58 C:\Users\Rick\.gradle\caches\8.11.1\transforms\ffb2cd34d7f53159ac93accfa8f35eba\transformed\play-services-base-18.5.0\res
+com.crisiscore.app-pngs-59 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\generated\res\pngs\debug
+com.crisiscore.app-resValues-60 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\generated\res\resValues\debug
+com.crisiscore.app-packageDebugResources-61 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.crisiscore.app-packageDebugResources-62 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.crisiscore.app-debug-63 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\build\intermediates\merged_res\debug\mergeDebugResources
+com.crisiscore.app-debug-64 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\src\debug\res
+com.crisiscore.app-main-65 C:\Users\Rick\Desktop\A folder\Code Projects\SIH\CrisisCoreAndroid\app\src\main\res

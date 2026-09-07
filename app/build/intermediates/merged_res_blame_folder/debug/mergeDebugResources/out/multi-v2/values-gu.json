@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.crisiscore.app-mergeDebugResources-57:/values-gu/values-gu.xml",
+            "outputFile": "com.crisiscore.app-mergeDebugResources-61:/values-gu/values-gu.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Rick\\.gradle\\caches\\8.11.1\\transforms\\ffb2cd34d7f53159ac93accfa8f35eba\\transformed\\play-services-base-18.5.0\\res\\values-gu\\values.xml",

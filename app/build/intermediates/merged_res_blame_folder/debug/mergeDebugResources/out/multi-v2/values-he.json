@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.crisiscore.app-mergeDebugResources-57:/values-he/values-he.xml",
+            "outputFile": "com.crisiscore.app-mergeDebugResources-61:/values-he/values-he.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Rick\\.gradle\\caches\\8.11.1\\transforms\\fefa0934fdf02b8dec52476fe80dc91e\\transformed\\android-sdk-11.11.0\\res\\values-he\\values-he.xml",
