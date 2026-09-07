@@ -82,6 +82,78 @@ export interface RiskPredictionResponse {
   prediction_time?: string | null;
 }
 
+export interface DecisionRequest {
+  lat: number;
+  lng: number;
+  location_id?: string | null;
+  zone_id?: string | null;
+}
+
+export interface RiskSummary {
+  risk_score: number;
+  risk_level: string;
+  confidence: number;
+  drivers: string[];
+  data_status: string;
+}
+
+export interface DriverExplanation {
+  key: string;
+  label: string;
+  description: string;
+  unit?: string | null;
+  category?: string | null;
+  value?: number | null;
+}
+
+export interface PriorityResult {
+  priority_score: number;
+  priority_level: string;
+  weights: Record<string, number>;
+  factors: Record<string, number>;
+}
+
+export interface ExposureSummary {
+  population: number;
+  households: number;
+  schools: number;
+  hospitals: number;
+  critical_roads: number;
+  data_status: string;
+  source?: string | null;
+}
+
+export interface DecisionResponse {
+  location_id: string;
+  lat: number;
+  lng: number;
+  risk: RiskSummary;
+  explanation: DriverExplanation[];
+  exposure?: ExposureSummary | null;
+  priority: PriorityResult;
+  actions: string[];
+  data_status: string;
+  computed_at: string;
+}
+
+export interface WhatIfRequest {
+  lat: number;
+  lng: number;
+  scenario_rainfall_mm?: number | null;
+  zone_id?: string | null;
+}
+
+export interface WhatIfResponse {
+  scenario_label: string;
+  current_risk_score: number;
+  projected_risk_score: number;
+  current_priority_level: string;
+  projected_priority_level: string;
+  current_actions: string[];
+  projected_actions: string[];
+  data_status: string;
+}
+
 /**
  * Explicit mapping from frontend incident categories to backend IncidentType enum.
  * Non-standard categories are mapped to the closest standard category.

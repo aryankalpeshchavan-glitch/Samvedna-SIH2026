@@ -3,6 +3,10 @@ import {
   IncidentOut,
   IncidentStatusResponse,
   RiskZoneOut,
+  DecisionRequest,
+  DecisionResponse,
+  WhatIfRequest,
+  WhatIfResponse,
 } from '../types/api'
 
 const API_BASE =
@@ -44,34 +48,49 @@ async function request(path: string, opts: RequestInit = {}) {
   return res.json().catch(() => ({}))
 }
 
-// --- Auth ---
-export async function registerOrLoginDemo(): Promise<string> {
-  const phone =
-    (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' && localStorage.getItem('crisiscore_phone')) ||
-    `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`
-  if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
-    localStorage.setItem('crisiscore_phone', phone)
+export function getUserRole(): string | null {
+  if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
+    const cached = localStorage.getItem('crisiscore_user_role')
+    if (cached) return cached
   }
+  if (!authToken) return null
   try {
-    await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ phone, password: 'demoPass123', name: 'Citizen Demo', role: 'citizen' }),
-    }).catch(() => {})
-    const data = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ phone, password: 'demoPass123' }),
-    })
+    const parts = authToken.split('.')
+    if (parts.length === 3) {
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      return payload.role || null
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+// --- Auth ---
+export async function login(phone: string, password: string): Promise<{ access_token: string; role: string }> {
+  const data = await request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ phone, password }),
+  })
+  if (data?.access_token) {
     setAuthToken(data.access_token)
-    return data.access_token
-  } catch (e) {
-    console.warn('[API] demo auth failed', e)
-    return ''
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+      localStorage.setItem('crisiscore_user_role', data.role || '')
+    }
+  }
+  return data
+}
+
+export function logout(): void {
+  setAuthToken(null)
+  if (typeof localStorage !== 'undefined' && typeof localStorage.removeItem === 'function') {
+    localStorage.removeItem('crisiscore_user_role')
+    localStorage.removeItem('crisiscore_token')
   }
 }
 
 // --- Incidents ---
 export async function createIncident(payload: IncidentCreatePayload): Promise<IncidentOut> {
-  if (!authToken) await registerOrLoginDemo()
   return request('/incidents', { method: 'POST', body: JSON.stringify(payload) })
 }
 
@@ -81,7 +100,6 @@ export async function createIncidentSMS(payload: { phone: string; text: string; 
 
 // --- Status ---
 export async function getStatus(incidentId: string): Promise<IncidentStatusResponse> {
-  if (!authToken) await registerOrLoginDemo()
   return request(`/status/${incidentId}`)
 }
 
@@ -92,10 +110,24 @@ export async function getHealth() {
 
 // --- Risk ---
 export async function getRisk(bbox?: string, horizon: string = '24h'): Promise<RiskZoneOut[]> {
-  if (!authToken) await registerOrLoginDemo()
   const params = new URLSearchParams()
   if (bbox) params.set('bbox', bbox)
   if (horizon) params.set('horizon', horizon)
   const q = params.toString() ? `?${params.toString()}` : ''
   return request(`/risk${q}`)
+}
+
+// --- Intelligence ---
+export async function getIntelligenceDecision(payload: DecisionRequest): Promise<DecisionResponse> {
+  return request('/intelligence/decision', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function simulateWhatIf(payload: WhatIfRequest): Promise<WhatIfResponse> {
+  return request('/intelligence/whatif', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }

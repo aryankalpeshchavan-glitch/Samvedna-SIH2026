@@ -212,6 +212,14 @@ export const Home: React.FC<HomeProps> = ({
         isOpen={isWhyRiskOpen}
         onClose={() => setIsWhyRiskOpen(false)}
         onShowRoute={() => setShowSafeRoute(true)}
+        lat={selectedRiskZone?.lat ?? selectedStation?.lat ?? (location.latitude || 26.1445)}
+        lng={selectedRiskZone?.lng ?? selectedStation?.lng ?? (location.longitude || 91.7362)}
+        zoneId={selectedRiskZone?.id}
+        locationName={
+          selectedRiskZone
+            ? `Risk Zone (${selectedRiskZone.id.slice(0, 8)}...)`
+            : (selectedStation?.name ?? selectedState?.name ?? 'My Current Location')
+        }
       />
 
       <TerrainScanner

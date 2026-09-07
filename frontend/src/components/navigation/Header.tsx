@@ -6,7 +6,9 @@ import { TabType } from './BottomNav';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { useAudioAlert } from '../../hooks/useAudioAlert';
 import { useClickOutside } from '../../hooks/useClickOutside';
-import { QrCode, Shield, Globe, Volume2, VolumeX, LifeBuoy } from 'lucide-react';
+import { QrCode, Shield, ShieldCheck, Globe, Volume2, VolumeX, LifeBuoy } from 'lucide-react';
+import { OperationsAuthModal } from './OperationsAuthModal';
+import { getUserRole } from '../../services/api';
 
 interface HeaderProps {
   networkStatus: NetworkStatusType;
@@ -20,6 +22,8 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
   const { language, setLanguage, languages, t } = useTranslation();
   const { audioEnabled, toggleAudioEnabled } = useAudioAlert();
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [role, setRole] = useState<string | null>(() => getUserRole());
   const langDropdownRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(langDropdownRef, () => setShowLangDropdown(false), showLangDropdown);
@@ -98,6 +102,16 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
           <DataSourceBadge type="synthetic" size="sm" />
           <NetworkIndicator status={networkStatus} />
 
+          {/* Operations Authorization Status & Command Access */}
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#23483A]/10 border border-[#23483A]/30 text-xs font-mono font-bold text-[#23483A] hover:bg-[#23483A]/20 transition-colors cursor-pointer shadow-sm"
+            title="Operations Authentication"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-[#23483A]" />
+            <span className="hidden sm:inline uppercase">{role ? `Ops: ${role}` : 'Operations'}</span>
+          </button>
+
           {/* Dedicated Visually-Separated Volunteer Verification & Emergency Help Section */}
           <div className="pl-3 ml-3 sm:ml-4 sm:pl-4 border-l border-[#C7B89B]/60 flex items-center space-x-2 shrink-0">
             {onOpenHelp && (
@@ -124,6 +138,12 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
           </div>
         </div>
       </div>
+
+      <OperationsAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthChange={() => setRole(getUserRole())}
+      />
     </header>
   );
 };
