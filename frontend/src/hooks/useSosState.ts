@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { SosState, SosPayload, IncidentCategory, SeverityLevel, SosStatusDetail } from '../types/emergency';
 import { getCurrentLocation } from '../services/location';
 import { savePendingAction } from '../services/offlineStorage';
@@ -11,6 +11,33 @@ export function useSosState() {
   const [currentSos, setCurrentSos] = useState<SosPayload | null>(null);
   const [statusDetail, setStatusDetail] = useState<SosStatusDetail>({ state: 'IDLE' });
 
+  const pollRef = useRef<number | null>(null);
+  const dispatchTimeoutRef = useRef<number | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  const clearPolling = useCallback(() => {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const clearDispatchTimeout = useCallback(() => {
+    if (dispatchTimeoutRef.current !== null) {
+      clearTimeout(dispatchTimeoutRef.current);
+      dispatchTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearPolling();
+      clearDispatchTimeout();
+    };
+  }, [clearPolling, clearDispatchTimeout]);
+
   // Initiate confirmation step
   const initiateSos = useCallback(() => {
     setSosState('SOS_CONFIRMATION');
@@ -19,12 +46,17 @@ export function useSosState() {
 
   // Cancel confirmation step
   const cancelSos = useCallback(() => {
+    clearPolling();
+    clearDispatchTimeout();
     setSosState('IDLE');
     setStatusDetail({ state: 'IDLE' });
-  }, []);
+  }, [clearPolling, clearDispatchTimeout]);
 
   // Confirm emergency trigger
   const confirmAndTriggerSos = useCallback(async (incidentCategory?: IncidentCategory, note?: string, severity?: SeverityLevel) => {
+    clearPolling();
+    clearDispatchTimeout();
+
     setSosState('SENDING');
     setStatusDetail({ state: 'SENDING' });
 
@@ -42,20 +74,26 @@ export function useSosState() {
       dataSource: 'live',
     };
 
-    setCurrentSos(payload);
+    if (isMountedRef.current) {
+      setCurrentSos(payload);
+    }
 
     // Give UI 300ms for tactile feedback before dispatching
-    setTimeout(async () => {
+    dispatchTimeoutRef.current = window.setTimeout(async () => {
+      if (!isMountedRef.current) return;
+
       if (network === 'OFFLINE') {
         // Save to IndexedDB queue
         await savePendingAction('SOS', payload);
-        setSosState('OFFLINE_QUEUED');
-        setStatusDetail({
-          state: 'OFFLINE_QUEUED',
-          sosId: payload.sosId,
-          timestamp: payload.timestamp,
-          errorMessage: 'No active network connection. Emergency report saved locally and queued for automatic transmission.',
-        });
+        if (isMountedRef.current) {
+          setSosState('OFFLINE_QUEUED');
+          setStatusDetail({
+            state: 'OFFLINE_QUEUED',
+            sosId: payload.sosId,
+            timestamp: payload.timestamp,
+            errorMessage: 'No active network connection. Emergency report saved locally and queued for automatic transmission.',
+          });
+        }
       } else {
         // Try real backend
         try {
@@ -78,6 +116,8 @@ export function useSosState() {
             idempotency_key: payload.sosId,
           });
 
+          if (!isMountedRef.current) return;
+
           setSosState('SENT');
           setStatusDetail({
             state: 'SENT',
@@ -88,9 +128,21 @@ export function useSosState() {
 
           // Poll real authenticated status endpoint for verification & volunteer dispatch
           let attempts = 0;
-          const poll = setInterval(async () => {
+          clearPolling();
+
+          pollRef.current = window.setInterval(async () => {
+            if (!isMountedRef.current) {
+              clearPolling();
+              return;
+            }
+
             try {
               const st = await getStatus(res.id);
+              if (!isMountedRef.current) {
+                clearPolling();
+                return;
+              }
+
               if (st && (st.status === 'verified' || st.status === 'assigned')) {
                 if (st.status === 'verified' && !st.assignment) {
                   setStatusDetail((prev) => ({
@@ -110,43 +162,54 @@ export function useSosState() {
                     lastUpdatedText: `Responder #${st.assignment?.volunteer_id} assigned (Status: ${st.assignment?.status})`,
                   }));
                   setSosState('VOLUNTEER_EN_ROUTE');
-                  clearInterval(poll);
+                  clearPolling();
                 }
               }
             } catch (pollErr: any) {
               console.warn('[SOS] Status poll error:', pollErr);
               if (pollErr?.message?.includes('401')) {
-                setStatusDetail((prev) => ({
-                  ...prev,
-                  state: 'ERROR',
-                  errorMessage: 'Authentication expired during status check. Please sign in again.',
-                }));
-                setSosState('ERROR');
-                clearInterval(poll);
+                if (isMountedRef.current) {
+                  setStatusDetail((prev) => ({
+                    ...prev,
+                    state: 'ERROR',
+                    errorMessage: 'Authentication expired during status check. Please sign in again.',
+                  }));
+                  setSosState('ERROR');
+                }
+                clearPolling();
               }
             }
-            if (++attempts > 40) clearInterval(poll);
+            if (++attempts > 40) clearPolling();
           }, 3000);
         } catch (e: any) {
-          // Surface actual error to UI instead of fake success
           console.error('[SOS] Backend transmission failed:', e);
-          setSosState('ERROR');
-          setStatusDetail({
-            state: 'ERROR',
-            sosId: payload.sosId,
-            timestamp: payload.timestamp,
-            errorMessage: `Transmission failed: ${e?.message || 'Could not connect to CrisisCore backend.'}`,
-          });
+          const rawMsg = e?.message || '';
+          const is401 = rawMsg.includes('401') || rawMsg.toLowerCase().includes('not authenticated') || rawMsg.toLowerCase().includes('unauthorized');
+          const friendlyMessage = is401
+            ? 'Authentication required: Please log in using the Operations button in the header before transmitting live incident reports.'
+            : `Transmission failed: ${rawMsg || 'Could not connect to CrisisCore backend.'}`;
+
+          if (isMountedRef.current) {
+            setSosState('ERROR');
+            setStatusDetail({
+              state: 'ERROR',
+              sosId: payload.sosId,
+              timestamp: payload.timestamp,
+              errorMessage: friendlyMessage,
+            });
+          }
         }
       }
     }, 300);
-  }, []);
+  }, [clearPolling, clearDispatchTimeout]);
 
   const resetSos = useCallback(() => {
+    clearPolling();
+    clearDispatchTimeout();
     setSosState('IDLE');
     setCurrentSos(null);
     setStatusDetail({ state: 'IDLE' });
-  }, []);
+  }, [clearPolling, clearDispatchTimeout]);
 
   return {
     sosState,

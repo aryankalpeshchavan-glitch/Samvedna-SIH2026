@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import { getNeStatesGeoJson, MONITORING_POINTS, NE_CENTER, NORTHEAST_STATES } from '../../data/northeastGeoData';
+import { MONITORING_POINTS, NE_CENTER, NORTHEAST_STATES } from '../../data/northeastGeoData';
 import { CITIZEN_MAP_REPORTS, MOCK_SAFE_ROUTE } from '../../data/mockStoryData';
 import { MapLayerMode, MapViewStyle, NeStateInfo, MonitoringPoint } from '../../types/map';
-import { CitizenMapReport } from '../../types/emergency';
+import { CitizenMapReport, IncidentCategory, SeverityLevel } from '../../types/emergency';
 import { RainCanvasOverlay } from './RainCanvasOverlay';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { Loader2, AlertOctagon } from 'lucide-react';
-import { RiskZoneOut, classifyRiskLevel } from '../../types/api';
+import { RiskZoneOut, classifyRiskLevel, IncidentOut } from '../../types/api';
 
 interface NeMap3DProps {
   mapViewStyle?: MapViewStyle;
@@ -20,6 +20,10 @@ interface NeMap3DProps {
   isRiskLoading?: boolean;
   riskError?: string | null;
   onRetryRisk?: () => void;
+  incidents?: IncidentOut[];
+  isIncidentsLoading?: boolean;
+  incidentError?: string | null;
+  onRetryIncidents?: () => void;
   showSafeRoute: boolean;
   userLocation: [number, number] | null; // [lng, lat]
   onSelectState: (state: NeStateInfo | null) => void;
@@ -27,6 +31,43 @@ interface NeMap3DProps {
   onSelectCitizenReport: (report: CitizenMapReport | null) => void;
   onSelectRiskZone?: (zone: RiskZoneOut | null) => void;
   onHoverState: (stateName: string | null) => void;
+}
+
+function mapIncidentOutToCitizenReport(inc: IncidentOut): CitizenMapReport {
+  const catMap: Record<string, IncidentCategory> = {
+    landslide: 'LANDSLIDE',
+    flood: 'FLOOD',
+    fire: 'FIRE',
+    earthquake: 'OTHER',
+    other: 'OTHER',
+  };
+  const sevMap: Record<number, SeverityLevel> = {
+    1: 'LOW',
+    2: 'WATCH',
+    3: 'MEDIUM',
+    4: 'HIGH',
+    5: 'CRITICAL',
+  };
+  const verifiedStatus: 'VERIFIED' | 'UNVERIFIED' | 'INVESTIGATING' =
+    inc.status === 'verified'
+      ? 'VERIFIED'
+      : inc.status === 'assigned'
+      ? 'INVESTIGATING'
+      : 'UNVERIFIED';
+
+  return {
+    id: inc.id,
+    category: catMap[inc.type] || 'OTHER',
+    title: `${inc.type.toUpperCase()} Report (#${inc.id.slice(0, 8)}) [${inc.status.toUpperCase()}]`,
+    locationName: `Lat ${inc.lat.toFixed(3)}, Lng ${inc.lng.toFixed(3)} • ${inc.data_label}`,
+    lat: inc.lat,
+    lng: inc.lng,
+    severity: sevMap[inc.severity] || 'MEDIUM',
+    reportedTimeAgo: new Date(inc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    verifiedStatus,
+    description: inc.description || `Live ${inc.type} incident reported in system. Status: ${inc.status}.`,
+    imageUrl: inc.photo_url || undefined,
+  };
 }
 
 function computeStateRiskLevel(state: NeStateInfo, zones: RiskZoneOut[]): 'LOW' | 'MEDIUM' | 'HIGH' {
@@ -383,12 +424,16 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
   layerMode,
   selectedState,
   selectedStation,
-  selectedCitizenReport,
+  selectedCitizenReport: _selectedCitizenReport,
   selectedRiskZone,
   riskZones = [],
   isRiskLoading = false,
   riskError = null,
   onRetryRisk,
+  incidents = [],
+  isIncidentsLoading = false,
+  incidentError = null,
+  onRetryIncidents,
   showSafeRoute,
   userLocation,
   onSelectState,
@@ -562,40 +607,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
         stationMarkersRef.current.push(marker);
       });
 
-      // Citizen Report Markers
-      CITIZEN_MAP_REPORTS.forEach((report) => {
-        const el = document.createElement('div');
-        el.className = 'group relative cursor-pointer z-30';
-        const label = t(`hazards.${report.category}`);
-        el.innerHTML = `
-          <div class="relative flex flex-col items-center">
-            <div class="px-2 py-1 bg-[#FAF9F3] border border-[#A87C58] rounded-md shadow-md text-[10px] font-mono font-bold text-[#202622] flex items-center space-x-1">
-              <span>📍</span>
-              <span class="report-marker-text" data-category="${report.category}">${label}</span>
-            </div>
-          </div>
-        `;
-
-        el.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          onSelectCitizenReportRef.current(report);
-          onSelectStateRef.current(null);
-          onSelectStationRef.current(null);
-          map.flyTo({
-            center: [report.lng, report.lat],
-            zoom: 9.0,
-            pitch: mapViewStyle === 'terrain' ? 45 : 0,
-            bearing: mapViewStyle === 'terrain' ? -14 : 0,
-            duration: 1200,
-          });
-        });
-
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([report.lng, report.lat])
-          .addTo(map);
-
-        citizenMarkersRef.current.push(marker);
-      });
+      // Citizen Report Markers are dynamically rendered via dedicated useEffect below
     });
 
     return () => {
@@ -819,13 +831,105 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     });
   }, [riskZones, isMapLoading, mapViewStyle]);
 
+  // Render Incident Markers on MapLibre (Live from backend, with benchmark fallback when backend is empty)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || isMapLoading) return;
+
+    // Clear previous incident markers
+    citizenMarkersRef.current.forEach((m) => m.remove());
+    citizenMarkersRef.current = [];
+
+    const isLive = Boolean(incidents && incidents.length > 0);
+    const reportsToRender: {
+      id: string;
+      lat: number;
+      lng: number;
+      category: string;
+      label: string;
+      statusBadge: string;
+      statusBg: string;
+      reportObj: CitizenMapReport;
+    }[] = isLive
+      ? (incidents || []).map((inc) => {
+          const report = mapIncidentOutToCitizenReport(inc);
+          let statusBg = 'bg-[#D88A32] text-white'; // amber for reported
+          if (inc.status === 'verified') statusBg = 'bg-[#23483A] text-white';
+          else if (inc.status === 'assigned') statusBg = 'bg-[#1F4E5B] text-white';
+          else if (inc.status === 'resolved') statusBg = 'bg-[#2E6F40] text-white';
+          else if (inc.status === 'rejected') statusBg = 'bg-[#536A72] text-white';
+
+          return {
+            id: inc.id,
+            lat: inc.lat,
+            lng: inc.lng,
+            category: inc.type,
+            label: inc.type.toUpperCase(),
+            statusBadge: inc.status.toUpperCase(),
+            statusBg,
+            reportObj: report,
+          };
+        })
+      : CITIZEN_MAP_REPORTS.map((report) => ({
+          id: report.id,
+          lat: report.lat,
+          lng: report.lng,
+          category: report.category,
+          label: t(`hazards.${report.category}`),
+          statusBadge: 'DEMO',
+          statusBg: 'bg-[#536A72] text-white',
+          reportObj: {
+            ...report,
+            title: report.title.startsWith('[DEMO]') ? report.title : `[DEMO] ${report.title}`,
+          },
+        }));
+
+    reportsToRender.forEach((item) => {
+      const el = document.createElement('div');
+      el.className = 'group relative cursor-pointer z-30';
+      el.setAttribute('data-testid', `incident-marker-${item.id}`);
+
+      el.innerHTML = `
+        <div class="relative flex flex-col items-center">
+          <div class="px-2 py-1 bg-[#FAF9F3] border border-[#A87C58] rounded-md shadow-md text-[10px] font-mono font-bold text-[#202622] flex items-center space-x-1.5 hover:scale-105 transition-transform">
+            <span>📍</span>
+            <span class="report-marker-text" data-category="${item.category}">${item.label}</span>
+            <span class="px-1 py-0.2 text-[8px] font-bold rounded ${item.statusBg}">${item.statusBadge}</span>
+          </div>
+        </div>
+      `;
+
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        onSelectCitizenReportRef.current(item.reportObj);
+        onSelectStateRef.current(null);
+        onSelectStationRef.current(null);
+        onSelectRiskZoneRef.current?.(null);
+        map.flyTo({
+          center: [item.lng, item.lat],
+          zoom: 9.0,
+          pitch: mapViewStyle === 'terrain' ? 45 : 0,
+          bearing: mapViewStyle === 'terrain' ? -14 : 0,
+          duration: 1200,
+        });
+      });
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([item.lng, item.lat])
+        .addTo(map);
+
+      citizenMarkersRef.current.push(marker);
+    });
+  }, [incidents, isMapLoading, mapViewStyle, t]);
+
   return (
     <div
       ref={mapContainerRef}
       className="relative w-full h-[85vh] sm:h-[88vh] min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-[#C7B89B]/40 bg-[#101412]"
     >
-      {/* Live ML Risk Status Indicator Overlay */}
-      <div className="absolute top-3 left-3 z-20 pointer-events-auto">
+      {/* Live Status Indicators (ML Risk + Incidents) */}
+      <div className="absolute top-3 left-3 z-20 pointer-events-auto flex flex-col space-y-1.5">
+        {/* Live ML Risk Status Indicator */}
         {isRiskLoading ? (
           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#C7B89B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
             <Loader2 className="w-3.5 h-3.5 text-[#D88A32] animate-spin" />
@@ -853,6 +957,37 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/85 backdrop-blur-md border border-[#C7B89B]/30 text-[#FAF9F3]/90 shadow-md text-xs font-mono">
             <span className="w-2 h-2 rounded-full bg-blue-400"></span>
             <span>Live ML Risk: 0 active zones</span>
+          </div>
+        )}
+
+        {/* Live Incidents Status Indicator */}
+        {isIncidentsLoading ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#C7B89B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
+            <Loader2 className="w-3.5 h-3.5 text-[#D88A32] animate-spin" />
+            <span>Fetching live incidents...</span>
+          </div>
+        ) : incidentError ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#8E2F2B]/95 backdrop-blur-md border border-[#FF5252]/50 text-white shadow-lg text-xs font-mono">
+            <AlertOctagon className="w-4 h-4 text-red-200 shrink-0" />
+            <span className="max-w-[220px] truncate">Incident Error: {incidentError}</span>
+            {onRetryIncidents && (
+              <button
+                onClick={onRetryIncidents}
+                className="ml-1 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer transition-colors"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        ) : incidents && incidents.length > 0 ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#23483A]/80 text-[#FAF9F3] shadow-md text-xs font-mono">
+            <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
+            <span>Live Incidents: {incidents.length} Active</span>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/85 backdrop-blur-md border border-[#C7B89B]/30 text-[#FAF9F3]/90 shadow-md text-xs font-mono">
+            <span className="w-2 h-2 rounded-full bg-[#D88A32]"></span>
+            <span>Demo Benchmark Incidents ({CITIZEN_MAP_REPORTS.length} Fallback)</span>
           </div>
         )}
       </div>

@@ -98,6 +98,35 @@ export async function createIncidentSMS(payload: { phone: string; text: string; 
   return request('/incidents/sms', { method: 'POST', body: JSON.stringify(payload) })
 }
 
+export async function getIncidents(
+  status?: string,
+  bbox?: string,
+  limit?: number
+): Promise<IncidentOut[]> {
+  const params = new URLSearchParams()
+  if (status) params.set('status', status)
+  if (bbox) params.set('bbox', bbox)
+  if (limit !== undefined) params.set('limit', String(limit))
+  const q = params.toString() ? `?${params.toString()}` : ''
+  return request(`/incidents${q}`)
+}
+
+export async function verifyIncident(
+  id: string,
+  dataLabel?: string
+): Promise<IncidentOut> {
+  return request(`/incidents/${id}/verify`, {
+    method: 'POST',
+    body: JSON.stringify({ data_label: dataLabel || 'live' }),
+  })
+}
+
+export async function rejectIncident(id: string): Promise<IncidentOut> {
+  return request(`/incidents/${id}/reject`, {
+    method: 'PATCH',
+  })
+}
+
 // --- Status ---
 export async function getStatus(incidentId: string): Promise<IncidentStatusResponse> {
   return request(`/status/${incidentId}`)

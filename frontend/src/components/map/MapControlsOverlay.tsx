@@ -302,6 +302,15 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
             <div>Model: <span className="text-[#202622] font-bold">{selectedRiskZone.model_version || 'xgboost'}</span></div>
             <div>Computed: <span className="text-[#202622] font-bold">{new Date(selectedRiskZone.computed_at).toLocaleTimeString()}</span></div>
           </div>
+
+          <button
+            type="button"
+            onClick={onOpenWhyRisk}
+            className="w-full py-2 px-3 rounded-xl bg-[#23483A] text-[#FAF9F3] text-xs font-heading font-bold hover:bg-[#1b382d] transition-all cursor-pointer flex items-center justify-center space-x-1.5 shadow-sm"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Inspect Decision & Drivers</span>
+          </button>
         </div>
       )}
 
@@ -430,11 +439,16 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
           </div>
         </div>
 
-        {/* Risk Forecast Timeline Bar — Light Samvedna Theme with High Readability */}
+        {/* Regional 12h Scenario Outlook Timeline Bar */}
         <div className="bg-[#FAF9F3]/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-[#C7B89B]/60 shadow-md flex flex-wrap items-center justify-between gap-2.5 max-w-xl mx-auto text-xs font-mono text-[#202622]">
-          <span className="text-[#536A72] font-heading font-extrabold uppercase text-[11px] tracking-wider shrink-0">
-            {t('controls.riskForecast')}
-          </span>
+          <div className="flex items-center space-x-1.5 shrink-0">
+            <span className="text-[#536A72] font-heading font-extrabold uppercase text-[11px] tracking-wider">
+              REGIONAL 12H SCENARIO OUTLOOK
+            </span>
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-[#D88A32]/15 text-[#965C22] border border-[#D88A32]/30">
+              OUTLOOK
+            </span>
+          </div>
           <div className="flex items-center space-x-3 shrink-0">
             <span className="flex items-center space-x-1">
               <span className="text-[#536A72] font-medium">{t('controls.now')}</span>

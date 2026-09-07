@@ -14,8 +14,8 @@ import { SafeRouteOverlay } from '../components/interactive/SafeRouteOverlay';
 import { StoryModeModal } from '../components/interactive/StoryModeModal';
 import { EmergencyModeBanner } from '../components/emergency/EmergencyModeBanner';
 import { PhoneCall, AlertOctagon } from 'lucide-react';
-import { getRisk } from '../services/api';
-import { RiskZoneOut } from '../types/api';
+import { getRisk, getIncidents } from '../services/api';
+import { RiskZoneOut, IncidentOut } from '../types/api';
 
 interface HomeProps {
   location: LocationData;
@@ -84,8 +84,33 @@ export const Home: React.FC<HomeProps> = ({
     }
   };
 
+  // Live Incidents State
+  const [incidents, setIncidents] = useState<IncidentOut[]>([]);
+  const [isIncidentsLoading, setIsIncidentsLoading] = useState(true);
+  const [incidentsError, setIncidentsError] = useState<string | null>(null);
+
+  const fetchLiveIncidents = async () => {
+    setIsIncidentsLoading(true);
+    setIncidentsError(null);
+    try {
+      const data = await getIncidents();
+      if (Array.isArray(data)) {
+        setIncidents(data);
+      } else {
+        setIncidents([]);
+      }
+    } catch (err: any) {
+      console.warn('[Home] Failed to fetch live incidents:', err);
+      setIncidentsError(err?.message || 'Failed to connect to Incident Service');
+      setIncidents([]);
+    } finally {
+      setIsIncidentsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchLiveRisk();
+    fetchLiveIncidents();
   }, []);
 
   // Interactive Explainer Modals
@@ -142,6 +167,10 @@ export const Home: React.FC<HomeProps> = ({
           isRiskLoading={isRiskLoading}
           riskError={riskError}
           onRetryRisk={fetchLiveRisk}
+          incidents={incidents}
+          isIncidentsLoading={isIncidentsLoading}
+          incidentError={incidentsError}
+          onRetryIncidents={fetchLiveIncidents}
           showSafeRoute={showSafeRoute}
           userLocation={userLngLat}
           onSelectState={setSelectedState}

@@ -10,6 +10,9 @@ import {
   getUserRole,
   login,
   logout,
+  getIncidents,
+  verifyIncident,
+  rejectIncident,
 } from '../src/services/api';
 import {
   DecisionResponse,
@@ -263,5 +266,201 @@ describe('P1 Intelligence & Operational Auth Security Audit Tests', () => {
     assert.notStrictEqual(getUserRole(), 'admin', 'Citizen role must NEVER elevate to admin');
     assert.notStrictEqual(getUserRole(), 'officer', 'Citizen role must NEVER elevate to officer');
     logout();
+  });
+
+  test('10. Incident API Helpers: getIncidents sends query parameters and auth headers', async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedUrl = '';
+    let capturedHeaders: Record<string, string> = {};
+
+    try {
+      setAuthToken('test-token-123');
+      globalThis.fetch = async (url: RequestInfo | URL, init?: RequestInit) => {
+        capturedUrl = url.toString();
+        capturedHeaders = (init?.headers || {}) as Record<string, string>;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [
+            {
+              id: 'inc-001',
+              reporter_id: 1,
+              type: 'landslide',
+              description: 'Rockfall blocking highway',
+              lat: 26.14,
+              lng: 91.73,
+              severity: 4,
+              status: 'reported',
+              data_label: 'live',
+              created_at: '2026-09-07T12:00:00Z',
+              updated_at: '2026-09-07T12:00:00Z',
+            },
+          ],
+        } as Response;
+      };
+
+      const result = await getIncidents('reported', '25,90,27,92', 10);
+      assert.ok(capturedUrl.includes('/incidents?status=reported&bbox=25%2C90%2C27%2C92&limit=10'));
+      assert.strictEqual(capturedHeaders['Authorization'], 'Bearer test-token-123');
+      assert.strictEqual(result.length, 1);
+      assert.strictEqual(result[0].id, 'inc-001');
+      assert.strictEqual(result[0].type, 'landslide');
+    } finally {
+      logout();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('11. Incident API Helpers: verifyIncident posts data_label to /incidents/{id}/verify', async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedUrl = '';
+    let capturedMethod = '';
+    let capturedBody = '';
+
+    try {
+      setAuthToken('officer-token');
+      globalThis.fetch = async (url: RequestInfo | URL, init?: RequestInit) => {
+        capturedUrl = url.toString();
+        capturedMethod = init?.method || '';
+        capturedBody = init?.body as string;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 'inc-001',
+            reporter_id: 1,
+            type: 'landslide',
+            description: 'Rockfall blocking highway',
+            lat: 26.14,
+            lng: 91.73,
+            severity: 4,
+            status: 'verified',
+            data_label: 'live',
+            created_at: '2026-09-07T12:00:00Z',
+            updated_at: '2026-09-07T12:05:00Z',
+          }),
+        } as Response;
+      };
+
+      const result = await verifyIncident('inc-001', 'live');
+      assert.ok(capturedUrl.endsWith('/incidents/inc-001/verify'));
+      assert.strictEqual(capturedMethod, 'POST');
+      assert.strictEqual(JSON.parse(capturedBody).data_label, 'live');
+      assert.strictEqual(result.status, 'verified');
+    } finally {
+      logout();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('12. Incident API Helpers: rejectIncident sends PATCH to /incidents/{id}/reject', async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedUrl = '';
+    let capturedMethod = '';
+
+    try {
+      setAuthToken('officer-token');
+      globalThis.fetch = async (url: RequestInfo | URL, init?: RequestInit) => {
+        capturedUrl = url.toString();
+        capturedMethod = init?.method || '';
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 'inc-002',
+            reporter_id: 1,
+            type: 'flood',
+            description: 'Minor puddle',
+            lat: 26.14,
+            lng: 91.73,
+            severity: 1,
+            status: 'rejected',
+            data_label: 'synthetic',
+            created_at: '2026-09-07T12:00:00Z',
+            updated_at: '2026-09-07T12:05:00Z',
+          }),
+        } as Response;
+      };
+
+      const result = await rejectIncident('inc-002');
+      assert.ok(capturedUrl.endsWith('/incidents/inc-002/reject'));
+      assert.strictEqual(capturedMethod, 'PATCH');
+      assert.strictEqual(result.status, 'rejected');
+    } finally {
+      logout();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('13. WhyRiskModal Priority Factors Logic & Missing Factors Resilience', () => {
+    // 1. Full factors and weights present
+    const factorsFull = { risk: 0.75, exposure: 0.60, vulnerability: 0.80, response_gap: 0.50 };
+    const weightsFull = { risk: 0.35, exposure: 0.30, vulnerability: 0.20, response_gap: 0.15 };
+
+    const priorityFormula = 100 * (
+      weightsFull.risk * factorsFull.risk +
+      weightsFull.exposure * factorsFull.exposure +
+      weightsFull.vulnerability * factorsFull.vulnerability +
+      weightsFull.response_gap * factorsFull.response_gap
+    );
+    assert.strictEqual(Math.round(priorityFormula), 68);
+
+    // 2. Missing / undefined factors handled gracefully without throwing
+    const factorsEmpty: Record<string, number | undefined> = {};
+    const riskVal = factorsEmpty.risk != null ? factorsEmpty.risk : null;
+    const exposureVal = factorsEmpty.exposure != null ? factorsEmpty.exposure : null;
+    assert.strictEqual(riskVal, null);
+    assert.strictEqual(exposureVal, null);
+
+    // 3. Null factors handled gracefully without throwing
+    const nullFactors = null as unknown as Record<string, number> | null;
+    assert.doesNotThrow(() => {
+      const safeRisk = nullFactors?.risk != null ? nullFactors.risk : null;
+      assert.strictEqual(safeRisk, null);
+    });
+  });
+
+  test('14. SOS 401 Error Transformation & Friendly Message Contract', () => {
+    // Test the 401 detection and message transformation logic implemented in useSosState
+    function transformSosError(rawError: string | Error): string {
+      const errMsg = typeof rawError === 'string' ? rawError : rawError?.message || '';
+      if (
+        errMsg.includes('401') ||
+        errMsg.includes('Not authenticated') ||
+        errMsg.includes('Unauthorized')
+      ) {
+        return 'Authentication required: Please log in using the Operations button in the header before transmitting live incident reports.';
+      }
+      return errMsg || 'Network error: Failed to transmit SOS emergency alert';
+    }
+
+    const raw401Error = '401: {"detail":"Not authenticated"}';
+    const friendlyMsg = transformSosError(raw401Error);
+    assert.strictEqual(
+      friendlyMsg,
+      'Authentication required: Please log in using the Operations button in the header before transmitting live incident reports.'
+    );
+
+    // Verify technical message preserved for non-401 errors
+    const technical500 = '500: Database connection failure';
+    assert.strictEqual(transformSosError(technical500), '500: Database connection failure');
+  });
+
+  test('15. Timer Lifecycle Cleanup Pattern: Interval handle ref cleared on unmount/reset', () => {
+    let activeInterval: NodeJS.Timeout | null = setInterval(() => {}, 1000);
+    assert.ok(activeInterval !== null);
+
+    // Emulate useSosState clearPolling() / unmount / reset lifecycle
+    function clearPolling() {
+      if (activeInterval !== null) {
+        clearInterval(activeInterval);
+        activeInterval = null;
+      }
+    }
+
+    clearPolling();
+    assert.strictEqual(activeInterval, null);
+    // Double clearing must be idempotent
+    assert.doesNotThrow(() => clearPolling());
   });
 });

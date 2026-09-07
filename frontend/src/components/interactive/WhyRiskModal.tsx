@@ -111,9 +111,17 @@ export const WhyRiskModal: React.FC<WhyRiskModalProps> = ({
 
   // Load decision on open
   useEffect(() => {
+    let isCancelled = false;
     if (isOpen) {
-      fetchDecision();
+      queueMicrotask(() => {
+        if (!isCancelled) {
+          fetchDecision();
+        }
+      });
     }
+    return () => {
+      isCancelled = true;
+    };
   }, [isOpen, fetchDecision]);
 
   if (!isOpen) return null;
@@ -289,6 +297,60 @@ export const WhyRiskModal: React.FC<WhyRiskModalProps> = ({
                     </span>
                   </div>
                 </div>
+
+                {/* Deterministic Priority Triage Formula Factor Breakdown */}
+                {decision.priority && (
+                  <div className="p-4 rounded-2xl bg-[#F4F1E8] border border-[#C7B89B]/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-[#536A72] uppercase tracking-wider block">
+                        Operational Priority Factors ({decision.priority.priority_score.toFixed(1)} / 100 &bull; {decision.priority.priority_level})
+                      </span>
+                      <span className="text-[10px] font-mono text-[#536A72]">
+                        Deterministic Triage
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {[
+                        { key: 'risk', label: 'Hazard Risk', defaultWeight: 0.35, color: '#C6533C' },
+                        { key: 'exposure', label: 'Exposure', defaultWeight: 0.30, color: '#D88A32' },
+                        { key: 'vulnerability', label: 'Vulnerability', defaultWeight: 0.20, color: '#8E2F2B' },
+                        { key: 'response_gap', label: 'Response Gap', defaultWeight: 0.15, color: '#23483A' },
+                      ].map((item) => {
+                        const factorVal = decision.priority.factors?.[item.key];
+                        const weightVal = decision.priority.weights?.[item.key] ?? item.defaultWeight;
+                        const normalizedVal = factorVal !== undefined && factorVal !== null ? Math.min(1, Math.max(0, factorVal)) : null;
+                        const weightPct = (weightVal * 100).toFixed(0);
+
+                        return (
+                          <div key={item.key} className="p-2.5 rounded-xl bg-[#FAF9F3] border border-[#C7B89B]/40 space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-heading font-bold text-[#202622] text-[11px]">{item.label}</span>
+                              <span className="font-mono text-[10px] text-[#536A72] font-bold">
+                                Weight: {weightPct}%
+                              </span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-[#E8E6DC] overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{
+                                  width: normalizedVal !== null ? `${(normalizedVal * 100).toFixed(1)}%` : '0%',
+                                  backgroundColor: item.color,
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] font-mono">
+                              <span className="text-[#536A72]">Factor Score</span>
+                              <span className="font-bold text-[#202622]">
+                                {normalizedVal !== null ? `${(normalizedVal * 100).toFixed(1)}% (${normalizedVal.toFixed(2)})` : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Variable Explanation Driver Cards */}
                 <div>

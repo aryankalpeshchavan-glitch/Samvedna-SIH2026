@@ -206,3 +206,9 @@ export function mapSeverityToInteger(severity?: string | number | null): number 
       return 3;
   }
 }
+
+export type IncidentDataLabel = 'live' | 'synthetic' | 'replayed';
+
+export interface IncidentVerifyPayload {
+  data_label?: IncidentDataLabel;
+}

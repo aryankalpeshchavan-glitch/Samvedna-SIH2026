@@ -1,10 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import { SpecularHeading } from '../components/ui/SpecularHeading';
 import { animatePageEnter } from '../animations/pageTransitions';
 import { useTranslation } from '../i18n/LanguageContext';
-import { Users, ShieldCheck, UserPlus, AlertCircle, CheckCircle2, UserCheck, PhoneCall, X, Heart, HeartHandshake, MapPin, HandHeart } from 'lucide-react';
+import { Users, ShieldCheck, UserPlus, CheckCircle2, UserCheck, PhoneCall, X, Heart, HeartHandshake, MapPin, HandHeart } from 'lucide-react';
 
 export interface FamilyMemberItem {
   id: string;

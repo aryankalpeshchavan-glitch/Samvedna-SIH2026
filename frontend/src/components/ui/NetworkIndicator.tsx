@@ -40,10 +40,12 @@ export const NetworkIndicator: React.FC<NetworkIndicatorProps> = ({ status }) =>
 
   return (
     <>
-      <div
-        role="status"
-        aria-label={`Network status: ${current.label}`}
-        className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-all space-x-1.5 ${current.className}`}
+      <button
+        type="button"
+        onClick={() => setShowModal(true)}
+        aria-label={`Network status: ${current.label}. Click to view offline queue and sync settings.`}
+        title="Offline & Sync Manager"
+        className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-all space-x-1.5 cursor-pointer hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#23483A] ${current.className}`}
       >
         <span className={`w-2 h-2 rounded-full ${current.dot} animate-pulse`} />
         <Icon className="w-3.5 h-3.5" />
@@ -53,7 +55,7 @@ export const NetworkIndicator: React.FC<NetworkIndicatorProps> = ({ status }) =>
             {pendingCount}
           </span>
         )}
-      </div>
+      </button>
 
       {/* Offline Sync Status & Hackathon Demo Drawer */}
       {showModal && (
