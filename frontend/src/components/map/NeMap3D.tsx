@@ -6,7 +6,8 @@ import { MapLayerMode, MapViewStyle, NeStateInfo, MonitoringPoint } from '../../
 import { CitizenMapReport } from '../../types/emergency';
 import { RainCanvasOverlay } from './RainCanvasOverlay';
 import { useTranslation } from '../../i18n/LanguageContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertOctagon } from 'lucide-react';
+import { RiskZoneOut, classifyRiskLevel } from '../../types/api';
 
 interface NeMap3DProps {
   mapViewStyle?: MapViewStyle;
@@ -14,12 +15,57 @@ interface NeMap3DProps {
   selectedState: NeStateInfo | null;
   selectedStation: MonitoringPoint | null;
   selectedCitizenReport: CitizenMapReport | null;
+  selectedRiskZone?: RiskZoneOut | null;
+  riskZones?: RiskZoneOut[];
+  isRiskLoading?: boolean;
+  riskError?: string | null;
+  onRetryRisk?: () => void;
   showSafeRoute: boolean;
   userLocation: [number, number] | null; // [lng, lat]
   onSelectState: (state: NeStateInfo | null) => void;
   onSelectStation: (station: MonitoringPoint | null) => void;
   onSelectCitizenReport: (report: CitizenMapReport | null) => void;
+  onSelectRiskZone?: (zone: RiskZoneOut | null) => void;
   onHoverState: (stateName: string | null) => void;
+}
+
+function computeStateRiskLevel(state: NeStateInfo, zones: RiskZoneOut[]): 'LOW' | 'MEDIUM' | 'HIGH' {
+  if (!zones || zones.length === 0) return 'LOW';
+  const matching = zones.filter((z) => {
+    if (z.state && z.state.toLowerCase() === state.id.toLowerCase()) return true;
+    if (z.lat != null && z.lng != null) {
+      const dist = Math.hypot(z.lat - state.center[0], z.lng - state.center[1]);
+      return dist < 1.5;
+    }
+    return false;
+  });
+  if (matching.length === 0) return 'LOW';
+  const maxScore = Math.max(...matching.map((z) => z.risk_score));
+  return classifyRiskLevel(maxScore);
+}
+
+function getNeStatesGeoJsonWithLiveRisk(zones: RiskZoneOut[] = []) {
+  return {
+    type: 'FeatureCollection',
+    features: NORTHEAST_STATES.map((state) => ({
+      type: 'Feature',
+      id: state.id,
+      properties: {
+        id: state.id,
+        name: state.name,
+        code: state.code,
+        riskLevel: computeStateRiskLevel(state, zones),
+        avgRainfall: state.avgRainfall24h,
+        soilMoisture: state.avgSoilMoisture,
+        elevationRange: state.elevationRange,
+        heightOffset: state.heightOffset,
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: state.polygonCoords,
+      },
+    })),
+  };
 }
 
 // 1. Single Continuous 2D Overhead High-Resolution Satellite Hybrid Map Style (Satellite + Roads + Cities/Towns/Places)
@@ -110,12 +156,12 @@ const WARM_TERRAIN_MAP_STYLE: maplibregl.StyleSpecification = {
   },
 };
 
-function setupMapSourcesAndLayers(map: maplibregl.Map, styleMode: MapViewStyle, showSafeRoute: boolean) {
+function setupMapSourcesAndLayers(map: maplibregl.Map, styleMode: MapViewStyle, showSafeRoute: boolean, riskZones: RiskZoneOut[] = []) {
   if (!map.getSource('ne-states-source')) {
     map.addSource('ne-states-source', {
       type: 'geojson',
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      data: getNeStatesGeoJson() as any,
+      data: getNeStatesGeoJsonWithLiveRisk(riskZones) as any,
       generateId: true,
     });
   }
@@ -338,11 +384,17 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
   selectedState,
   selectedStation,
   selectedCitizenReport,
+  selectedRiskZone,
+  riskZones = [],
+  isRiskLoading = false,
+  riskError = null,
+  onRetryRisk,
   showSafeRoute,
   userLocation,
   onSelectState,
   onSelectStation,
   onSelectCitizenReport,
+  onSelectRiskZone,
   onHoverState,
 }) => {
   const { t, language } = useTranslation();
@@ -350,6 +402,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const stationMarkersRef = useRef<maplibregl.Marker[]>([]);
   const citizenMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const riskMarkersRef = useRef<maplibregl.Marker[]>([]);
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
   const hoveredIdRef = useRef<string | number | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(true);
@@ -359,12 +412,16 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
   const onSelectStateRef = useRef(onSelectState);
   const onSelectStationRef = useRef(onSelectStation);
   const onSelectCitizenReportRef = useRef(onSelectCitizenReport);
+  const onSelectRiskZoneRef = useRef(onSelectRiskZone);
+  const riskZonesRef = useRef(riskZones);
 
   useEffect(() => {
     onHoverStateRef.current = onHoverState;
     onSelectStateRef.current = onSelectState;
     onSelectStationRef.current = onSelectStation;
     onSelectCitizenReportRef.current = onSelectCitizenReport;
+    onSelectRiskZoneRef.current = onSelectRiskZone;
+    riskZonesRef.current = riskZones;
   });
 
   // Initialize MapLibre GL JS Map Instance ONCE on component mount
@@ -405,7 +462,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
 
     map.on('load', () => {
       setIsMapLoading(false);
-      setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute);
+      setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute, riskZonesRef.current);
 
       // Hover Interactions for States using stable ref
       const handleMouseMove = (e: maplibregl.MapLayerMouseEvent) => {
@@ -545,6 +602,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
       window.removeEventListener('resize', handleResize);
       stationMarkersRef.current.forEach((m) => m.remove());
       citizenMarkersRef.current.forEach((m) => m.remove());
+      riskMarkersRef.current.forEach((m) => m.remove());
       if (userMarkerRef.current) userMarkerRef.current.remove();
       map.remove();
     };
@@ -572,7 +630,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
 
     map.once('style.load', () => {
       map.jumpTo({ center: currentCenter, zoom: currentZoom });
-      setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute);
+      setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute, riskZonesRef.current);
     });
   }, [mapViewStyle, showSafeRoute]);
 
@@ -673,11 +731,132 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     }
   }, [selectedState, selectedStation, mapViewStyle]);
 
+  // Fly camera to selected risk zone
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedRiskZone || selectedRiskZone.lat == null || selectedRiskZone.lng == null) return;
+
+    map.flyTo({
+      center: [selectedRiskZone.lng, selectedRiskZone.lat],
+      zoom: 8.5,
+      pitch: mapViewStyle === 'terrain' ? 50 : 0,
+      bearing: mapViewStyle === 'terrain' ? -14 : 0,
+      duration: 1200,
+    });
+  }, [selectedRiskZone, mapViewStyle]);
+
+  // Render Live Risk Markers on MapLibre
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || isMapLoading) return;
+
+    // Clear previous live risk markers
+    riskMarkersRef.current.forEach((m) => m.remove());
+    riskMarkersRef.current = [];
+
+    // Dynamically update state boundary polygon live risk levels based on real ML data
+    const stateSource = map.getSource('ne-states-source') as maplibregl.GeoJSONSource | undefined;
+    if (stateSource && stateSource.setData) {
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      stateSource.setData(getNeStatesGeoJsonWithLiveRisk(riskZones) as any);
+    }
+
+    if (!riskZones || riskZones.length === 0) return;
+
+    riskZones.forEach((zone) => {
+      if (zone.lat == null || zone.lng == null) return;
+      const category = classifyRiskLevel(zone.risk_score);
+      const colorBg =
+        category === 'HIGH'
+          ? 'bg-[#C6533C]'
+          : category === 'MEDIUM'
+          ? 'bg-[#D88A32]'
+          : 'bg-[#23483A]';
+
+      const borderColor =
+        category === 'HIGH'
+          ? 'border-[#C6533C]'
+          : category === 'MEDIUM'
+          ? 'border-[#D88A32]'
+          : 'border-[#23483A]';
+
+      const el = document.createElement('div');
+      el.className = 'group relative cursor-pointer z-30';
+      el.setAttribute('data-testid', `risk-zone-${zone.id}`);
+
+      el.innerHTML = `
+        <div class="relative flex items-center justify-center">
+          <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full opacity-60 ${colorBg}"></span>
+          <div class="relative inline-flex rounded-full h-5 w-5 border-2 border-[#FAF9F3] items-center justify-center font-mono text-[9px] font-black text-white shadow-lg ${colorBg}">
+            ●
+          </div>
+          <div class="absolute -bottom-6 px-1.5 py-0.5 rounded bg-[#202622]/90 text-white font-mono text-[9px] font-bold whitespace-nowrap shadow border ${borderColor} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            ${category} (${(zone.risk_score * 100).toFixed(0)}%)
+          </div>
+        </div>
+      `;
+
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        onSelectRiskZoneRef.current?.(zone);
+        onSelectStateRef.current(null);
+        onSelectStationRef.current(null);
+        onSelectCitizenReportRef.current(null);
+        map.flyTo({
+          center: [zone.lng!, zone.lat!],
+          zoom: 8.5,
+          pitch: mapViewStyle === 'terrain' ? 50 : 0,
+          bearing: mapViewStyle === 'terrain' ? -14 : 0,
+          duration: 1200,
+        });
+      });
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([zone.lng, zone.lat])
+        .addTo(map);
+
+      riskMarkersRef.current.push(marker);
+    });
+  }, [riskZones, isMapLoading, mapViewStyle]);
+
   return (
     <div
       ref={mapContainerRef}
       className="relative w-full h-[85vh] sm:h-[88vh] min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-[#C7B89B]/40 bg-[#101412]"
     >
+      {/* Live ML Risk Status Indicator Overlay */}
+      <div className="absolute top-3 left-3 z-20 pointer-events-auto">
+        {isRiskLoading ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#C7B89B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
+            <Loader2 className="w-3.5 h-3.5 text-[#D88A32] animate-spin" />
+            <span>Fetching live ML risk data...</span>
+          </div>
+        ) : riskError ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#8E2F2B]/95 backdrop-blur-md border border-[#FF5252]/50 text-white shadow-lg text-xs font-mono">
+            <AlertOctagon className="w-4 h-4 text-red-200 shrink-0" />
+            <span className="max-w-[220px] truncate">Risk API Error: {riskError}</span>
+            {onRetryRisk && (
+              <button
+                onClick={onRetryRisk}
+                className="ml-1 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer transition-colors"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        ) : riskZones && riskZones.length > 0 ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#23483A]/80 text-[#FAF9F3] shadow-md text-xs font-mono">
+            <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
+            <span>Live ML Risk: {riskZones.length} Zone{riskZones.length > 1 ? 's' : ''} Active</span>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/85 backdrop-blur-md border border-[#C7B89B]/30 text-[#FAF9F3]/90 shadow-md text-xs font-mono">
+            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+            <span>Live ML Risk: 0 active zones</span>
+          </div>
+        )}
+      </div>
+
       {/* Subtle Map Loading Overlay */}
       {isMapLoading && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#101412]/85 backdrop-blur-sm text-[#FAF9F3] transition-opacity duration-300 pointer-events-none">

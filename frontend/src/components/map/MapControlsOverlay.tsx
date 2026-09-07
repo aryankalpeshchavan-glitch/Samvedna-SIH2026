@@ -5,6 +5,8 @@ import { useTranslation } from '../../i18n/LanguageContext';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { Compass, RotateCcw, MapPin, X, Activity, Mountain, CloudRain, Droplets, Gauge, Sparkles, Navigation, Layers, HelpCircle, Globe, Check, ChevronDown } from 'lucide-react';
 
+import { RiskZoneOut, classifyRiskLevel } from '../../types/api';
+
 interface MapControlsOverlayProps {
   mapViewStyle?: MapViewStyle;
   onMapViewStyleChange?: (style: MapViewStyle) => void;
@@ -14,6 +16,7 @@ interface MapControlsOverlayProps {
   selectedState: NeStateInfo | null;
   selectedStation: MonitoringPoint | null;
   selectedCitizenReport: CitizenMapReport | null;
+  selectedRiskZone?: RiskZoneOut | null;
   showSafeRoute: boolean;
   isEmergencyMode: boolean;
   onToggleEmergencyMode: () => void;
@@ -35,6 +38,7 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
   selectedState,
   selectedStation,
   selectedCitizenReport,
+  selectedRiskZone,
   showSafeRoute,
   isEmergencyMode,
   onToggleEmergencyMode,
@@ -250,6 +254,53 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
               <span className="text-[10px] text-[#536A72] block">{t('controls.slope')}</span>
               <strong className="text-[#202622] text-xs">{selectedStation.slopeAngleDeg}°</strong>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Live ML Risk Zone Detail Card Overlay */}
+      {selectedRiskZone && (
+        <div className="pointer-events-auto bg-[#FAF9F3]/95 backdrop-blur-md border border-[#C7B89B] rounded-2xl p-4 shadow-xl max-w-sm w-full space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-[#E8E6DC]">
+            <div className="flex items-center space-x-2">
+              <Activity className={`w-5 h-5 ${classifyRiskLevel(selectedRiskZone.risk_score) === 'HIGH' ? 'text-[#C6533C]' : classifyRiskLevel(selectedRiskZone.risk_score) === 'MEDIUM' ? 'text-[#D88A32]' : 'text-[#23483A]'}`} />
+              <div>
+                <h4 className="text-sm font-heading font-bold text-[#202622]">
+                  ML Risk Zone ({classifyRiskLevel(selectedRiskZone.risk_score)})
+                </h4>
+                <span className="text-[11px] font-mono text-[#536A72]">ID: {selectedRiskZone.id.slice(0, 8)}...</span>
+              </div>
+            </div>
+            <button onClick={onCloseDetail} className="text-[#536A72] hover:text-[#202622] p-1" title={t('aria.closeDetail')}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-xs font-mono text-center">
+            <div className="p-2 rounded-xl bg-[#F4F1E8] border border-[#C7B89B]/40">
+              <span className="text-[10px] text-[#536A72] block">Risk Score</span>
+              <strong className={`text-xs ${classifyRiskLevel(selectedRiskZone.risk_score) === 'HIGH' ? 'text-[#C6533C]' : classifyRiskLevel(selectedRiskZone.risk_score) === 'MEDIUM' ? 'text-[#D88A32]' : 'text-[#23483A]'}`}>
+                {(selectedRiskZone.risk_score * 100).toFixed(1)}%
+              </strong>
+            </div>
+            <div className="p-2 rounded-xl bg-[#F4F1E8] border border-[#C7B89B]/40">
+              <span className="text-[10px] text-[#536A72] block">Confidence</span>
+              <strong className="text-[#23483A] text-xs">
+                {((selectedRiskZone.confidence ?? 0.9) * 100).toFixed(1)}%
+              </strong>
+            </div>
+            <div className="p-2 rounded-xl bg-[#F4F1E8] border border-[#C7B89B]/40">
+              <span className="text-[10px] text-[#536A72] block">Data Status</span>
+              <strong className="text-[#202622] text-[10px] uppercase">
+                {selectedRiskZone.data_status || selectedRiskZone.data_label || 'live'}
+              </strong>
+            </div>
+          </div>
+
+          <div className="text-[11px] font-mono text-[#536A72] space-y-1 bg-[#F4F1E8] p-2.5 rounded-xl border border-[#C7B89B]/40">
+            <div>Coordinates: <span className="text-[#202622] font-bold">{selectedRiskZone.lat?.toFixed(4)}° N, {selectedRiskZone.lng?.toFixed(4)}° E</span></div>
+            <div>Model: <span className="text-[#202622] font-bold">{selectedRiskZone.model_version || 'xgboost'}</span></div>
+            <div>Computed: <span className="text-[#202622] font-bold">{new Date(selectedRiskZone.computed_at).toLocaleTimeString()}</span></div>
           </div>
         </div>
       )}

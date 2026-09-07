@@ -14,6 +14,8 @@ import { SafeRouteOverlay } from '../components/interactive/SafeRouteOverlay';
 import { StoryModeModal } from '../components/interactive/StoryModeModal';
 import { EmergencyModeBanner } from '../components/emergency/EmergencyModeBanner';
 import { PhoneCall, AlertOctagon } from 'lucide-react';
+import { getRisk } from '../services/api';
+import { RiskZoneOut } from '../types/api';
 
 interface HomeProps {
   location: LocationData;
@@ -53,9 +55,38 @@ export const Home: React.FC<HomeProps> = ({
   const [selectedState, setSelectedState] = useState<NeStateInfo | null>(null);
   const [selectedStation, setSelectedStation] = useState<MonitoringPoint | null>(null);
   const [selectedCitizenReport, setSelectedCitizenReport] = useState<CitizenMapReport | null>(null);
+  const [selectedRiskZone, setSelectedRiskZone] = useState<RiskZoneOut | null>(null);
   const [hoveredStateName, setHoveredStateName] = useState<string | null>(null);
   const [showSafeRoute, setShowSafeRoute] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
+
+  // Live Risk State
+  const [riskZones, setRiskZones] = useState<RiskZoneOut[]>([]);
+  const [isRiskLoading, setIsRiskLoading] = useState(true);
+  const [riskError, setRiskError] = useState<string | null>(null);
+
+  const fetchLiveRisk = async () => {
+    setIsRiskLoading(true);
+    setRiskError(null);
+    try {
+      const data = await getRisk(undefined, '24h');
+      if (Array.isArray(data)) {
+        setRiskZones(data);
+      } else {
+        setRiskZones([]);
+      }
+    } catch (err: any) {
+      console.error('[Home] Failed to fetch live risk data:', err);
+      setRiskError(err?.message || 'Failed to connect to Risk Service');
+      setRiskZones([]); // Never silently replace failed live risk data with fake risk numbers
+    } finally {
+      setIsRiskLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveRisk();
+  }, []);
 
   // Interactive Explainer Modals
   const [isWhyRiskOpen, setIsWhyRiskOpen] = useState(false);
@@ -70,6 +101,7 @@ export const Home: React.FC<HomeProps> = ({
     setSelectedState(null);
     setSelectedStation(null);
     setSelectedCitizenReport(null);
+    setSelectedRiskZone(null);
     setShowSafeRoute(false);
   };
 
@@ -77,6 +109,8 @@ export const Home: React.FC<HomeProps> = ({
     refreshLocation();
     setSelectedState(null);
     setSelectedStation(null);
+    setSelectedCitizenReport(null);
+    setSelectedRiskZone(null);
   };
 
   const userLngLat: [number, number] | null =
@@ -103,11 +137,17 @@ export const Home: React.FC<HomeProps> = ({
           selectedState={selectedState}
           selectedStation={selectedStation}
           selectedCitizenReport={selectedCitizenReport}
+          selectedRiskZone={selectedRiskZone}
+          riskZones={riskZones}
+          isRiskLoading={isRiskLoading}
+          riskError={riskError}
+          onRetryRisk={fetchLiveRisk}
           showSafeRoute={showSafeRoute}
           userLocation={userLngLat}
           onSelectState={setSelectedState}
           onSelectStation={setSelectedStation}
           onSelectCitizenReport={setSelectedCitizenReport}
+          onSelectRiskZone={setSelectedRiskZone}
           onHoverState={setHoveredStateName}
         />
 
@@ -120,6 +160,7 @@ export const Home: React.FC<HomeProps> = ({
           selectedState={selectedState}
           selectedStation={selectedStation}
           selectedCitizenReport={selectedCitizenReport}
+          selectedRiskZone={selectedRiskZone}
           showSafeRoute={showSafeRoute}
           isEmergencyMode={isEmergencyMode}
           onToggleEmergencyMode={() => setIsEmergencyMode(!isEmergencyMode)}
@@ -133,6 +174,7 @@ export const Home: React.FC<HomeProps> = ({
             setSelectedState(null);
             setSelectedStation(null);
             setSelectedCitizenReport(null);
+            setSelectedRiskZone(null);
           }}
         />
 

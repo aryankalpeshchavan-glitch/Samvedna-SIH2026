@@ -30,9 +30,9 @@ export function App() {
     setSosState,
   } = useSosState();
 
-  const handleIncidentSubmit = (category: IncidentCategory, _severity: SeverityLevel, note: string) => {
+  const handleIncidentSubmit = (category: IncidentCategory, severity: SeverityLevel, note: string) => {
     // Submit hazard report and automatically trigger emergency tracking
-    confirmAndTriggerSos(category, note);
+    confirmAndTriggerSos(category, note, severity);
     setActiveTab('status');
   };
 

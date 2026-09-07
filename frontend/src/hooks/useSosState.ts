@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { SosState, SosPayload, IncidentCategory, SosStatusDetail } from '../types/emergency';
+import { SosState, SosPayload, IncidentCategory, SeverityLevel, SosStatusDetail } from '../types/emergency';
 import { getCurrentLocation } from '../services/location';
 import { savePendingAction } from '../services/offlineStorage';
 import { getNetworkStatus } from '../services/network';
-import { createIncident } from '../services/api';
+import { createIncident, getStatus } from '../services/api';
+import { mapCategoryToBackendType, mapSeverityToInteger } from '../types/api';
 
 export function useSosState() {
   const [sosState, setSosState] = useState<SosState>('IDLE');
@@ -23,7 +24,7 @@ export function useSosState() {
   }, []);
 
   // Confirm emergency trigger
-  const confirmAndTriggerSos = useCallback(async (incidentCategory?: IncidentCategory, note?: string) => {
+  const confirmAndTriggerSos = useCallback(async (incidentCategory?: IncidentCategory, note?: string, severity?: SeverityLevel) => {
     setSosState('SENDING');
     setStatusDetail({ state: 'SENDING' });
 
@@ -38,12 +39,12 @@ export function useSosState() {
       incidentType: incidentCategory,
       note,
       networkStatusOnTrigger: network,
-      dataSource: 'synthetic', // Clear explicit label for Day 1 mock
+      dataSource: 'live',
     };
 
     setCurrentSos(payload);
 
-    // Simulate network delay / decision logic
+    // Give UI 300ms for tactile feedback before dispatching
     setTimeout(async () => {
       if (network === 'OFFLINE') {
         // Save to IndexedDB queue
@@ -53,78 +54,92 @@ export function useSosState() {
           state: 'OFFLINE_QUEUED',
           sosId: payload.sosId,
           timestamp: payload.timestamp,
-          errorMessage: 'No active connection. Emergency signal saved locally and queued for automatic sync.',
+          errorMessage: 'No active network connection. Emergency report saved locally and queued for automatic transmission.',
         });
       } else {
-        // Try real backend, fallback to mock if offline/failure
+        // Try real backend
         try {
           const lat = location.latitude ?? 26.14;
           const lng = location.longitude ?? 91.73;
+          const backendType = mapCategoryToBackendType(incidentCategory);
+          const intSeverity = mapSeverityToInteger(severity ?? 'HIGH');
+
+          // Preserve original specific category in description if mapped
+          const formattedDesc = incidentCategory && incidentCategory.toLowerCase() !== backendType
+            ? `[Category: ${incidentCategory}] ${note || `Emergency SOS ${payload.sosId}`}`
+            : (note || `Emergency SOS ${payload.sosId}`);
+
           const res = await createIncident({
-            type: (incidentCategory || 'other').toLowerCase(),
-            description: note || `SOS ${payload.sosId} - ${incidentCategory || 'emergency'}`,
-            lat, lng, severity: 4,
+            type: backendType,
+            description: formattedDesc,
+            lat,
+            lng,
+            severity: intSeverity,
+            idempotency_key: payload.sosId,
           });
+
           setSosState('SENT');
           setStatusDetail({
             state: 'SENT',
             sosId: res.id || payload.sosId,
             timestamp: payload.timestamp,
-            lastUpdatedText: `Signal transmitted — Incident ${res.id || payload.sosId} created`,
+            lastUpdatedText: `Signal transmitted — Incident #${res.id || payload.sosId} registered`,
           });
-          // Poll real status endpoint for verification/assignment
+
+          // Poll real authenticated status endpoint for verification & volunteer dispatch
           let attempts = 0;
           const poll = setInterval(async () => {
             try {
-              const st = await fetch(`/status/${res.id}`).then(r=>r.json()).catch(()=>null);
-              if (st && st.status === 'verified') {
-                setStatusDetail({ state: 'VERIFIED', sosId: res.id, timestamp: payload.timestamp, lastUpdatedText: 'Verified by Emergency Operator' });
-                setSosState('VERIFIED');
+              const st = await getStatus(res.id);
+              if (st && (st.status === 'verified' || st.status === 'assigned')) {
+                if (st.status === 'verified' && !st.assignment) {
+                  setStatusDetail((prev) => ({
+                    ...prev,
+                    state: 'VERIFIED',
+                    sosId: res.id,
+                    lastUpdatedText: 'Incident verified by emergency operator',
+                  }));
+                  setSosState('VERIFIED');
+                }
+                if (st.assignment) {
+                  setStatusDetail((prev) => ({
+                    ...prev,
+                    state: 'VOLUNTEER_EN_ROUTE',
+                    sosId: res.id,
+                    assignedVolunteerName: `Responder #${st.assignment?.volunteer_id}`,
+                    lastUpdatedText: `Responder #${st.assignment?.volunteer_id} assigned (Status: ${st.assignment?.status})`,
+                  }));
+                  setSosState('VOLUNTEER_EN_ROUTE');
+                  clearInterval(poll);
+                }
               }
-              if (st && st.assignment) {
-                setStatusDetail({
-                  state: 'VOLUNTEER_EN_ROUTE',
-                  sosId: res.id,
-                  timestamp: payload.timestamp,
-                  assignedVolunteerName: `Volunteer #${st.assignment.volunteer_id}`,
-                  etaMinutes: 12,
-                  lastUpdatedText: 'Volunteer dispatched to your coordinates',
-                });
-                setSosState('VOLUNTEER_EN_ROUTE');
+            } catch (pollErr: any) {
+              console.warn('[SOS] Status poll error:', pollErr);
+              if (pollErr?.message?.includes('401')) {
+                setStatusDetail((prev) => ({
+                  ...prev,
+                  state: 'ERROR',
+                  errorMessage: 'Authentication expired during status check. Please sign in again.',
+                }));
+                setSosState('ERROR');
                 clearInterval(poll);
               }
-            } catch {}
+            }
             if (++attempts > 40) clearInterval(poll);
           }, 3000);
-        } catch (e) {
-          // Fallback to mock demo transitions
-          console.warn('[SOS] backend failed, using demo fallback', e);
-          setSosState('SENT');
+        } catch (e: any) {
+          // Surface actual error to UI instead of fake success
+          console.error('[SOS] Backend transmission failed:', e);
+          setSosState('ERROR');
           setStatusDetail({
-            state: 'SENT',
+            state: 'ERROR',
             sosId: payload.sosId,
             timestamp: payload.timestamp,
-            lastUpdatedText: 'Signal transmitted to CrisisCore Emergency Relay (demo)',
+            errorMessage: `Transmission failed: ${e?.message || 'Could not connect to CrisisCore backend.'}`,
           });
-          setTimeout(() => {
-            setStatusDetail({ state: 'VERIFIED', sosId: payload.sosId, timestamp: payload.timestamp, lastUpdatedText: 'Verified by Emergency Operator' });
-            setSosState('VERIFIED');
-          }, 5000);
-          setTimeout(() => {
-            setStatusDetail({
-              state: 'VOLUNTEER_EN_ROUTE',
-              sosId: payload.sosId,
-              timestamp: payload.timestamp,
-              assignedVolunteerName: 'Alex Kumar (NDRF Certified)',
-              assignedVolunteerPhone: '+91 98765 43210',
-              etaMinutes: 12,
-              lastUpdatedText: 'Volunteer dispatched to your detected coordinates',
-            });
-            setSosState('VOLUNTEER_EN_ROUTE');
-          }, 12000);
         }
       }
-    }, 1200);
+    }, 300);
   }, []);
 
   const resetSos = useCallback(() => {

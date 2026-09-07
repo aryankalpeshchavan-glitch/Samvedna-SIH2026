@@ -1,5 +1,7 @@
 import { getPendingActions, markActionStatus, removePendingAction } from './offlineStorage';
 import { PendingActionEntry } from '../types/storage';
+import { apiUrl } from './api';
+import { mapCategoryToBackendType, mapSeverityToInteger } from '../types/api';
 
 export type SyncState = 'IDLE' | 'SYNCING' | 'SYNCED' | 'ERROR';
 
@@ -23,25 +25,37 @@ export async function mockApiSyncItem(item: PendingActionEntry): Promise<boolean
       sosId?: string;
       location?: { latitude: number; longitude: number };
       incidentType?: string;
+      category?: string;
       note?: string;
+      description?: string;
+      severity?: string | number;
     };
     const lat = payload.location?.latitude ?? 26.14;
     const lng = payload.location?.longitude ?? 91.73;
+
+    const rawCategory = payload.category || payload.incidentType || 'OTHER';
+    const backendType = mapCategoryToBackendType(rawCategory);
+    const intSeverity = mapSeverityToInteger(payload.severity ?? 'MEDIUM');
+
+    const userNote = payload.description || payload.note || '';
+    const formattedDesc = userNote
+      ? (userNote.includes('[Category:') ? userNote : `[Category: ${rawCategory}] ${userNote}`)
+      : `[Category: ${rawCategory}] Queued SOS ${item.id}`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     };
 
-    const res = await fetch('/incidents', {
+    const res = await fetch(apiUrl('/incidents'), {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        type: (payload.incidentType || 'other').toLowerCase(),
-        description: payload.note || `Queued SOS ${item.id}`,
+        type: backendType,
+        description: formattedDesc,
         lat,
         lng,
-        severity: 3,
+        severity: intSeverity,
         idempotency_key: item.id,
       }),
     });

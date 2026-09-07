@@ -1,21 +1,29 @@
-/**
- * CrisisCore Backend API Client
- * Connects Pawani frontend to AJ backend (Samvedna Merge)
- * Handles JWT auth + offline fallback
- */
-const API_BASE = import.meta.env.VITE_API_URL || ''
+import {
+  IncidentCreatePayload,
+  IncidentOut,
+  IncidentStatusResponse,
+  RiskZoneOut,
+} from '../types/api'
 
-function apiUrl(path: string): string {
+const API_BASE =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || ''
+
+export function apiUrl(path: string): string {
   if (!API_BASE) return path
   return `${API_BASE.replace(/\/$/, '')}${path}`
 }
 
-let authToken: string | null = localStorage.getItem('crisiscore_token')
+let authToken: string | null =
+  typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function'
+    ? localStorage.getItem('crisiscore_token')
+    : null
 
 export function setAuthToken(token: string | null) {
   authToken = token
-  if (token) localStorage.setItem('crisiscore_token', token)
-  else localStorage.removeItem('crisiscore_token')
+  if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+    if (token) localStorage.setItem('crisiscore_token', token)
+    else localStorage.removeItem('crisiscore_token')
+  }
 }
 
 export function getAuthToken(): string | null {
@@ -38,8 +46,12 @@ async function request(path: string, opts: RequestInit = {}) {
 
 // --- Auth ---
 export async function registerOrLoginDemo(): Promise<string> {
-  const phone = localStorage.getItem('crisiscore_phone') || `+91${Math.floor(1000000000 + Math.random()*9000000000)}`
-  localStorage.setItem('crisiscore_phone', phone)
+  const phone =
+    (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' && localStorage.getItem('crisiscore_phone')) ||
+    `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`
+  if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+    localStorage.setItem('crisiscore_phone', phone)
+  }
   try {
     await request('/auth/register', {
       method: 'POST',
@@ -58,7 +70,7 @@ export async function registerOrLoginDemo(): Promise<string> {
 }
 
 // --- Incidents ---
-export async function createIncident(payload: { type: string; description: string; lat: number; lng: number; severity: number }) {
+export async function createIncident(payload: IncidentCreatePayload): Promise<IncidentOut> {
   if (!authToken) await registerOrLoginDemo()
   return request('/incidents', { method: 'POST', body: JSON.stringify(payload) })
 }
@@ -68,7 +80,8 @@ export async function createIncidentSMS(payload: { phone: string; text: string; 
 }
 
 // --- Status ---
-export async function getStatus(incidentId: string) {
+export async function getStatus(incidentId: string): Promise<IncidentStatusResponse> {
+  if (!authToken) await registerOrLoginDemo()
   return request(`/status/${incidentId}`)
 }
 
@@ -78,7 +91,11 @@ export async function getHealth() {
 }
 
 // --- Risk ---
-export async function getRisk(bbox?: string) {
-  const q = bbox ? `?bbox=${bbox}` : ''
+export async function getRisk(bbox?: string, horizon: string = '24h'): Promise<RiskZoneOut[]> {
+  if (!authToken) await registerOrLoginDemo()
+  const params = new URLSearchParams()
+  if (bbox) params.set('bbox', bbox)
+  if (horizon) params.set('horizon', horizon)
+  const q = params.toString() ? `?${params.toString()}` : ''
   return request(`/risk${q}`)
 }
