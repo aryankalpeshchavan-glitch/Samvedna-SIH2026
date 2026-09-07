@@ -1,278 +1,332 @@
-# CrisisCore Backend
+# Samvedna
 
-CrisisCore is an AI-assisted disaster management and emergency response platform designed around early risk intelligence and operational response coordination for landslide-prone regions of the North Eastern Region (NER) of India. The platform bridges the critical operational gap between hazard prediction and field response by connecting:
+### AI-Powered Disaster Intelligence & Response Platform
 
-$$\text{Predict} \longrightarrow \text{Explain} \longrightarrow \text{Assess Exposure} \longrightarrow \text{Calculate Priority} \longrightarrow \text{Recommend Action} \longrightarrow \text{Mobilize Response} \longrightarrow \text{Audit} \longrightarrow \text{Fail Safely}$$
+*From early warning to coordinated response.*
 
-> **System Scope & Integrity Note:** CrisisCore does not claim to independently predict real-world natural disasters with absolute certainty. Rather, it provides an end-to-end operational decision-support system that combines ML hazard intelligence, explainability, demographic exposure mapping, deterministic priority triage, responder mobilization, auditability, and data-reliability safeguards.
+---
+
+Samvedna is an operational disaster-intelligence platform built for India's landslide-prone North Eastern Region (NER). It bridges the critical gap between hazard prediction and field response — converting uncertain environmental signals into understandable risk, affected-population context, response priority, actionable decisions, and coordinated incident management.
+
+The platform is built around **CrisisCore**, a FastAPI backend powering real-time ML risk prediction, explainable decision intelligence, and emergency response coordination, served to two distinct client interfaces: an **Operations Web Dashboard** for authorized disaster management officers and an **Android Citizen Application** for public emergency reporting.
+
+> **Integrity Note:** Samvedna does not claim to independently predict natural disasters with absolute certainty. It provides an end-to-end operational decision-support system combining ML hazard intelligence, explainability, demographic exposure mapping, deterministic priority triage, responder mobilization, and data-reliability safeguards — all under human oversight.
 
 ---
 
 ## Table of Contents
 
 - [SIH Problem Statement](#sih-problem-statement)
-- [Why CrisisCore is Different](#why-crisiscore-is-different)
-- [Core Architecture](#core-architecture)
+- [Why Samvedna](#why-samvedna)
+- [System Architecture](#system-architecture)
+- [Intelligence Pipeline](#intelligence-pipeline)
+- [Risk Prediction & ML](#risk-prediction--ml)
+- [Explainability](#explainability)
+- [Priority & Decision Intelligence](#priority--decision-intelligence)
+- [What-If Simulation](#what-if-simulation)
+- [Incident & Response Operations](#incident--response-operations)
+- [Authentication & RBAC](#authentication--rbac)
+- [Client Applications](#client-applications)
 - [Backend Architecture](#backend-architecture)
-- [Day-by-Day Implementation](#day-by-day-implementation)
-- [Data Provenance & Freshness](#data-provenance--freshness)
-- [Operational Priority Engine](#operational-priority-engine)
-- [What-If Scenario Simulation](#what-if-scenario-simulation)
-- [Emergency Response Pipeline](#emergency-response-pipeline)
-- [API Reference](#api-reference)
-- [Security Architecture](#security-architecture)
-- [Reliability & Failure Safety](#reliability--failure-safety)
-- [Observability & Audit Trail](#observability--audit-trail)
-- [Configuration](#configuration)
+- [API Overview](#api-overview)
+- [Data & Model Provenance](#data--model-provenance)
+- [Project Structure](#project-structure)
 - [Local Development](#local-development)
-- [Testing](#testing)
-- [Data / ML Boundary](#data--ml-boundary)
-- [Current Limitations](#current-limitations)
-- [Future Work](#future-work)
-- [SIH Demonstration Flow](#sih-demonstration-flow)
-- [Questions Judges May Ask](#questions-judges-may-ask)
+- [Testing & Verification](#testing--verification)
+- [Configuration & Ports](#configuration--ports)
+- [Current Implementation Status](#current-implementation-status)
+- [Limitations](#limitations)
+- [Roadmap](#roadmap)
+- [Demo](#demo)
+- [Team](#team)
 
 ---
 
 ## SIH Problem Statement
 
-* **ID:** SIH26001 — Disaster Management
-* **Ministry / Organization:** Ministry of Development of North Eastern Region (MDoNER)
-* **Title:** AI-Based Early Warning and Landslide Risk Monitoring System in NER
+| Field | Detail |
+|---|---|
+| **ID** | SIH26001 |
+| **Ministry** | Ministry of Development of North Eastern Region (MDoNER) |
+| **Title** | AI-Based Early Warning and Landslide Risk Monitoring System in NER |
 
-### How CrisisCore Solves the Problem
-During the monsoon season, the 8 North Eastern states experience frequent landslides that sever highway corridors, isolate hill communities, and overwhelm local response resources. Standard monitoring tools produce raw sensor readings or risk heatmaps that leave disaster management authorities (DDMA/SDMA) with difficult triage questions: *Which settlement is most vulnerable? Which road is critical? Where are responders lacking?*
+During the monsoon season, the 8 North Eastern states experience frequent landslides that sever highway corridors, isolate hill communities, and overwhelm local response resources. Standard monitoring tools produce raw sensor readings or risk heatmaps but leave disaster management authorities (DDMA/SDMA) with critical unanswered triage questions: *Which settlement is most vulnerable? Which road is critical? Where are responders lacking?*
 
-CrisisCore addresses this by:
-1. **Serving ML Risk Intelligence:** Ingesting geospatial hazard predictions with transparent data provenance.
-2. **Explaining Drivers:** Translating model features into human-understandable physical factors.
-3. **Evaluating Exposure & Vulnerability:** Overlaying settlement populations, hospitals, schools, and lifeline highways.
-4. **Calculating Operational Priority:** Deterministically computing triage scores based on risk, exposure, vulnerability, and capacity gaps.
-5. **Recommending Civil Defense Actions:** Generating rule-based actionable advisories for emergency managers.
-6. **Coordinating Dispatch & Response:** Managing citizen SOS ingestion, officer verification, volunteer matching, SLA tracking, and immutable audit logs.
+A hazard score on a map does not tell a disaster officer where to send ambulances first. A high hazard score in an uninhabited ridge is low priority; a moderate hazard score threatening an isolated hospital with a single access road is critical.
 
 ---
 
-## Why CrisisCore is Different
+## Why Samvedna
 
-The key differentiator of CrisisCore is **not** simply "using AI" — it is the **complete operational decision loop**.
+Most disaster early warning systems stop at generating a hazard score. Samvedna completes the operational loop:
 
 ```
-Traditional Disaster Early Warning:
-  Sensor / Satellite Data ──▶ ML Model ──▶ Hazard Map (Stops at Risk Score)
+Traditional Early Warning:
+  Sensor Data ──▶ ML Model ──▶ Hazard Map    (stops here)
 
-CrisisCore Operational Platform:
-  ML Hazard Model
-    │
-    ▼
-  Physical Factor Explanation (Why is it risky?)
-    │
-    ▼
-  Demographic & Infrastructure Exposure (Who and what is in danger?)
-    │
-    ▼
-  Community Vulnerability Context (What increases consequences?)
-    │
-    ▼
-  Response Capacity Gap (Do we have enough local responders and supplies?)
-    │
-    ▼
-  Deterministic Priority Engine (0–100 Triage Score)
-    │
-    ▼
-  Actionable Recommendations (DDMA advisories, evacuation, road closures)
-    │
-    ▼
-  Incident Response & Volunteer Dispatch (Who can actually respond?)
-    │
-    ▼
-  Immutable Audit Trail & Fail-Safe Degradation
+Samvedna Operational Platform:
+  Environmental Sensing
+       │
+       ▼
+  ML Landslide Risk Prediction
+       │
+       ▼
+  Physical Factor Explanation    (Why is it risky?)
+       │
+       ▼
+  Demographic & Infrastructure   (Who and what is in danger?)
+  Exposure Analysis
+       │
+       ▼
+  Community Vulnerability         (What worsens consequences?)
+  Context
+       │
+       ▼
+  Response Capacity Gap           (Do we have enough responders?)
+       │
+       ▼
+  Deterministic Priority          (0–100 Triage Score)
+  Engine
+       │
+       ▼
+  Actionable Recommendations      (DDMA advisories, evacuation orders)
+       │
+       ▼
+  Incident Response &             (Who can actually respond right now?)
+  Volunteer Dispatch
+       │
+       ▼
+  Audit Trail &                   (Traceable, fail-safe operations)
+  Failure Safety
 ```
 
-### Three Explicit Layers of Responsibility
-* **The ML / Risk Layer answers:** *"How physically risky is this location?"*
-* **The Operational Intelligence Layer answers:** *"Where should emergency managers act first, why, and what actions should they consider?"*
-* **The Response Layer answers:** *"Who is available nearby to respond right now?"*
+Three explicit layers of responsibility:
+
+| Layer | Question Answered |
+|---|---|
+| **ML / Risk** | *How physically risky is this location?* |
+| **Operational Intelligence** | *Where should emergency managers act first, why, and with what actions?* |
+| **Response** | *Who is available nearby to respond right now?* |
 
 ---
 
-## Core Architecture
+## System Architecture
 
 ```mermaid
 flowchart TD
-    subgraph CrossCutting ["Cross-Cutting Reliability & Trust Safeguards"]
-        Freshness["Data Freshness & Provenance (live / simulated / stale / unavailable)"]
-        FailSafe["Failure Safety (HTTP 503 on Missing Risk, Sanitized 500 Responses)"]
-        AuditLock["Audit Logging (PII / Token Redaction & Immutable Delta Capture)"]
+    subgraph Clients ["Client Applications"]
+        OpsWeb["Operations Web Dashboard<br/>(React + Vite + MapLibre)"]
+        CitizenApp["Citizen Android App<br/>(Capacitor + Kotlin)"]
     end
 
-    subgraph DataML ["ML & Geospatial Layer"]
-        Telemetry["Rainfall / Slope / Soil Telemetry"] --> MLPipeline["Landslide Risk Model"]
-        MLPipeline --> RiskContract["POST /risk & GET /risk"]
+    subgraph Backend ["CrisisCore Backend (FastAPI)"]
+        AuthRouter["Authentication & RBAC<br/>(JWT + bcrypt)"]
+        RiskRouter["Risk Prediction API<br/>(XGBoost 200-tree model)"]
+        IntelRouter["Intelligence Layer<br/>(Decision + What-If)"]
+        IncidentRouter["Incident & Response<br/>(SOS + Dispatch)"]
+        SensorRouter["Sensor Ingestion"]
     end
 
-    subgraph Intelligence ["Operational Intelligence Layer (app/intelligence)"]
-        RiskContract --> DecisionAPI["POST /intelligence/decision"]
-
-        DriverExp["Explanation Engine (explanation.py)"] --> DecisionAPI
-        ExposureStore["Exposure Zones (app/models/exposure.py)"] --> PriorityEng["Priority Engine (priority.py)"]
-        DriverExp --> PriorityEng
-
-        PriorityEng --> ActionEng["Action Recommendations (actions.py)"]
-        ActionEng --> DecisionAPI
-
-        WhatIf["What-If Simulator (POST /intelligence/whatif)"] -.-> DecisionAPI
+    subgraph Intelligence ["Decision Intelligence (app/intelligence)"]
+        ExplainEng["Explanation Engine"]
+        PriorityEng["Priority Engine"]
+        ActionEng["Action Recommendations"]
     end
 
-    subgraph Operations ["Response & Dispatch Infrastructure (app/routers & background)"]
-        CitizenSOS["Citizen SOS (POST /incidents)"] --> OfficerGate["Officer Verification (POST /incidents/{id}/verify)"]
-        OfficerGate --> RedisQ[("Redis matching_queue")]
-        RedisQ --> MatchWorker["Matching Worker (matching_worker.py)"]
-        MatchWorker --> MatchEngine["Matching Engine (app/matching/engine.py)"]
-        MatchEngine --> AssignmentStore["Assignment (app/models/assignment.py)"]
-        AssignmentStore --> Dispatcher["Dispatcher (Console / Twilio / FCM)"]
-        Dispatcher --> VolunteerACK["Volunteer ACK (POST /assignments/{id}/ack)"]
-        AssignmentStore --> AutoReassign["Auto-Reassign Worker (auto_reassign.py)"]
+    subgraph Infra ["Infrastructure"]
+        PG[("PostgreSQL")]
+        Redis[("Redis<br/>(Matching Queue + PubSub)")]
+        MLModel["XGBoost Model Artifact<br/>(200 trees, 17 features)"]
     end
 
-    subgraph DecisionView ["Frontline Interfaces"]
-        DecisionAPI --> CommanderUI["DDMA Commander Dashboard"]
-        VolunteerACK --> FieldUI["Responder Field PWA"]
-        AuditLock --> AdminAuditUI["Audit & Compliance Portal"]
+    subgraph Workers ["Background Workers"]
+        MatchWorker["Matching Worker<br/>(Haversine + Skill Match)"]
+        ReassignWorker["Auto-Reassign Worker<br/>(SLA Timeout Monitor)"]
     end
+
+    OpsWeb --> AuthRouter
+    OpsWeb --> RiskRouter
+    OpsWeb --> IntelRouter
+    CitizenApp --> AuthRouter
+    CitizenApp --> IncidentRouter
+
+    RiskRouter --> MLModel
+    IntelRouter --> ExplainEng
+    IntelRouter --> PriorityEng
+    PriorityEng --> ActionEng
+
+    IncidentRouter --> Redis
+    Redis --> MatchWorker
+    MatchWorker --> PG
+
+    Backend --> PG
+    Backend --> Redis
+    ReassignWorker --> Redis
 ```
 
 ---
 
-## Backend Architecture
+## Intelligence Pipeline
 
-The backend is built with **FastAPI**, **SQLAlchemy (Async)**, **Redis**, and **Pydantic v2**. The codebase is organized cleanly by domain responsibility:
+The complete decision flow for a single location:
 
-```
-app/
-├── background/
-│   ├── auto_reassign.py       # Background task monitoring unacknowledged assignment SLA timeouts
-│   └── matching_worker.py     # Background worker consuming Redis queue for multi-factor dispatch
-├── core/
-│   ├── audit_logger.py        # SQLAlchemy event listeners recording mutations with PII masking
-│   ├── auth.py                # JWT creation, verification, password hashing, and RBAC guards
-│   ├── config.py              # Centralized environment settings with validation
-│   ├── database.py            # Async engine, sessionmaker, and Base model declarations
-│   └── redis.py               # Redis async client connection pool
-├── intelligence/
-│   ├── actions.py             # Deterministic civil defense recommendation generator
-│   ├── explanation.py         # Human-readable mapping and categorization of ML driver keys
-│   └── priority.py            # Deterministic composite priority formula & factor normalizers
-├── matching/
-│   └── engine.py              # Haversine distance, skill matching, and resource availability scoring
-├── models/
-│   ├── assignment.py          # Volunteer assignment model with SLA deadlines
-│   ├── audit.py               # AuditLog model capturing entity diffs and actor IDs
-│   ├── exposure.py            # ExposureZone demographic and infrastructure attributes
-│   ├── incident.py            # Incident emergency report model
-│   ├── mesh.py                # Mesh network message relay model
-│   ├── notification.py        # Notification delivery logs
-│   ├── resource.py            # Emergency resources (ambulances, boats, earthmovers)
-│   ├── risk.py                # RiskZone geospatial predictions and feature payloads
-│   ├── user.py                # User credentials and RBAC roles
-│   └── volunteer.py           # Volunteer profiles, skills, and GPS coordinates
-├── notifications/
-│   └── dispatcher.py          # Notification delivery abstraction (Console, Twilio, FCM)
-├── realtime/
-│   └── ws_manager.py          # WebSocket connection manager and Redis Pub/Sub forwarder
-├── routers/
-│   ├── assignments.py         # Assignment lifecycle, volunteer ACK, status transitions
-│   ├── auth.py                # User registration and JWT login
-│   ├── health.py              # DB and Redis health checks with queue metrics
-│   ├── incidents.py           # SOS submission, officer verify/reject, offline sync
-│   ├── intelligence.py        # Unified decision endpoint, what-if simulator, exposure CRUD
-│   ├── mesh.py                # Mesh relay ingestion endpoints
-│   ├── notifications.py       # Notification history
-│   ├── resources.py           # Emergency equipment management
-│   ├── risk.py                # Risk predictions, zone queries, driver explanation
-│   ├── status.py              # System status endpoint
-│   └── volunteers.py          # Volunteer registration, heartbeat, and status
-├── schemas/                   # Pydantic schemas for request/response validation
-└── main.py                    # FastAPI application initialization, lifespan, CORS, error handler
+```mermaid
+flowchart LR
+    A["Coordinates<br/>(lat, lng)"] --> B["ML Risk<br/>Prediction"]
+    B --> C["Driver<br/>Explanation"]
+    C --> D["Exposure<br/>Analysis"]
+    D --> E["Vulnerability<br/>Assessment"]
+    E --> F["Response Gap<br/>Calculation"]
+    F --> G["Priority<br/>Score (0–100)"]
+    G --> H["Action<br/>Recommendations"]
 ```
 
----
-
-## Day-by-Day Implementation
-
-| Milestone | Key Implementations | Primary Files | Commit Hash | Verified Tests |
-|---|---|---|---|---|
-| **Day 1: Foundation** | Async database setup, JWT authentication, 4-tier RBAC (`citizen`, `volunteer`, `officer`, `admin`), core models, notification interface. | `app/core/`, `app/models/`, `app/routers/auth.py` | `4b3b617` | Baseline passing |
-| **Day 2: Ingestion & Queues** | Offline incident batch sync (`/incidents/sync`), Redis matching queue integration, real-time WebSocket status channel (`/ws/status`). | `app/routers/incidents.py`, `app/realtime/`, `app/core/redis.py` | `9dcca1c` / `6502077` | 32/32 |
-| **Day 3: Response Lifecycle** | Citizen SOS $\to$ Officer Verification $\to$ Redis Queue $\to$ Multi-factor Volunteer Matching $\to$ SLA Timeout $\to$ Volunteer ACK $\to$ Completion $\to$ Immutable Audit Trail. | `app/background/`, `app/matching/`, `app/routers/assignments.py`, `app/core/audit_logger.py` | `ace1ba7` / `6536bf4` | 32/32 |
-| **Day 4: Decision Layer** | Operational Priority Engine ($0 \to 100$), Exposure Zone management, ML driver explanations, Action Recommendation generator, What-If simulation endpoint, Unified Decision endpoint. | `app/intelligence/`, `app/models/exposure.py`, `app/routers/intelligence.py` | `1d0f500` | 61/61 |
-| **Day 5: Security & Reliability** | Data freshness TTL (`RISK_FRESHNESS_MINUTES`), 503 degradation on missing models, sanitized 500 error responses, audit log credential masking, RBAC edge testing. | `app/core/config.py`, `app/main.py`, `app/core/audit_logger.py`, `tests/test_day5_reliability.py` | `1474060` | **68/68** |
+All of this is computed in a single call to `POST /intelligence/decision`, returning a unified response containing risk assessment, human-readable explanations, exposure context, priority triage, and recommended civil defense actions.
 
 ---
 
-## Data Provenance & Freshness
+## Risk Prediction & ML
 
-To ensure absolute operational transparency, CrisisCore enforces strict provenance tagging across all risk, exposure, and decision endpoints.
+### Canonical Model
 
-### Provenance Statuses
-* **`live`**: Real-time telemetry or active municipal sensor readings.
-* **`simulated`**: Synthetic benchmarks or simulated scenarios (e.g. what-if simulator).
-* **`replayed`**: Historical sensor logs streamed for validation or training.
-* **`stale`**: Data whose `computed_at` timestamp exceeds `RISK_FRESHNESS_MINUTES` (default: 60 minutes).
-* **`unavailable`**: Missing model outputs; results in controlled `HTTP 503 Service Unavailable` rather than fabricated predictions.
+| Property | Value |
+|---|---|
+| **Algorithm** | XGBoost (Gradient Boosted Decision Trees) |
+| **Model Version** | `xgboost_landslide_24h_200trees` |
+| **Trees** | 200 |
+| **Max Depth** | 4 |
+| **Operational Threshold** | 0.87 (configurable via `ML_THRESHOLD`) |
+| **Artifact** | `data/processed/ml/models/xgboost_landslide_24h_best_trees.json` |
+| **Inference** | Pure-Python tree traversal (zero native dependency) + optional `xgboost.Booster` |
 
-> **Core Transparency Rule:** **SIMULATED DATA MUST NEVER BE PRESENTED AS LIVE DATA.** All simulation endpoints explicitly label outputs with `scenario_label: "SIMULATION — NOT A FORECAST"` and `data_status: "simulated"`.
+### 17-Feature Input Contract
+
+The model operates on 17 canonical features spanning two domains:
+
+**Rainfall (10 features)**
+
+| Feature | Description |
+|---|---|
+| `rainfall_24h` | 24-hour cumulative rainfall (mm) |
+| `rainfall_3day` | 3-day cumulative rainfall (mm) |
+| `rainfall_7day` | 7-day cumulative rainfall (mm) |
+| `rainfall_14day` | 14-day cumulative rainfall (mm) |
+| `rainfall_30day` | 30-day cumulative rainfall (mm) |
+| `heavy_rain_flag` | IMD heavy rainfall threshold indicator |
+| `very_heavy_rain_flag` | IMD very heavy rainfall threshold indicator |
+| `rainfall_previous_day` | Previous day rainfall (mm) |
+| `rainfall_2day_lag` | 2-day lagged rainfall (mm) |
+| `rainfall_3day_lag` | 3-day lagged rainfall (mm) |
+
+**Terrain (7 features)**
+
+| Feature | Description |
+|---|---|
+| `elevation_mean_m` | Mean elevation of the zone (m) |
+| `elevation_min_m` | Minimum elevation (m) |
+| `elevation_max_m` | Maximum elevation (m) |
+| `elevation_std_m` | Elevation standard deviation (m) |
+| `slope_mean_deg` | Mean slope angle (degrees) |
+| `slope_max_deg` | Maximum slope angle (degrees) |
+| `slope_std_deg` | Slope standard deviation (degrees) |
+
+### Prediction Output
+
+| Field | Description |
+|---|---|
+| `risk_score` | Probability in [0.0, 1.0] |
+| `risk_level` | `HIGH` (≥ 0.7), `MEDIUM` (≥ 0.4), `LOW` (< 0.4) |
+| `confidence` | Dynamically computed, never hardcoded |
+| `drivers` | Ranked list of contributing features from actual model importances |
+| `feature_attributions` | Per-feature importance values from audited XGBoost model |
+| `model_version` | `xgboost_landslide_24h_200trees` |
+| `data_status` | `live`, `simulated`, `stale`, `fallback`, or `unavailable` |
+
+### Top Feature Importances (Audited)
+
+| Feature | Importance |
+|---|---|
+| `rainfall_3day` | 0.1070 |
+| `rainfall_7day` | 0.0974 |
+| `slope_mean_deg` | 0.0904 |
+| `slope_max_deg` | 0.0825 |
+| `rainfall_24h` | 0.0673 |
+| `elevation_std_m` | 0.0671 |
+| `rainfall_30day` | 0.0643 |
 
 ---
 
-## Operational Priority Engine
+## Explainability
 
-**File:** `app/intelligence/priority.py`
-
-The priority engine is **deterministic, rule-based, and explainable**. It is **NOT** a black-box machine learning model.
-
-### Mathematical Formulation
-$$\text{Priority Score} = 100 \times \Big( 0.35 \cdot S_{\text{risk}} + 0.30 \cdot S_{\text{exposure}} + 0.20 \cdot S_{\text{vulnerability}} + 0.15 \cdot S_{\text{response\_gap}} \Big)$$
-
-All sub-scores are normalized between $0.0$ and $1.0$:
-
-1. **Risk Score ($S_{\text{risk}}$):** The hazard probability output from the ML/risk model ($0.0 \to 1.0$).
-2. **Exposure Score ($S_{\text{exposure}}$):** Weighted evaluation of exposed assets:
-   $$S_{\text{exposure}} = 0.35 \left(\frac{\min(P, 5000)}{5000}\right) + 0.20 \left(\frac{\min(H, 1500)}{1500}\right) + 0.15 \left(\frac{\min(S, 5)}{5}\right) + 0.15 \left(\frac{\min(M, 3)}{3}\right) + 0.15 \left(\frac{\min(R, 3)}{3}\right)$$
-   *(where $P$ = Population, $H$ = Households, $S$ = Schools, $M$ = Hospitals, $R$ = Critical Roads)*.
-3. **Vulnerability Score ($S_{\text{vulnerability}}$):** Evaluates distance to the nearest hospital ($>50\text{ km} \to 1.0$), absence of early-warning sirens ($+0.20$), and poor road access quality ($+0.30$).
-4. **Response Capacity Gap ($S_{\text{response\_gap}}$):** Evaluates local responder supply vs. incident severity demand:
-   $$S_{\text{response\_gap}} = \max\left(0.0, 1.0 - \frac{\text{Local Volunteers} + \text{Nearby Resources}}{\text{Demand Factor}}\right)$$
-   *(If zero responders or resources are within range, the response gap is $1.0$)*.
-
-### Operational Triage Categories
-* **`CRITICAL`**: $\ge 80.0$ (Immediate life-safety threat; mandatory evacuation & inter-district mutual aid).
-* **`HIGH`**: $\ge 60.0$ (Severe hazard; alert DDMA, preposition SDRF, stage road closures).
-* **`MEDIUM`**: $\ge 40.0$ (Moderate risk; increase sensor monitoring, notify community leaders).
-* **`LOW`**: $< 40.0$ (Advisory monitoring; standard operating posture).
-
-> **Important Distinction:** These thresholds represent **operational triage classifications** designed for emergency resource allocation, not scientifically certified disaster thresholds.
-
----
-
-## What-If Scenario Simulation
-
-**Endpoint:** `POST /intelligence/whatif` (Restricted to `officer`, `admin`)
-
-The what-if simulator allows emergency planners to test hypothetical weather scenarios (e.g. $+300\text{ mm}$ anticipated rainfall in 24 hours) to evaluate how risk escalation would shift priority levels, widen response gaps, and trigger new civil defense actions.
+The explanation engine (`app/intelligence/explanation.py`) translates raw ML feature keys into human-readable labels, descriptions, units, and domain categories. Each driver (e.g., `rainfall_3day`) is mapped to a structured explanation:
 
 ```json
-// Example What-If Request
 {
-  "lat": 26.15,
-  "lng": 91.75,
-  "zone_id": "zone-guwahati-east-01",
-  "scenario_rainfall_mm": 300.0
+  "key": "rainfall_3day",
+  "label": "3-day Cumulative Rainfall",
+  "description": "Elevated rainfall over the last 3 days contributes to soil saturation.",
+  "unit": "mm",
+  "category": "hydrology",
+  "value": 164.2
 }
 ```
 
+The explanation layer supports variable-count driver responses — the frontend renders dynamically based on how many features the model identifies as significant for a given prediction.
+
+---
+
+## Priority & Decision Intelligence
+
+**File:** `app/intelligence/priority.py`
+
+The priority engine is **deterministic, rule-based, and explainable** — it is not a black-box ML model.
+
+### Formula
+
+```
+Priority Score = 100 × (
+    0.35 × Risk Score
+  + 0.30 × Exposure Score
+  + 0.20 × Vulnerability Score
+  + 0.15 × Response Gap Score
+)
+```
+
+All sub-scores are normalized between 0.0 and 1.0. Weights are configurable via environment variables (`PRIORITY_W_RISK`, `PRIORITY_W_EXPOSURE`, `PRIORITY_W_VULNERABILITY`, `PRIORITY_W_RESPONSE_GAP`).
+
+### Sub-Score Computation
+
+| Factor | Source | Key Inputs |
+|---|---|---|
+| **Risk** | ML model output | Hazard probability [0.0–1.0] |
+| **Exposure** | ExposureZone records | Population (cap 5000), households (1500), schools (5), hospitals (3), critical roads (3) |
+| **Vulnerability** | Community context | Distance to nearest hospital (> 50 km → 1.0), early warning availability, road access quality |
+| **Response Gap** | Volunteer/resource proximity | Local supply vs. incident severity demand; zero responders → gap = 1.0 |
+
+### Triage Categories
+
+| Level | Score | Operational Meaning |
+|---|---|---|
+| **CRITICAL** | ≥ 80 | Immediate life-safety threat; mandatory evacuation & inter-district mutual aid |
+| **HIGH** | ≥ 60 | Severe hazard; alert DDMA, preposition SDRF, stage road closures |
+| **MEDIUM** | ≥ 40 | Moderate risk; increase sensor monitoring, notify community leaders |
+| **LOW** | < 40 | Advisory monitoring; standard operating posture |
+
+> These thresholds represent **operational triage classifications** designed for emergency resource allocation, not scientifically certified disaster thresholds.
+
+### Action Recommendations
+
+The action engine (`app/intelligence/actions.py`) generates deterministic civil defense advisories based on priority level, risk drivers, and exposure context. Actions are concrete operational instructions (e.g., *"Pre-position NDRF search and rescue units at district staging hub"*), not generic warnings.
+
+---
+
+## What-If Simulation
+
+**Endpoint:** `POST /intelligence/whatif` — Restricted to `officer` and `admin` roles.
+
+The What-If simulator allows emergency planners to test hypothetical weather scenarios (e.g., +300 mm anticipated rainfall) to evaluate how risk escalation would shift priority levels, widen response gaps, and trigger new civil defense actions.
+
 ```json
-// Example What-If Response
 {
   "scenario_label": "SIMULATION — NOT A FORECAST",
   "current_risk_score": 0.45,
@@ -282,343 +336,546 @@ The what-if simulator allows emergency planners to test hypothetical weather sce
   "current_actions": ["Increase telemetry check frequency"],
   "projected_actions": [
     "Issue DDMA Level 2 alert",
-    "Pre-stage evacuation transport for vulnerable settlements",
-    "Deploy SDRF earthmoving equipment to NH-27 cutoff points"
+    "Pre-stage evacuation transport for vulnerable settlements"
   ],
   "data_status": "simulated"
 }
 ```
 
+> **Core Rule:** All simulation outputs are explicitly tagged with `scenario_label: "SIMULATION — NOT A FORECAST"` and `data_status: "simulated"`. Simulated data is never presented as live telemetry.
+
 ---
 
-## Emergency Response Pipeline
+## Incident & Response Operations
 
-CrisisCore implements a hardened, asynchronous emergency response lifecycle:
+Samvedna implements an asynchronous emergency response lifecycle:
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Citizen
     actor Officer
-    participant Backend as FastAPI Backend
-    participant Redis as Redis matching_queue
+    participant API as CrisisCore Backend
+    participant Redis as Redis Queue
     participant Worker as Matching Worker
     actor Volunteer
 
-    Citizen->>Backend: POST /incidents (SOS Report)
-    Note over Backend: Incident created (status: reported)
-    Officer->>Backend: POST /incidents/{id}/verify
-    Note over Backend: Incident status -> verified<br/>Enqueues incident_id to Redis<br/>AuditLog recorded
-    Backend->>Redis: LPUSH matching_queue
+    Citizen->>API: POST /incidents (SOS Report)
+    Note over API: status: reported
+    Officer->>API: POST /incidents/{id}/verify
+    Note over API: status: verified
+    API->>Redis: LPUSH matching_queue
     Redis->>Worker: BRPOP matching_queue
-    Note over Worker: Calculates Haversine distance,<br/>matches skills & emergency assets
-    Worker->>Backend: Create Assignment (status: pending, SLA: 5m)
-    Worker->>Volunteer: Dispatch Notification (Console/Twilio/FCM)
+    Note over Worker: Haversine distance +<br/>skill matching
+    Worker->>API: Create Assignment (SLA: 5m)
+    Worker->>Volunteer: Dispatch Notification
 
-    alt Volunteer Acknowledges within SLA
-        Volunteer->>Backend: POST /assignments/{id}/ack
-        Note over Backend: Assignment status -> acked<br/>Incident status -> assigned
-        Volunteer->>Backend: PATCH /assignments/{id}/status (done)
-        Note over Backend: Assignment status -> done<br/>Incident status -> resolved
-    else SLA Deadline Passes
-        Note over Backend: auto_reassign.py detects expired deadline<br/>Assignment status -> timed_out
-        Backend->>Redis: Re-enqueue incident_id for alternate volunteer
+    alt Volunteer ACK within SLA
+        Volunteer->>API: POST /assignments/{id}/ack
+        Note over API: status: assigned → done → resolved
+    else SLA Timeout
+        Note over API: auto_reassign.py re-enqueues
+        API->>Redis: Re-enqueue for alternate match
     end
 ```
 
+Key capabilities:
+- Citizen SOS submission with offline batch sync (`POST /incidents/sync`)
+- Officer verification gate before dispatch
+- Multi-factor volunteer matching (distance, skills, availability)
+- Configurable SLA timeouts with automatic reassignment
+- Immutable audit trail for every state transition
+
 ---
 
-## API Reference
+## Authentication & RBAC
 
-### 1. Authentication & Users
-| Method | Path | Auth / Role | Purpose |
-|---|---|---|---|
-| `POST` | `/auth/register` | Public | Registers citizen, volunteer, or officer account. |
-| `POST` | `/auth/login` | Public | Authenticates user credentials and returns JWT bearer token. |
+| Property | Implementation |
+|---|---|
+| **Token Type** | JWT bearer (HMAC-SHA256) |
+| **Password Storage** | bcrypt via passlib (plaintext never stored or logged) |
+| **Token Claims** | User ID, role, expiration |
+| **Token TTL** | Configurable (`JWT_EXPIRE_MINUTES`, default: 1440 min / 24h) |
 
-### 2. Risk Intelligence
-| Method | Path | Auth / Role | Purpose |
-|---|---|---|---|
-| `POST` | `/risk` | `officer`, `admin` | Ingests ML risk predictions (ML team contract). |
-| `GET` | `/risk` | Authenticated | Queries active risk zones with geospatial bounding box filters. |
-| `GET` | `/risk/{zone_id}/explain` | Authenticated | Returns human-readable driver descriptions and feature impacts. |
+### Role Hierarchy
 
-#### Stable ML Risk Contract (`POST /risk`)
-```json
-// Request
-{
-  "lat": 26.15,
-  "lng": 91.75,
-  "horizon_hours": 24,
-  "features": {
-    "rainfall_24h": 185.4,
-    "rainfall_7day": 340.2,
-    "slope": 42.1,
-    "soil_moisture": 0.88
-  }
-}
+| Role | Capabilities |
+|---|---|
+| `citizen` | Submit SOS reports, view risk intelligence, track incident status |
+| `volunteer` | All citizen capabilities + heartbeat GPS, accept/complete assignments |
+| `officer` | All volunteer capabilities + verify/reject incidents, create assignments, What-If simulation, exposure management |
+| `admin` | Full operational access |
 
-// Response
-{
-  "risk_score": 0.84,
-  "risk_level": "HIGH",
-  "confidence": 0.88,
-  "drivers": ["rainfall_24h", "slope", "soil_moisture"],
-  "data_status": "live"
-}
+### Security Posture
+
+- RBAC is enforced server-side via FastAPI dependency injection (`require_role`)
+- What-If simulation and exposure management are restricted to `officer` and `admin`
+- Citizen tokens are never automatically elevated to higher roles
+- No hardcoded default credentials in frontend or backend source code
+- No automatic admin provisioning from the frontend
+- Audit log entries automatically redact sensitive fields (`password_hash`, `token`, `secret`, `api_key`, `jwt`)
+- Sanitized 500 error responses prevent stack trace / filesystem path leakage
+
+---
+
+## Client Applications
+
+Samvedna serves two distinct user-facing clients, both connecting to the same CrisisCore backend:
+
+### 1. Operations Web Dashboard
+
+| Property | Detail |
+|---|---|
+| **Framework** | React 19 + TypeScript 6 + Vite 8 |
+| **Map Engine** | MapLibre GL |
+| **Styling** | Tailwind CSS 4 |
+| **Purpose** | Authorized monitoring, risk intelligence, decision support, incident operations |
+| **Users** | DDMA/SDMA officers, emergency coordinators, administrators |
+
+Key features:
+- Live ML risk zone visualization on interactive 3D terrain map
+- "Why Risk" modal with dynamic driver explanations from XGBoost
+- What-If counterfactual scenario simulation with `SIMULATION — NOT A FORECAST` banner
+- Operational authentication modal (manual login, no auto-provisioning)
+- Incident management and SOS tracking
+- Offline-first data sync with IndexedDB queue
+
+### 2. Citizen Android Application
+
+| Property | Detail |
+|---|---|
+| **Platform** | Android (Capacitor + Gradle) |
+| **Location** | `frontend/android/` |
+| **Purpose** | Citizen emergency reporting, SOS submission, incident status tracking |
+| **Users** | General public in NER |
+
+The Android app shares the web frontend codebase via Capacitor and connects to the same CrisisCore backend API. Full native integration is in progress.
+
+---
+
+## Backend Architecture
+
+Built with **FastAPI**, **SQLAlchemy (Async)**, **Redis**, and **Pydantic v2**.
+
 ```
-
-### 3. Operational Intelligence & Exposure
-| Method | Path | Auth / Role | Purpose |
-|---|---|---|---|
-| `POST` | `/intelligence/decision` | Authenticated | Unified decision endpoint: Risk $\to$ Explanation $\to$ Exposure $\to$ Priority $\to$ Actions. |
-| `GET` | `/intelligence/decision/{zone_id}` | Authenticated | Returns decision view for a specific stored RiskZone. |
-| `POST` | `/intelligence/whatif` | `officer`, `admin` | Scenario simulator (`SIMULATION — NOT A FORECAST`). |
-| `POST` | `/intelligence/exposure` | `officer`, `admin` | Creates population / infrastructure exposure zone. |
-| `GET` | `/intelligence/exposure` | Authenticated | Lists all registered exposure zones. |
-| `GET` | `/intelligence/exposure/nearby` | Authenticated | Queries exposure zones within radius $R$. |
-
-### 4. Incidents & Dispatch
-| Method | Path | Auth / Role | Purpose |
-|---|---|---|---|
-| `POST` | `/incidents` | `citizen+` | Submits emergency SOS report. |
-| `GET` | `/incidents` | Authenticated | Lists and filters incidents by status, severity, type. |
-| `GET` | `/incidents/{id}` | Authenticated | Fetches incident details. |
-| `POST` | `/incidents/{id}/verify` | `officer`, `admin` | Verifies incident and triggers Redis matching queue. |
-| `POST` | `/incidents/{id}/reject` | `officer`, `admin` | Rejects invalid or duplicate incident report. |
-| `POST` | `/incidents/sync` | `citizen+` | Idempotent batch sync for offline-captured incidents. |
-
-### 5. Assignments & Volunteers
-| Method | Path | Auth / Role | Purpose |
-|---|---|---|---|
-| `POST` | `/assignments` | `officer`, `admin` | Manually creates volunteer assignment. |
-| `POST` | `/assignments/{id}/ack` | Assigned Volunteer | Acknowledges assignment within SLA window. |
-| `PATCH` | `/assignments/{id}/status` | Assigned Volunteer | Transitions assignment status (`in_progress` $\to$ `done`). |
-| `POST` | `/volunteers/heartbeat` | `volunteer+` | Updates responder GPS coordinates and availability. |
-
-### 6. Emergency Resources & Mesh
-| Method | Path | Auth / Role | Purpose |
-|---|---|---|---|
-| `POST` | `/resources` | `officer`, `admin` | Registers emergency equipment (boats, JCBs, ambulances). |
-| `GET` | `/resources` | Authenticated | Lists available emergency resources. |
-| `POST` | `/mesh/relay` | Public / Device | Ingests offline mesh network incident packet. |
-
-### 7. Observability & Health
-| Method | Path | Auth / Role | Purpose |
-|---|---|---|---|
-| `GET` | `/health` | Public | Validates DB connectivity, Redis latency, and queue depth. |
-| `GET` | `/notifications` | Authenticated | Returns notification delivery history. |
-| `WS` | `/ws/status` | Public | Real-time WebSocket feed for incident status changes. |
-
----
-
-## Security Architecture
-
-CrisisCore implements layered security controls designed for critical public safety software:
-
-* **Authentication:** Signed JWT tokens using HMAC-SHA256 (`HS256`). Tokens carry user ID and role claims with configurable TTL (`JWT_EXPIRE_MINUTES`).
-* **Password Hashing:** Bcrypt encryption via `passlib`. Plaintext passwords are never stored or logged.
-* **Role-Based Access Control (RBAC):** Strict hierarchy (`citizen` $\subset$ `volunteer` $\subset$ `officer` $\subset$ `admin`). Verification, manual assignments, exposure configuration, and what-if simulation are strictly restricted to `officer` and `admin`.
-* **Sanitized Error Responses:** Centralized exception handler intercepts unexpected errors, logging details server-side while returning generic 500 JSON to prevent leaking stack traces, filesystem paths, or SQL queries.
-* **Audit Log Credential Redaction:** Automatic stripping of sensitive keys (`password_hash`, `token`, `secret`, `api_key`, `jwt`) from before/after state diffs in `AuditLog`.
-
----
-
-## Reliability & Failure Safety
-
-Disaster response software must behave predictably when external infrastructure fails:
-
-1. **Risk Model Unavailable:** If the ML service or stored risk data is missing, `/intelligence/decision` responds with a controlled `503 Service Unavailable` (`X-Error-Code: RISK_SERVICE_UNAVAILABLE`). The backend **never fabricates a fake 0.5 risk score**.
-2. **Stale Risk Data:** When sensor feeds stop reporting, risk records exceeding `RISK_FRESHNESS_MINUTES` automatically transition to `data_status: "stale"`, notifying commanders that data is outdated.
-3. **No Available Responders:** If no volunteer is within range, the system records `supply = 0`, sets `response_gap = 1.0`, triggers mutual aid action advisories, and leaves the incident in the matching queue rather than creating a fake assignment.
-4. **Dispatcher Failure:** Notification dispatcher catches provider errors and records `status: "failed"` in `NotificationLog`, allowing automated retry without crashing the dispatch loop.
-
----
-
-## Observability & Audit Trail
-
-Every state modification in CrisisCore is recorded automatically via SQLAlchemy event listeners into the `audit_logs` table:
-
-```json
-// Sample AuditLog Record
-{
-  "id": 142,
-  "actor_id": 4,
-  "action": "verify",
-  "entity_type": "Incident",
-  "entity_id": "inc-guwahati-9012",
-  "before_state": {
-    "status": "reported",
-    "verified_at": null
-  },
-  "after_state": {
-    "status": "verified",
-    "verified_at": "2026-08-29T18:30:00Z"
-  },
-  "created_at": "2026-08-29T18:30:00Z"
-}
+app/
+├── background/
+│   ├── auto_reassign.py         # SLA timeout monitor and re-enqueue worker
+│   └── matching_worker.py       # Redis queue consumer for multi-factor dispatch
+├── core/
+│   ├── audit_logger.py          # SQLAlchemy event listeners with PII masking
+│   ├── auth.py                  # JWT creation, verification, bcrypt, RBAC guards
+│   ├── config.py                # Centralized environment settings (Pydantic Settings)
+│   ├── database.py              # Async engine, sessionmaker, Base declarations
+│   └── redis.py                 # Redis async client connection pool
+├── intelligence/
+│   ├── actions.py               # Deterministic civil defense recommendation generator
+│   ├── explanation.py           # Human-readable driver label mapping
+│   └── priority.py              # Composite priority formula & factor normalizers
+├── matching/
+│   └── engine.py                # Haversine distance + skill + resource scoring
+├── models/
+│   ├── assignment.py            # Volunteer assignment with SLA deadlines
+│   ├── audit.py                 # AuditLog entity diffs and actor tracking
+│   ├── exposure.py              # ExposureZone demographics and infrastructure
+│   ├── incident.py              # Incident emergency reports
+│   ├── mesh.py                  # Mesh network relay messages
+│   ├── notification.py          # Notification delivery logs
+│   ├── resource.py              # Emergency resources (ambulances, earthmovers)
+│   ├── risk.py                  # RiskZone geospatial predictions
+│   ├── user.py                  # User credentials and RBAC roles
+│   └── volunteer.py             # Volunteer profiles, skills, GPS coordinates
+├── notifications/
+│   └── dispatcher.py            # Notification abstraction (Console / Twilio / FCM)
+├── realtime/
+│   └── ws_manager.py            # WebSocket connection manager + Redis Pub/Sub
+├── routers/
+│   ├── assignments.py           # Assignment lifecycle and volunteer ACK
+│   ├── auth.py                  # Registration and JWT login
+│   ├── health.py                # DB + Redis health checks with queue metrics
+│   ├── incidents.py             # SOS submission, verification, offline sync
+│   ├── intelligence.py          # Decision endpoint, What-If, exposure CRUD
+│   ├── mesh.py                  # Mesh relay ingestion
+│   ├── notifications.py         # Notification history
+│   ├── resources.py             # Emergency equipment management
+│   ├── risk.py                  # Risk predictions, zone queries, explanations
+│   ├── sensors.py               # Sensor data ingestion
+│   ├── status.py                # System status endpoint
+│   └── volunteers.py            # Volunteer registration and heartbeat
+├── schemas/                     # Pydantic request/response validation schemas
+├── services/
+│   └── prediction_service.py    # Canonical ML inference service (XGBoost)
+└── main.py                      # FastAPI app initialization, lifespan, CORS
 ```
 
 ---
 
-## Configuration
+## API Overview
 
-All configuration is managed via environment variables and validated at startup in `app/core/config.py`.
+Full interactive documentation is available at `http://127.0.0.1:8001/docs` (Swagger UI) and `http://127.0.0.1:8001/openapi.json` when the backend is running locally.
 
-Copy `.env.example` to `.env`:
+### Authentication
 
-```bash
-cp .env.example .env
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `POST` | `/auth/register` | Public | Register citizen, volunteer, or officer account |
+| `POST` | `/auth/login` | Public | Authenticate and receive JWT bearer token |
+
+### Risk Intelligence
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `POST` | `/risk` | `officer`, `admin` | Ingest ML risk predictions |
+| `GET` | `/risk` | Authenticated | Query active risk zones (bbox, horizon filters) |
+| `GET` | `/risk/{zone_id}/explain` | Authenticated | Human-readable driver explanations |
+
+### Decision Intelligence
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `POST` | `/intelligence/decision` | Authenticated | Unified decision: Risk → Explanation → Exposure → Priority → Actions |
+| `GET` | `/intelligence/decision/{zone_id}` | Authenticated | Decision view for a stored RiskZone |
+| `POST` | `/intelligence/whatif` | `officer`, `admin` | Scenario simulator (labelled `SIMULATION — NOT A FORECAST`) |
+
+### Exposure Management
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `POST` | `/intelligence/exposure` | `officer`, `admin` | Create exposure zone (population, infrastructure) |
+| `GET` | `/intelligence/exposure` | Authenticated | List registered exposure zones |
+| `GET` | `/intelligence/exposure/nearby` | Authenticated | Query exposure zones within radius |
+
+### Incidents & Dispatch
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `POST` | `/incidents` | `citizen+` | Submit emergency SOS report |
+| `GET` | `/incidents` | Authenticated | List/filter incidents |
+| `POST` | `/incidents/{id}/verify` | `officer`, `admin` | Verify and enqueue for matching |
+| `POST` | `/incidents/{id}/reject` | `officer`, `admin` | Reject invalid report |
+| `POST` | `/incidents/sync` | `citizen+` | Idempotent offline batch sync |
+
+### Assignments & Volunteers
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `POST` | `/assignments` | `officer`, `admin` | Manual volunteer assignment |
+| `POST` | `/assignments/{id}/ack` | Assigned volunteer | Acknowledge within SLA |
+| `PATCH` | `/assignments/{id}/status` | Assigned volunteer | Transition status |
+| `POST` | `/volunteers/heartbeat` | `volunteer+` | Update GPS and availability |
+
+### Infrastructure & Health
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `GET` | `/health` | Public | DB, Redis, and queue health check |
+| `POST` | `/resources` | `officer`, `admin` | Register emergency equipment |
+| `GET` | `/resources` | Authenticated | List available resources |
+| `POST` | `/mesh/relay` | Public | Offline mesh network relay |
+| `WS` | `/ws/status` | Public | Real-time incident status WebSocket |
+
+---
+
+## Data & Model Provenance
+
+To ensure operational transparency, Samvedna enforces strict provenance tagging across all risk, exposure, and decision endpoints:
+
+| Status | Meaning |
+|---|---|
+| `live` | Real-time telemetry or active sensor readings |
+| `simulated` | Synthetic benchmarks or What-If scenario outputs |
+| `replayed` | Historical sensor logs streamed for validation |
+| `stale` | Data exceeding `RISK_FRESHNESS_MINUTES` (default: 60 min) |
+| `fallback` | Deterministic fallback when model artifact is unavailable |
+| `unavailable` | Missing model outputs; returns `HTTP 503` instead of fabricated predictions |
+
+### Failure Safety
+
+- **Risk model unavailable:** Returns `503 Service Unavailable` with `X-Error-Code: RISK_SERVICE_UNAVAILABLE`. Never fabricates predictions.
+- **Stale data:** Automatic `data_status: "stale"` transition when sensor feeds stop reporting.
+- **No available responders:** Records `supply = 0`, sets `response_gap = 1.0`, triggers mutual aid advisories. Never creates fake assignments.
+- **Dispatcher failure:** Records `status: "failed"` in `NotificationLog` for automated retry without crashing the dispatch loop.
+
+---
+
+## Project Structure
+
 ```
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `DATABASE_URL` | `sqlite+aiosqlite:///./crisiscore.db` | Database connection URL (supports SQLite & PostgreSQL). |
-| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL for matching queue and Pub/Sub. |
-| `JWT_SECRET` | `crisiscore-dev-secret-change-in-prod` | HMAC-SHA256 signing secret for JWT tokens. |
-| `JWT_ALGORITHM` | `HS256` | JWT signing algorithm. |
-| `JWT_EXPIRE_MINUTES` | `1440` (24 hours) | Token expiration lifetime in minutes. |
-| `AUTO_REASSIGN_MINUTES` | `5` | Minutes before unacknowledged volunteer assignment times out. |
-| `ASSIGNMENT_ACK_TIMEOUT_SECONDS` | `300` | SLA timeout in seconds for volunteer ACK. |
-| `RISK_FRESHNESS_MINUTES` | `60` | Maximum age in minutes before a RiskZone is marked `stale`. |
-| `NOTIFICATION_PROVIDER` | `console` | Dispatcher backend (`console`, `twilio`, `fcm`). |
-| `PRIORITY_W_RISK` | `0.35` | Priority weight for hazard risk score. |
-| `PRIORITY_W_EXPOSURE` | `0.30` | Priority weight for population and infrastructure exposure. |
-| `PRIORITY_W_VULNERABILITY` | `0.20` | Priority weight for community vulnerability factors. |
-| `PRIORITY_W_RESPONSE_GAP` | `0.15` | Priority weight for responder capacity deficit. |
+Samvedna-SIH2026/
+├── app/                    # CrisisCore FastAPI backend
+│   ├── background/         # Async workers (matching, reassignment)
+│   ├── core/               # Auth, config, database, Redis
+│   ├── intelligence/       # Decision engine (explanation, priority, actions)
+│   ├── matching/           # Volunteer matching engine
+│   ├── models/             # SQLAlchemy ORM models
+│   ├── notifications/      # Dispatch abstraction (Console/Twilio/FCM)
+│   ├── realtime/           # WebSocket manager
+│   ├── routers/            # FastAPI route handlers
+│   ├── schemas/            # Pydantic validation schemas
+│   ├── services/           # ML prediction service
+│   └── main.py             # Application entrypoint
+├── frontend/               # Operations Web Dashboard
+│   ├── src/                # React + TypeScript application source
+│   ├── tests/              # Frontend test suites
+│   ├── android/            # Citizen Android app (Capacitor)
+│   └── vite.config.ts      # Vite build configuration
+├── ml/                     # ML pipeline scripts
+│   ├── train_landslide_model.py
+│   ├── live_risk_engine.py
+│   ├── build_terrain_features.py
+│   └── ...                 # ~70 pipeline and evaluation scripts
+├── data/                   # Source data and model artifacts
+│   ├── processed/ml/models/  # XGBoost model + feature importances
+│   └── *.csv               # NER districts, events, features
+├── tests/                  # Backend pytest suite (21 test files (153 passed))
+├── docker-compose.yml      # Full-stack containerized deployment
+├── requirements.txt        # Python backend dependencies
+└── run.py                  # Development server entrypoint
+```
 
 ---
 
 ## Local Development
 
-### 1. Prerequisites
-* Python 3.11+
-* Redis (local service or running via Docker on port 6379)
+### Prerequisites
 
-### 2. Environment Setup
+- Python 3.11+
+- Node.js 20+ and npm
+- Redis server (local or Docker)
+- PostgreSQL (recommended) or SQLite (default for development)
+
+### Backend Setup
+
 ```bash
-# 1. Clone repository and navigate to directory
+# Clone and checkout
+git clone <repository-url>
+cd Samvedna-SIH2026
 git checkout AJ-backend-work
 
-# 2. Create and activate virtual environment
+# Create virtual environment
 python -m venv .venv
-# On Windows (PowerShell):
+
+# Activate (Windows PowerShell)
 .venv\Scripts\Activate.ps1
-# On Linux / macOS:
+# Activate (Linux / macOS)
 source .venv/bin/activate
 
-# 3. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Copy environment configuration
+# Configure environment
 cp .env.example .env
+# Edit .env as needed (see Configuration section)
 
-# 5. Start the backend server
-python run.py
-# Server runs at http://localhost:8000
-# OpenAPI / Swagger UI at http://localhost:8000/docs
+# Start backend
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
----
+### Frontend Setup
 
-## Testing
-
-CrisisCore maintains a comprehensive automated test suite spanning unit math, RBAC security, state machines, offline ingestion, and failure resilience.
-
-Run tests using `pytest`:
 ```bash
-python -m pytest -q
+cd frontend
+
+# Install dependencies
+npm install
+
+# Configure API target
+cp .env.example .env
+# Ensure VITE_API_URL=http://127.0.0.1:8001
+
+# Start development server
+npm run dev
+# Frontend runs at http://127.0.0.1:5173
 ```
 
-> **Milestone Status:** At the Day 5 milestone, the full suite contains **68 passing tests** (`68 passed`).
+### API Documentation
 
-### Test Suite Structure
-* `tests/test_api.py` — Core API endpoints, user authentication, RBAC authorization, and health checks.
-* `tests/test_day3_integration.py` — Incident verification, rejection guards, and worker dispatch.
-* `tests/test_day4_intelligence.py` — Priority formula weights, driver explanation mapping, exposure CRUD, what-if simulations, and decision endpoints.
-* `tests/test_day5_reliability.py` — Token expiration, malformed auth headers, data freshness TTL, and 503 service degradation.
-* `tests/test_happy_path.py` — Complete end-to-end Citizen SOS $\to$ Verify $\to$ Match $\to$ Assign $\to$ ACK $\to$ Resolve path.
-* `tests/test_offline_sync.py` — Offline incident capture timestamp preservation and idempotent deduplication.
-* `tests/test_auto_reassign.py` — SLA timeout auto-reassignment deduplication.
-* `tests/test_audit_lifecycle.py` — Audit log creation and state diff validation.
-* `tests/test_matching_queue.py` — Redis matching queue operations.
-* `tests/test_notification_retry.py` & `tests/test_websocket.py` — Dispatcher resilience and WebSocket Pub/Sub.
+With the backend running:
+
+- **Swagger UI:** http://127.0.0.1:8001/docs
+- **OpenAPI JSON:** http://127.0.0.1:8001/openapi.json
 
 ---
 
-## Data / ML Boundary
+## Testing & Verification
 
-To preserve clear architectural modularity:
+### Backend Test Suite
 
-* **The ML / Geospatial Team Owns:**
-  * Satellite DEM and rainfall raster processing.
-  * Soil moisture and slope feature engineering.
-  * Landslide probability classification models.
-  * Generation of raw driver feature dictionaries.
-* **The Backend Team Owns:**
-  * Request validation, ingestion, and storage.
-  * Secure API contract serving.
-  * Operational intelligence, driver explainability, and exposure mapping.
-  * Deterministic priority engine calculation.
-  * Action recommendation generation.
-  * Citizen SOS lifecycle, Redis matching queues, and SLA enforcement.
-  * Role-based access control, audit logging, and failure safety.
+```bash
+python -m pytest tests/ -q
+```
+
+The backend maintains 21 test files (153 passed) covering:
+- Core API endpoints and authentication
+- RBAC authorization edge cases
+- Incident verification and state machine transitions
+- Volunteer matching worker and queue operations
+- Priority formula and intelligence endpoints
+- What-If simulation contracts
+- Offline sync idempotency
+- SLA timeout auto-reassignment
+- Audit log lifecycle
+- Data freshness and failure safety
+- Sensor ingestion and critical path integration
+
+### Frontend Verification
+
+```bash
+cd frontend
+
+# TypeScript validation (all project references)
+npx tsc -b                                    # 0 errors
+
+# Application-only typecheck (browser types, no Node leakage)
+npx tsc --noEmit -p tsconfig.app.json         # 0 errors
+
+# Test-specific typecheck (Node types for test runner)
+npx tsc --noEmit -p tsconfig.test.json        # 0 errors
+
+# Run test suites
+npx --yes tsx --test tests/offlineSync.test.ts tests/intelligence.test.ts
+# 22/22 passed (13 offline sync + 9 intelligence/auth security)
+
+# Lint
+npx oxlint                                    # 0 errors
+
+# Production build
+npm run build                                 # Successful (tsc -b && vite build)
+```
+
+### Frontend Test Coverage
+
+The intelligence test suite (`tests/intelligence.test.ts`) validates:
+- Decision response parsing and rendering contracts
+- Dynamic driver explanation rendering (variable count)
+- What-If simulation contract and forecast distinction
+- RBAC 403 handling on restricted endpoints
+- API error handling without fake data fallback
+- Unauthenticated state does not trigger automatic registration/login
+- Source code invariant: no hardcoded credentials in `api.ts` or `OperationsAuthModal.tsx`
+- Real login/logout token lifecycle
+- Citizen token preservation (never elevated to admin/officer)
+
+### TypeScript Configuration
+
+The frontend uses a composite TypeScript project with three configurations:
+
+| Config | Scope | Types |
+|---|---|---|
+| `tsconfig.app.json` | `src/` (browser application) | `vite/client` only |
+| `tsconfig.node.json` | `vite.config.ts` | `node` |
+| `tsconfig.test.json` | `tests/` (Node.js test runner) | `node`, `vite/client` |
+
+This ensures Node.js types never leak into the production browser bundle.
 
 ---
 
-## Current Limitations
+## Configuration & Ports
 
-In the interest of engineering integrity and transparency:
-* **Exposure Baseline Data:** Settlement demographic and infrastructure data currently uses benchmark / prototype profiles where live municipal GIS integration is pending.
-* **Priority Engine Weights:** Weights ($0.35, 0.30, 0.20, 0.15$) are engineering-defined heuristic defaults and have not yet undergone empirical regional field calibration.
-* **What-If Simulation:** The what-if endpoint is a heuristic scenario exploration tool and **not** a calibrated numerical weather forecast model.
-* **Prototype Status:** This system is an SIH prototype and is not yet certified for official government disaster command operations without human oversight.
+### Local Development Ports
+
+| Service | Port | Notes |
+|---|---|---|
+| **Frontend (Vite)** | `127.0.0.1:5173` | Development server with API proxy |
+| **Backend (FastAPI)** | `127.0.0.1:8001` | CrisisCore API server |
+| **Redis** | `127.0.0.1:6380` | Matching queue and Pub/Sub |
+| **PostgreSQL** | `5432` | Default PostgreSQL port |
+
+> **Important:** Ports `8000` and `6379` are intentionally not used by Samvedna in local development. They belong to other local projects/environments and must not be touched.
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | `sqlite+aiosqlite:///./crisiscore.db` | Database connection (SQLite or PostgreSQL) |
+| `REDIS_URL` | `redis://localhost:6380/0` | Redis connection for queue and Pub/Sub |
+| `JWT_SECRET` | `<change-in-production>` | HMAC-SHA256 JWT signing secret |
+| `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
+| `JWT_EXPIRE_MINUTES` | `1440` | Token TTL (default: 24 hours) |
+| `AUTO_REASSIGN_MINUTES` | `5` | SLA timeout before volunteer reassignment |
+| `RISK_FRESHNESS_MINUTES` | `60` | Max age before risk data marked stale |
+| `NOTIFICATION_PROVIDER` | `console` | Dispatch backend (`console`, `twilio`, `fcm`) |
+| `PRIORITY_W_RISK` | `0.35` | Priority weight: hazard risk |
+| `PRIORITY_W_EXPOSURE` | `0.30` | Priority weight: population exposure |
+| `PRIORITY_W_VULNERABILITY` | `0.20` | Priority weight: community vulnerability |
+| `PRIORITY_W_RESPONSE_GAP` | `0.15` | Priority weight: responder capacity deficit |
+| `ML_THRESHOLD` | `0.87` | XGBoost operational classification threshold |
+| `CORS_ORIGINS` | `["*"]` | Allowed frontend origins (restrict in production) |
 
 ---
 
-## Future Work
+## Current Implementation Status
 
-* **Live IMD / Satellite Integration:** Automated real-time ingestion from Indian Meteorological Department (IMD) radar and Copernicus Sentinel rasters.
-* **Calibrated Geotechnical Models:** Integration of regionally tuned slope stability (SINMAP/TRIGRS) physics models.
-* **Richer Spatial GIS Layers:** Vector overlays for electrical substations, bridges, water supply lines, and relief shelters.
-* **Multilingual Citizen Alerts:** Automatic translation of alerts into Assamese, Bengali, Bodo, Khasi, Mizo, and Hindi.
-* **Offline Mobile PWA:** Full offline-first mobile app with Bluetooth / LoRa mesh synchronization for isolated field teams.
+### Implemented & Verified
+
+| Component | Status | Details |
+|---|---|---|
+| XGBoost landslide risk prediction | Verified | 200-tree model, 17 features, live inference via `POST /risk` |
+| Risk zone querying and explanation | Verified | `GET /risk`, `GET /risk/{zone_id}/explain` |
+| Intelligence decision pipeline | Verified | `POST /intelligence/decision` with full Risk → Explain → Expose → Priority → Actions flow |
+| What-If scenario simulation | Verified | `POST /intelligence/whatif` with `SIMULATION — NOT A FORECAST` tagging |
+| Priority engine | Verified | Deterministic weighted formula, configurable weights |
+| JWT authentication & RBAC | Verified | 4-tier hierarchy, server-side role enforcement |
+| Incident lifecycle | Verified | SOS → Verify → Queue → Match → Assign → ACK → Resolve |
+| Volunteer matching | Verified | Haversine distance + skill matching via Redis queue |
+| SLA auto-reassignment | Verified | Background worker monitoring unacknowledged assignments |
+| Offline incident sync | Verified | Idempotent batch sync with timestamp preservation |
+| Audit trail | Verified | Immutable state diffs with PII redaction |
+| Operations Web Dashboard | Verified | Live risk map, Why Risk, What-If UI, operational auth |
+| Frontend API integration (P0) | Verified | Live risk + incident APIs integrated |
+| Frontend intelligence integration (P1) | Verified | Decision, What-If, RBAC, dynamic explanations |
+| Frontend security hardening | Verified | No hardcoded credentials, no auto-provisioning |
+| Frontend TypeScript validation | Verified | Composite project refs, 0 errors across all configs |
+| Frontend test suite | Verified | 22/22 tests passing (intelligence + offline sync) |
+| Backend test suite | Verified | Comprehensive pytest suite (21 test files (153 passed)) |
+
+### In Progress
+
+| Component | Status |
+|---|---|
+| Citizen Android app backend integration | Capacitor scaffold present; native integration pending |
+| Real-time sensor data ingestion | Endpoints implemented; live IMD/satellite feed pending |
 
 ---
 
-## SIH Demonstration Flow
+## Limitations
 
-A recommended 10-step evaluation flow for hackathon judges:
+In the interest of engineering transparency:
 
-1. **Query Risk Intelligence:** Call `GET /risk` to view active landslide risk zones in the NER corridor.
-2. **Inspect Driver Explainability:** Call `GET /risk/{zone_id}/explain` to see human-readable drivers (e.g. 24h rainfall: 185 mm, terrain slope: 42°).
-3. **Inspect Settlement Exposure:** Call `GET /intelligence/exposure/nearby` to review exposed population, schools, and hospitals.
-4. **Compute Operational Priority:** Call `POST /intelligence/decision` to demonstrate the $0 \to 100$ priority score and triage level (`CRITICAL`).
-5. **Review Recommended Actions:** Show deterministic civil defense advisories generated for DDMA officers.
-6. **Simulate Scenario (What-If):** Call `POST /intelligence/whatif` with $+300\text{ mm}$ rainfall to show dynamic priority escalation (tagged `SIMULATION — NOT A FORECAST`).
-7. **Submit Citizen SOS:** Call `POST /incidents` to report a real-time landslide blockage.
-8. **Officer Verification:** Authenticate as `officer` and call `POST /incidents/{id}/verify`; show task entering the Redis queue.
-9. **Automated Matching & Volunteer ACK:** Observe `matching_worker.py` assign the nearest skilled volunteer; volunteer calls `POST /assignments/{id}/ack`.
-10. **Verify Audit Trail & Failure Safety:** Inspect `AuditLog` records verifying complete traceability and show controlled 503 behavior when model data is missing.
+- **Exposure baseline data:** Settlement demographic and infrastructure data currently uses benchmark profiles where live municipal GIS integration is pending.
+- **Priority engine weights:** The default weights (0.35, 0.30, 0.20, 0.15) are engineering-defined heuristic defaults and have not yet undergone empirical regional field calibration.
+- **What-If simulation:** The What-If endpoint is a heuristic scenario exploration tool, **not** a calibrated numerical weather forecast model.
+- **Prototype status:** This system is an SIH prototype and is not yet certified for official government disaster command operations without human oversight.
 
 ---
 
-## Questions Judges May Ask
+## Roadmap
 
-### "What is genuinely innovative here?"
-Most disaster warning tools stop at generating a hazard score on a map. CrisisCore completes the operational loop: taking ML hazard intelligence, explaining the drivers, evaluating demographic exposure and community vulnerability, calculating an operational priority triage score, generating actionable DDMA advisories, and automating volunteer dispatch with SLA guarantees.
+| Category | Planned Work |
+|---|---|
+| **Data Integration** | Live IMD radar feed ingestion, Copernicus Sentinel raster processing, SMAP soil moisture integration |
+| **Mobile** | Complete Citizen Android app backend integration and native testing |
+| **Security** | Production secret management, HTTPS enforcement, rate limiting, CORS lockdown |
+| **Observability** | Structured logging, Prometheus metrics, alerting on stale data / queue depth |
+| **Performance** | Load testing, connection pooling optimization, production Redis cluster |
+| **Localization** | Multilingual citizen alerts (Assamese, Bengali, Bodo, Khasi, Mizo, Hindi) |
+| **Deployment** | Container orchestration, CI/CD pipeline, staging environment |
+| **Geospatial** | Vector overlays for bridges, electrical substations, water supply, relief shelters |
 
-### "Is the priority score calculated by AI?"
-**No.** The hazard probability comes from the ML risk model. The operational priority score is computed deterministically using an explainable linear formula ($0.35\text{ Risk} + 0.30\text{ Exposure} + 0.20\text{ Vulnerability} + 0.15\text{ Response Gap}$). This ensures that emergency decisions remain auditable, predictable, and transparent.
+---
 
-### "What happens when data becomes stale?"
-If field telemetry ceases, records older than `RISK_FRESHNESS_MINUTES` automatically transition to `data_status: "stale"`. Operators are immediately notified that the hazard score is based on outdated data rather than being misled.
+## Demo
 
-### "What happens if the ML risk model fails?"
-CrisisCore fails safely. The backend returns an explicit `HTTP 503 Service Unavailable` with error code `RISK_SERVICE_UNAVAILABLE`. It **never fabricates a fake risk prediction**.
+> Screenshots and an end-to-end demonstration video will be added here for the final SIH submission.
 
-### "Can the system work with simulated data during demonstrations?"
-Yes. All synthetic benchmark data and what-if simulation outputs are strictly tagged with `data_status: "simulated"` and `"SIMULATION — NOT A FORECAST"` so they can never be confused with live field telemetry.
+---
 
-### "Why not just display the risk on a map?"
-A hazard score on a map does not tell a disaster officer where to send ambulances first. A high hazard score in an uninhabited ridge is low priority; a moderate hazard score threatening an isolated hospital with a single access road is critical. CrisisCore evaluates exposure, vulnerability, and response capacity to prioritize where action is needed most.
+## Team
+
+> Team member details will be added here.
+
+---
+
+*Samvedna — From early warning to coordinated response.*
