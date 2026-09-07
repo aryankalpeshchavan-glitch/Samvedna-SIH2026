@@ -84,8 +84,7 @@ fun CrisisCoreNavHost() {
             AnimatedContent(
                 targetState = activeTab,
                 transitionSpec = {
-                    fadeIn(tween(200)) + slideInVertically(tween(200)) togetherWith
-                    fadeOut(tween(150)) + slideOutVertically(tween(150))
+                    fadeIn(tween(180)) togetherWith fadeOut(tween(120))
                 },
                 label = "tabTransition"
             ) { tab ->

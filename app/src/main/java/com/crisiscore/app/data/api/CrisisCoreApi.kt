@@ -14,12 +14,6 @@ interface CrisisCoreApi {
     @POST("incidents")
     suspend fun createIncident(@Body request: IncidentRequest): Response<IncidentResponse>
 
-    @GET("status/{id}")
-    suspend fun getStatus(@Path("id") incidentId: String): Response<StatusResponse>
-
     @GET("risk")
     suspend fun getRisk(@Query("bbox") bbox: String? = null): Response<List<RiskZone>>
-
-    @GET("health")
-    suspend fun getHealth(): Response<HealthResponse>
 }

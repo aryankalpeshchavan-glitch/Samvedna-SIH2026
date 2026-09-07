@@ -5,28 +5,20 @@ import android.location.Location
 import android.util.Log
 import com.crisiscore.app.data.api.RetrofitClient
 import com.crisiscore.app.data.model.*
-import com.crisiscore.app.data.local.CrisisCoreDatabase
-import com.crisiscore.app.data.local.PendingIncidentEntity
-import com.crisiscore.app.data.local.PendingSosEntity
 import com.crisiscore.app.data.local.SecurePreferences
+import com.crisiscore.app.data.local.SyntheticRiskData
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 class CrisisCoreRepository(private val context: Context) {
     private val api = RetrofitClient.getApi()
-    private val db = CrisisCoreDatabase.getInstance(context)
-    private val dao = db.offlineDao()
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
     private val locationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
@@ -74,13 +66,14 @@ class CrisisCoreRepository(private val context: Context) {
         }
     }
 
-    suspend fun getStatus(incidentId: String): StatusResponse? = withContext(Dispatchers.IO) {
+    suspend fun getRiskZones(): List<RiskZone> = withContext(Dispatchers.IO) {
         try {
-            val res = api.getStatus(incidentId)
-            if (res.isSuccessful) res.body() else null
+            val res = api.getRisk()
+            val live = if (res.isSuccessful) res.body().orEmpty() else emptyList()
+            if (live.isNotEmpty()) live else SyntheticRiskData.zones()
         } catch (e: Exception) {
-            Log.e("CrisisCoreRepo", "Get status failed", e)
-            null
+            Log.w("CrisisCoreRepo", "Risk feed unavailable, using synthetic", e)
+            SyntheticRiskData.zones()
         }
     }
 
@@ -111,30 +104,4 @@ class CrisisCoreRepository(private val context: Context) {
             )
         }
     }
-
-    suspend fun getHealth(): Boolean = withContext(Dispatchers.IO) {
-        try { api.getHealth().isSuccessful } catch (e: Exception) { false }
-    }
-
-    suspend fun savePendingSos(payload: SosPayload) {
-        dao.insertSos(PendingSosEntity(
-            id = payload.sosId,
-            payloadJson = json.encodeToString(payload),
-            createdAt = System.currentTimeMillis()
-        ))
-    }
-
-    fun getPendingSos(): Flow<List<PendingSosEntity>> = dao.getAllSos()
-
-    suspend fun markSosSynced(id: String) = dao.markSosSynced(id)
-
-    suspend fun savePendingIncident(payload: IncidentReportPayload) {
-        dao.insertIncident(PendingIncidentEntity(
-            id = payload.id,
-            payloadJson = json.encodeToString(payload),
-            createdAt = System.currentTimeMillis()
-        ))
-    }
-
-    fun getPendingIncidents(): Flow<List<PendingIncidentEntity>> = dao.getAllIncidents()
 }

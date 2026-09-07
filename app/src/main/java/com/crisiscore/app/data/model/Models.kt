@@ -8,17 +8,11 @@ enum class SosState {
 }
 
 enum class IncidentCategory {
-    LANDSLIDE, SLOPE_CRACK, ROAD_BLOCKED, FLOOD, FLASH_FLOOD,
-    BUILDING_DAMAGE, PERSON_TRAPPED, MEDICAL_EMERGENCY, FIRE, OTHER
+    LANDSLIDE, SLOPE_CRACK, ROAD_BLOCKED, FLOOD,
+    BUILDING_DAMAGE, PERSON_TRAPPED, OTHER
 }
 
 enum class SeverityLevel { LOW, WATCH, MEDIUM, HIGH, CRITICAL }
-
-enum class NetworkStatus { ONLINE, WEAK, OFFLINE }
-
-enum class LocationStatus {
-    LOCATION_DETECTED, LOCATION_UNAVAILABLE, REQUESTING_LOCATION, PERMISSION_DENIED
-}
 
 @Serializable
 data class LocationData(
@@ -75,14 +69,6 @@ data class FamilyMember(
 )
 
 enum class FamilyMemberStatus { CHECKED_IN, NEEDS_CHECKIN, UNVERIFIED }
-
-data class CommunitySafetyReport(
-    val id: String,
-    val name: String? = null,
-    val context: String,
-    val location: String,
-    val timestamp: String
-)
 
 data class Helpline(
     val title: String,
@@ -141,22 +127,9 @@ data class IncidentResponse(
 )
 
 @Serializable
-data class StatusResponse(
-    val status: String? = null,
-    val assignment: AssignmentData? = null
-)
-
-@Serializable
-data class AssignmentData(
-    val volunteer_id: String? = null,
-    val volunteer_name: String? = null,
-    val volunteer_phone: String? = null,
-    val eta_minutes: Int? = null
-)
-
-@Serializable
 data class RiskZone(
     val zone_id: String? = null,
+    val name: String? = null,
     val lat: Double = 0.0,
     val lng: Double = 0.0,
     val risk_score: Double = 0.0,
@@ -164,7 +137,3 @@ data class RiskZone(
     val data_status: String = "unavailable"
 )
 
-@Serializable
-data class HealthResponse(
-    val status: String? = null
-)

@@ -42,7 +42,7 @@ fun StatusScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        PageHeader(tag = T.get("status.headerTag"), title = "SOS STATUS")
+        PageHeader(tag = T("status.headerTag"), title = T("status.headerTitle"))
 
         if (sosState != SosState.IDLE) {
             ActiveSosTracker(sosState, sosDetail, onReset)
@@ -67,23 +67,23 @@ fun StatusScreen(
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Verify Responder", style = MaterialTheme.typography.titleMedium, fontSize = 14.sp)
-                    Text("Scan NDRF / SDRF QR badge", style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                    Text(T("status.verifyTitle"), style = MaterialTheme.typography.titleMedium, fontSize = 14.sp)
+                    Text(T("status.verifySubtitle"), style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
                 }
                 CcButton(onClick = {}, variant = CcButtonVariant.Secondary) {
                     Icon(Icons.Filled.QrCodeScanner, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Scan", style = MaterialTheme.typography.bodySmall)
+                    Text(T("status.verifyButton"), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
 
         // State Simulator
         CcCard(modifier = Modifier.fillMaxWidth()) {
-            Text("STATE SIMULATOR", style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
+            Text(T("status.simulatorTitle"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
             Spacer(Modifier.height(4.dp))
             Text(
-                "For demo: tap a state to simulate SOS lifecycle.",
+                T("status.simulatorText"),
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondaryLight
             )
@@ -129,11 +129,11 @@ private fun ActiveSosTracker(
     onReset: () -> Unit
 ) {
     val steps = listOf(
-        Triple("Sending", "Transmitting signal", Icons.Filled.Send),
-        Triple("Received", "Acknowledged by relay", Icons.Filled.Inbox),
-        Triple("Verified", "Confirmed by operator", Icons.Filled.Verified),
-        Triple("En Route", "Responder dispatched", Icons.Filled.DirectionsRun),
-        Triple("Resolved", "Incident closed", Icons.Filled.CheckCircle),
+        Triple(T("status.stepSending"), T("status.descSending"), Icons.Filled.Send),
+        Triple(T("status.stepReceived"), T("status.descReceived"), Icons.Filled.Inbox),
+        Triple(T("status.stepVerified"), T("status.descVerified"), Icons.Filled.Verified),
+        Triple(T("status.stepEnRoute"), T("status.descEnRoute"), Icons.Filled.DirectionsRun),
+        Triple(T("status.stepResolved"), T("status.descResolved"), Icons.Filled.CheckCircle),
     )
 
     val currentIndex = when (sosState) {
@@ -156,7 +156,7 @@ private fun ActiveSosTracker(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "SOS TRACKER \u2022 ${sosDetail.sosId ?: "PENDING"}",
+                "${T("status.sosTracker")} \u2022 ${sosDetail.sosId ?: T("status.pending")}",
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
                 color = TextSecondaryLight
             )
@@ -236,7 +236,7 @@ private fun ActiveSosTracker(
                             color = PrimaryGreen.copy(alpha = 0.08f)
                         ) {
                             Text(
-                                "Current step",
+                                T("status.currentStep"),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                                 color = PrimaryGreen,
@@ -268,13 +268,13 @@ private fun ActiveSosTracker(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(sosDetail.assignedVolunteerName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = PrimaryGreen)
                         if (sosDetail.etaMinutes != null) {
-                            Text("ETA: ${sosDetail.etaMinutes} mins", style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                            Text("${T("status.eta")} ${sosDetail.etaMinutes} ${T("status.mins")}", style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
                         }
                     }
                     CcButton(onClick = {}, variant = CcButtonVariant.Secondary) {
                         Icon(Icons.Filled.Phone, null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Call", style = MaterialTheme.typography.bodySmall)
+                        Text(T("status.call"), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -286,9 +286,9 @@ private fun ActiveSosTracker(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("State: ${sosState.name}", style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
+            Text("${T("status.stateLabel")} ${sosState.name}", style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
             CcButton(onClick = onReset, variant = CcButtonVariant.Outline) {
-                Text("RESET")
+                Text(T("status.resetButton"))
             }
         }
     }
@@ -318,9 +318,9 @@ private fun EmptySosState() {
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Text(T.get("status.noSignalTitle"), style = MaterialTheme.typography.titleMedium, color = TextPrimaryLight)
+            Text(T("status.noSignalTitle"), style = MaterialTheme.typography.titleMedium, color = TextPrimaryLight)
             Text(
-                T.get("status.noSignalText"),
+                T("status.noSignalText"),
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondaryLight,
                 textAlign = TextAlign.Center,

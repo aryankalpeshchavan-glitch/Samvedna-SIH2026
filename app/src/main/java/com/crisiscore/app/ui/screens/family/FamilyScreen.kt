@@ -20,6 +20,7 @@ import com.crisiscore.app.data.model.FamilyMember
 import com.crisiscore.app.data.model.FamilyMemberStatus
 import com.crisiscore.app.ui.components.*
 import com.crisiscore.app.ui.theme.*
+import com.crisiscore.app.util.T
 
 @Composable
 fun FamilyScreen() {
@@ -74,7 +75,7 @@ fun FamilyScreen() {
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        PageHeader(tag = "COMMUNITY MESH", title = "FAMILY & COMMUNITY")
+        PageHeader(tag = T("family.communityMesh"), title = T("family.title"))
 
         // Safety summary
         CcCard(modifier = Modifier.fillMaxWidth(), borderColor = PrimaryGreen.copy(alpha = 0.3f)) {
@@ -90,15 +91,15 @@ fun FamilyScreen() {
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("FAMILY STATUS SUMMARY", style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
-                    Text("$checkedInCount of ${familyList.size} Safe", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                    Text(T("family.statusSummary"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
+                    Text(T("family.summary").replace("{count}", checkedInCount.toString()).replace("{total}", familyList.size.toString()), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
                 }
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = PrimaryGreen.copy(alpha = 0.1f)
                 ) {
                     Text(
-                        "$percentAccounted% Safe",
+                        T("family.percentSafe").replace("{percent}", percentAccounted.toString()),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                         color = PrimaryGreen
@@ -130,7 +131,7 @@ fun FamilyScreen() {
                         if (it.isSelf) it.copy(status = FamilyMemberStatus.CHECKED_IN, checkedInBy = "Self", checkedInAt = "Just now")
                         else it
                     }
-                    toastMessage = "You have been marked SAFE!"
+                    toastMessage = T.get("family.youMarkedSafe")
                 }
             ) {
                 Row(
@@ -140,7 +141,7 @@ fun FamilyScreen() {
                 ) {
                     Icon(Icons.Filled.CheckCircle, null, tint = CanvasLight, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("I'M SAFE", color = CanvasLight, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                    Text(T("family.imSafe"), color = CanvasLight, fontWeight = FontWeight.Black, fontSize = 13.sp)
                 }
             }
             Surface(
@@ -159,7 +160,7 @@ fun FamilyScreen() {
                 ) {
                     Icon(Icons.Filled.PersonAdd, null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("CHECK IN OTHERS", color = PrimaryGreen, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Text(T("family.checkInOthersBtn"), color = PrimaryGreen, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
             }
         }
@@ -170,16 +171,16 @@ fun FamilyScreen() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("FAMILY MEMBERS (${familyList.size})", style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
+            Text(T("family.membersCount").replace("{count}", familyList.size.toString()), style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
             TextButton(onClick = { showAddMember = true }) {
                 Icon(Icons.Filled.PersonAdd, null, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Add Member", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = PrimaryGreen)
+                Text(T("family.addMemberLabel"), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = PrimaryGreen)
             }
         }
 
         familyList.forEach { member ->
-            FamilyMemberCard(member) { toastMessage = "SMS Check-In request sent to ${member.name}!" }
+            FamilyMemberCard(member) { toastMessage = T.get("family.smsCheckInSent").replace("{name}", member.name) }
         }
 
         // Community Safety Section
@@ -190,7 +191,7 @@ fun FamilyScreen() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Favorite, null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
-            Text("HELP SOMEONE ELSE", style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
+            Text(T("family.helpSomeoneElse"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
         }
 
         Surface(
@@ -208,8 +209,8 @@ fun FamilyScreen() {
                 Icon(Icons.Filled.FavoriteBorder, null, tint = PrimaryGreen, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Report Someone as Safe", style = MaterialTheme.typography.titleMedium, fontSize = 14.sp)
-                    Text("Log a safety report for a neighbor or stranger", style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                    Text(T("family.reportSomeoneSafe"), style = MaterialTheme.typography.titleMedium, fontSize = 14.sp)
+                    Text(T("family.reportDescription"), style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
                 }
             }
         }
@@ -229,7 +230,7 @@ fun FamilyScreen() {
                     status = FamilyMemberStatus.NEEDS_CHECKIN,
                     location = "Awaiting Check-in"
                 )
-                toastMessage = "Added $name to family list."
+                toastMessage = T.get("family.addedToFamily").replace("{name}", name)
                 showAddMember = false
             }
         )
@@ -244,7 +245,7 @@ fun FamilyScreen() {
                     if (selectedIds.contains(it.id)) it.copy(status = FamilyMemberStatus.CHECKED_IN, checkedInBy = "Checked in by Priya", checkedInAt = "Just now")
                     else it
                 }
-                toastMessage = "Checked in ${selectedIds.size} family member(s)!"
+                toastMessage = T.get("family.checkedInCount").replace("{count}", selectedIds.size.toString())
                 showCheckInOthers = false
             }
         )
@@ -254,7 +255,7 @@ fun FamilyScreen() {
         ReportSomeoneDialog(
             onDismiss = { showReportSomeone = false },
             onConfirm = { name ->
-                toastMessage = "Safety report submitted for ${name.ifEmpty { "person" }}!"
+                toastMessage = T.get("family.reportSubmitted").replace("{name}", name.ifEmpty { "person" })
                 showReportSomeone = false
             }
         )
@@ -305,9 +306,9 @@ private fun FamilyMemberCard(member: FamilyMember, onRequestCheckIn: () -> Unit)
                     Spacer(Modifier.width(6.dp))
                     Text(
                         when {
-                            isChecked -> "${member.checkedInBy ?: "Safe"} • ${member.checkedInAt ?: "Just now"}"
-                            member.status == FamilyMemberStatus.NEEDS_CHECKIN -> "Needs check-in"
-                            else -> "Unverified"
+                            isChecked -> "${member.checkedInBy ?: T("family.checkedIn")} • ${member.checkedInAt ?: "Just now"}"
+                            member.status == FamilyMemberStatus.NEEDS_CHECKIN -> T("family.notCheckedIn")
+                            else -> T("family.needsCheckIn")
                         },
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         color = color,
@@ -322,7 +323,7 @@ private fun FamilyMemberCard(member: FamilyMember, onRequestCheckIn: () -> Unit)
                 CcButton(onClick = onRequestCheckIn, variant = CcButtonVariant.Outline) {
                     Icon(Icons.Filled.Phone, null, modifier = Modifier.size(12.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Check-in", style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp))
+                    Text(T("family.checkIn"), style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp))
                 }
             }
         }
@@ -333,22 +334,22 @@ private fun FamilyMemberCard(member: FamilyMember, onRequestCheckIn: () -> Unit)
 private fun AddMemberDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
     var name by remember { mutableStateOf("") }
     var relationship by remember { mutableStateOf("Relative") }
-    val relationships = listOf("Spouse", "Son", "Daughter", "Father", "Mother", "Grandparent", "Relative")
+    val relationships = listOf(T("family.spouse"), T("family.son"), T("family.daughter"), T("family.father"), T("family.mother"), T("family.grandparent"), T("family.relative"))
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(24.dp), color = CanvasLight, shadowElevation = 16.dp) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Add Family Member", style = MaterialTheme.typography.titleLarge)
+                Text(T("family.addMemberTitle"), style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text(T("family.nameLabel")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
                 )
                 Spacer(Modifier.height(12.dp))
-                Text("Relationship", style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                Text(T("family.relationshipLabel"), style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
                 Spacer(Modifier.height(4.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     relationships.take(4).forEach { rel ->
@@ -364,8 +365,8 @@ private fun AddMemberDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Un
                 }
                 Spacer(Modifier.height(20.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CcButton(onClick = onDismiss, variant = CcButtonVariant.Outline, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    CcButton(onClick = { if (name.isNotBlank()) onAdd(name, relationship) }, modifier = Modifier.weight(1f)) { Text("Add") }
+                    CcButton(onClick = onDismiss, variant = CcButtonVariant.Outline, modifier = Modifier.weight(1f)) { Text(T("family.cancel")) }
+                    CcButton(onClick = { if (name.isNotBlank()) onAdd(name, relationship) }, modifier = Modifier.weight(1f)) { Text(T("family.addBtn")) }
                 }
             }
         }
@@ -383,9 +384,9 @@ private fun CheckInOthersDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(24.dp), color = CanvasLight, shadowElevation = 16.dp) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Check In Someone With Me", style = MaterialTheme.typography.titleMedium)
+                Text(T("family.checkInSomeoneWithMe"), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
-                Text("Select family members to check in:", style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                Text(T("family.selectMembers"), style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
                 Spacer(Modifier.height(12.dp))
 
                 familyList.forEach { member ->
@@ -424,7 +425,7 @@ private fun CheckInOthersDialog(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = selectedIds.isNotEmpty()
                 ) {
-                    Text("Confirm Safe (${selectedIds.size})")
+                    Text(T("family.confirmSafeCount").replace("{count}", selectedIds.size.toString()))
                 }
             }
         }
@@ -434,7 +435,6 @@ private fun CheckInOthersDialog(
 @Composable
 private fun ReportSomeoneDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var name by remember { mutableStateOf("") }
-    var context_ by remember { mutableStateOf("Someone I Encountered") }
     var location by remember { mutableStateOf("Guwahati Sector 4 (GPS)") }
     var confirmed by remember { mutableStateOf(false) }
 
@@ -444,13 +444,13 @@ private fun ReportSomeoneDialog(onDismiss: () -> Unit, onConfirm: (String) -> Un
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Favorite, null, tint = PrimaryGreen, modifier = Modifier.size(24.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Community Safety Report", style = MaterialTheme.typography.titleMedium)
+                    Text(T("family.reportSomeoneTitle"), style = MaterialTheme.typography.titleMedium)
                 }
                 Spacer(Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
-                    label = { Text("Person's Name (optional)") },
+                    label = { Text(T("family.personNameOpt")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -458,7 +458,7 @@ private fun ReportSomeoneDialog(onDismiss: () -> Unit, onConfirm: (String) -> Un
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = location, onValueChange = { location = it },
-                    label = { Text("Location") },
+                    label = { Text(T("family.locationLabel")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -479,14 +479,14 @@ private fun ReportSomeoneDialog(onDismiss: () -> Unit, onConfirm: (String) -> Un
                             colors = CheckboxDefaults.colors(checkedColor = PrimaryGreen)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("I confirm this person appears safe and does not need immediate rescue.", style = MaterialTheme.typography.bodySmall)
+                        Text(T("family.confirmNotice"), style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CcButton(onClick = onDismiss, variant = CcButtonVariant.Outline, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    CcButton(onClick = { onConfirm(name) }, modifier = Modifier.weight(1f), enabled = confirmed) { Text("Confirm") }
+                    CcButton(onClick = onDismiss, variant = CcButtonVariant.Outline, modifier = Modifier.weight(1f)) { Text(T("family.cancel")) }
+                    CcButton(onClick = { onConfirm(name) }, modifier = Modifier.weight(1f), enabled = confirmed) { Text(T("family.confirmBtn")) }
                 }
             }
         }

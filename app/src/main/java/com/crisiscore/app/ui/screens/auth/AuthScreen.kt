@@ -54,13 +54,13 @@ fun AuthScreen(
             Icon(Icons.Filled.Shield, null, tint = CanvasLight, modifier = Modifier.size(36.dp))
         }
         Spacer(Modifier.height(12.dp))
-        Text("SAMVEDNA", style = MaterialTheme.typography.headlineMedium, letterSpacing = 4.sp)
-        Text(T.get("nav.subtitle"), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSecondaryLight)
+        Text(T("app.name"), style = MaterialTheme.typography.headlineMedium, letterSpacing = 4.sp)
+        Text(T("nav.subtitle"), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSecondaryLight)
 
         Spacer(Modifier.height(36.dp))
 
         Text(
-            if (isLogin) T.get("auth.loginTitle") else T.get("auth.registerTitle"),
+            if (isLogin) T("auth.loginTitle") else T("auth.registerTitle"),
             style = MaterialTheme.typography.titleLarge
         )
 
@@ -70,7 +70,7 @@ fun AuthScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(T.get("auth.nameLabel")) },
+                label = { Text(T("auth.nameLabel")) },
                 leadingIcon = { Icon(Icons.Filled.Person, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -88,7 +88,7 @@ fun AuthScreen(
         OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
-            label = { Text(T.get("auth.phoneLabel")) },
+            label = { Text(T("auth.phoneLabel")) },
             leadingIcon = { Icon(Icons.Filled.Phone, null, modifier = Modifier.size(20.dp)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
@@ -105,7 +105,7 @@ fun AuthScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text(T.get("auth.passwordLabel")) },
+            label = { Text(T("auth.passwordLabel")) },
             leadingIcon = { Icon(Icons.Filled.Lock, null, modifier = Modifier.size(20.dp)) },
             trailingIcon = {
                 IconButton(onClick = { showPassword = !showPassword }) {
@@ -145,7 +145,7 @@ fun AuthScreen(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), color = CanvasLight, strokeWidth = 2.dp)
             } else {
-                Text(if (isLogin) T.get("auth.loginButton") else T.get("auth.registerButton"))
+                Text(if (isLogin) T("auth.loginButton") else T("auth.registerButton"))
             }
         }
 
@@ -161,19 +161,19 @@ fun AuthScreen(
         ) {
             Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text(T.get("auth.demoButton"))
+            Text(T("auth.demoButton"))
         }
 
         Spacer(Modifier.height(16.dp))
 
         TextButton(onClick = { isLogin = !isLogin }) {
             Text(
-                if (isLogin) "${T.get("auth.noAccount")} " else "${T.get("auth.hasAccount")} ",
+                if (isLogin) "${T("auth.noAccount")} " else "${T("auth.hasAccount")} ",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondaryLight
             )
             Text(
-                if (isLogin) T.get("auth.registerButton") else T.get("auth.loginButton"),
+                if (isLogin) T("auth.registerButton") else T("auth.loginButton"),
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                 color = PrimaryGreen
             )

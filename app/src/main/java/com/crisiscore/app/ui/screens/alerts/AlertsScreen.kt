@@ -24,19 +24,19 @@ fun AlertsScreen() {
     val alerts = listOf(
         Alert(
             id = "alert-1",
-            title = "OFFICIAL EVACUATION WARNING",
-            body = "Critical hydro-sensor threshold breached in your sector. Relocate to high ground immediately.",
+            title = T("alerts.sample1.title"),
+            body = T("alerts.sample1.body"),
             level = SeverityLevel.CRITICAL,
-            issuedAgo = "14 mins ago",
-            source = "Regional Disaster Authority"
+            issuedAgo = T("alerts.sample1.issuedAgo"),
+            source = T("alerts.sample1.source")
         ),
         Alert(
             id = "alert-2",
-            title = "FLASH FLOOD ADVISORY",
-            body = "Flash flood conditions detected. Avoid low-lying areas and river banks. Monitor local alerts.",
+            title = T("alerts.sample2.title"),
+            body = T("alerts.sample2.body"),
             level = SeverityLevel.HIGH,
-            issuedAgo = "45 mins ago",
-            source = "Hydro-Sensor Mesh"
+            issuedAgo = T("alerts.sample2.issuedAgo"),
+            source = T("alerts.sample2.source")
         )
     )
 
@@ -47,7 +47,7 @@ fun AlertsScreen() {
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        PageHeader(tag = T.get("alerts.headerTag"), title = T.get("alerts.title"))
+        PageHeader(tag = T("alerts.headerTag"), title = T("alerts.title"))
 
         // Info banner
         Surface(
@@ -61,7 +61,7 @@ fun AlertsScreen() {
             ) {
                 Icon(Icons.Filled.Shield, null, tint = PrimaryGreen, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(T.get("alerts.sub"), style = MaterialTheme.typography.bodySmall, color = TextPrimaryLight)
+                Text(T("alerts.sub"), style = MaterialTheme.typography.bodySmall, color = TextPrimaryLight)
             }
         }
 
@@ -115,7 +115,7 @@ private fun AlertCard(alert: Alert) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Issued: ${alert.issuedAgo} • ${alert.source}",
+                T("alerts.issuedInfo").replace("{time}", alert.issuedAgo).replace("{source}", alert.source),
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                 color = TextSecondaryLight
             )

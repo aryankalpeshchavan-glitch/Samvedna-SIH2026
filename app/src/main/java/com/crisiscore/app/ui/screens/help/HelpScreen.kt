@@ -28,11 +28,11 @@ import com.crisiscore.app.util.T
 fun HelpScreen() {
     val context = LocalContext.current
     val helplines = listOf(
-        Helpline("NDRF Control Room", "1078", "+91 11 26701728", "National Disaster Response Force — 24/7 for landslide and flood rescue.", "NATIONAL 24/7", HelplineColorType.RED),
-        Helpline("State Emergency Centre", "1070", "+91 361 2237221", "State Emergency Operation Centre (Assam) — coordinates regional DDMA response.", "STATE SEOC", HelplineColorType.GREEN),
-        Helpline("Medical Emergency", "108", "102", "Ambulance and medical emergency dispatch — connects to nearest hospital.", "AMBULANCE", HelplineColorType.RED),
-        Helpline("Police Emergency (ERSS)", "112", "100", "Emergency Response Support System — national unified police emergency.", "POLICE ERSS", HelplineColorType.GREEN),
-        Helpline("Fire & Rescue", "101", "+91 361 2540101", "Fire service and urban search & rescue — building collapse, fire, trapped persons.", "RESCUE", HelplineColorType.AMBER),
+        Helpline(T("help.ndrfTitle"), "1078", "+91 11 26701728", T("help.ndrfDesc"), T("help.ndrfBadge"), HelplineColorType.RED),
+        Helpline(T("help.seocTitle"), "1070", "+91 361 2237221", T("help.seocDesc"), T("help.seocBadge"), HelplineColorType.GREEN),
+        Helpline(T("help.medicalTitle"), "108", "102", T("help.medicalDesc"), T("help.medicalBadge"), HelplineColorType.RED),
+        Helpline(T("help.policeTitle"), "112", "100", T("help.policeDesc"), T("help.policeBadge"), HelplineColorType.GREEN),
+        Helpline(T("help.fireTitle"), "101", "+91 361 2540101", T("help.fireDesc"), T("help.fireBadge"), HelplineColorType.AMBER),
     )
 
     Column(
@@ -42,7 +42,7 @@ fun HelpScreen() {
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        PageHeader(tag = T.get("help.categoryHeader"), title = T.get("help.title"))
+        PageHeader(tag = T("help.categoryHeader"), title = T("help.title"))
 
         // Audio readout banner
         Surface(
@@ -66,8 +66,8 @@ fun HelpScreen() {
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(T.get("help.subtitle"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(T.get("help.tollFreeSub"), style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                    Text(T("help.subtitle"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(T("help.tollFreeSub"), style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
                 }
                 IconButton(onClick = { /* Audio */ }) {
                     Icon(Icons.Filled.VolumeUp, null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
@@ -76,7 +76,7 @@ fun HelpScreen() {
         }
 
         // Helplines
-        Text(T.get("help.helplinesHeader"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
+        Text(T("help.helplinesHeader"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
 
         helplines.forEach { helpline ->
             HelplineCard(helpline) {
@@ -90,13 +90,13 @@ fun HelpScreen() {
             modifier = Modifier.fillMaxWidth(),
             backgroundColor = MapBackground
         ) {
-            Text(T.get("help.agenciesHeader"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
+            Text(T("help.agenciesHeader"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
             Spacer(Modifier.height(10.dp))
 
             val agencies = listOf(
-                Triple("NDRF Regional HQ", "Guwahati, Assam", "+91 361 2840001"),
-                Triple("SDRF Battalion HQ", "Jorhat, Assam", "+91 361 2237011"),
-                Triple("MDoNER Ministry", "Shillong, Meghalaya", "+91 364 2522000"),
+                Triple(T("help.ndrfHq"), T("help.ndrfLoc"), "+91 361 2840001"),
+                Triple(T("help.sdrfHq"), T("help.sdrfLoc"), "+91 361 2237011"),
+                Triple(T("help.mdonerHq"), T("help.mdonerLoc"), "+91 364 2522000"),
             )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -117,12 +117,12 @@ fun HelpScreen() {
         }
 
         // Survival Guidance
-        Text(T.get("help.guidanceHeader"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
+        Text(T("help.guidanceHeader"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GuidanceCard("LANDSLIDE", EmergencyRed, T.get("help.landslideGuidance"), Modifier.weight(1f))
-            GuidanceCard("FLASH FLOOD", PrimaryGreen, T.get("help.floodGuidance"), Modifier.weight(1f))
-            GuidanceCard("EARTHQUAKE", WarningAmber, T.get("help.quakeGuidance"), Modifier.weight(1f))
+            GuidanceCard(T("help.landslideTitle"), EmergencyRed, T("help.landslideGuidance"), Modifier.weight(1f))
+            GuidanceCard(T("help.floodTitle"), PrimaryGreen, T("help.floodGuidance"), Modifier.weight(1f))
+            GuidanceCard(T("help.quakeTitle"), WarningAmber, T("help.quakeGuidance"), Modifier.weight(1f))
         }
 
         // Offline SMS notice
@@ -135,9 +135,9 @@ fun HelpScreen() {
                 Icon(Icons.Filled.Sms, null, tint = EmergencyRed, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text(T.get("help.offlineTitle"), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), color = EmergencyRed, fontWeight = FontWeight.Black)
+                    Text(T("help.offlineTitle"), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), color = EmergencyRed, fontWeight = FontWeight.Black)
                     Spacer(Modifier.height(4.dp))
-                    Text(T.get("help.offlineMessage"), style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextPrimaryLight)
+                    Text(T("help.offlineMessage"), style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextPrimaryLight)
                 }
             }
         }
@@ -189,7 +189,7 @@ private fun HelplineCard(helpline: Helpline, onCall: () -> Unit) {
             CcButton(onClick = onCall, variant = CcButtonVariant.Emergency) {
                 Icon(Icons.Filled.Phone, null, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Call (${helpline.number})", style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp))
+                Text("${T("help.callButton")} (${helpline.number})", style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp))
             }
         }
     }
