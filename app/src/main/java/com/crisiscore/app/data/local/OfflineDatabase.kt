@@ -1,72 +1,58 @@
 package com.crisiscore.app.data.local
 
-import android.content.Context
 import androidx.room.*
-import com.crisiscore.app.data.model.IncidentReportPayload
-import com.crisiscore.app.data.model.SosPayload
-import kotlinx.coroutines.flow.Flow
-
-@Entity(tableName = "pending_sos")
-data class PendingSosEntity(
-    @PrimaryKey val id: String,
-    val payloadJson: String,
-    val createdAt: Long,
-    val synced: Boolean = false,
-    val attempts: Int = 0
-)
+import com.crisiscore.app.data.model.IncidentRequest
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Entity(tableName = "pending_incidents")
 data class PendingIncidentEntity(
-    @PrimaryKey val id: String,
-    val payloadJson: String,
-    val createdAt: Long,
-    val synced: Boolean = false,
-    val attempts: Int = 0
-)
-
-@Dao
-interface OfflineDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSos(entry: PendingSosEntity)
-
-    @Query("SELECT * FROM pending_sos ORDER BY createdAt DESC")
-    fun getAllSos(): Flow<List<PendingSosEntity>>
-
-    @Query("UPDATE pending_sos SET synced = 1 WHERE id = :id")
-    suspend fun markSosSynced(id: String)
-
-    @Delete
-    suspend fun deleteSos(entry: PendingSosEntity)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertIncident(entry: PendingIncidentEntity)
-
-    @Query("SELECT * FROM pending_incidents ORDER BY createdAt DESC")
-    fun getAllIncidents(): Flow<List<PendingIncidentEntity>>
-
-    @Query("UPDATE pending_incidents SET synced = 1 WHERE id = :id")
-    suspend fun markIncidentSynced(id: String)
-
-    @Delete
-    suspend fun deleteIncident(entry: PendingIncidentEntity)
+    @PrimaryKey val idempotencyKey: String,
+    val incidentJson: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val retryCount: Int = 0,
+    val lastAttemptAt: Long = 0
+) {
+    fun toIncidentRequest(json: Json = Json.Default): IncidentRequest =
+        json.decodeFromString(incidentJson)
 }
 
-@Database(entities = [PendingSosEntity::class, PendingIncidentEntity::class], version = 1, exportSchema = false)
-abstract class CrisisCoreDatabase : RoomDatabase() {
-    abstract fun offlineDao(): OfflineDao
+@Dao
+interface PendingIncidentDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(incident: PendingIncidentEntity)
+
+    @Query("SELECT * FROM pending_incidents ORDER BY createdAt ASC")
+    suspend fun getAll(): List<PendingIncidentEntity>
+
+    @Query("SELECT * FROM pending_incidents WHERE idempotencyKey = :key")
+    suspend fun getByIdempotencyKey(key: String): PendingIncidentEntity?
+
+    @Query("DELETE FROM pending_incidents WHERE idempotencyKey = :key")
+    suspend fun deleteByIdempotencyKey(key: String)
+
+    @Query("DELETE FROM pending_incidents")
+    suspend fun clearAll()
+
+    @Query("UPDATE pending_incidents SET retryCount = retryCount + 1, lastAttemptAt = :now WHERE idempotencyKey = :key")
+    suspend fun incrementRetryCount(key: String, now: Long)
+}
+
+@Database(entities = [PendingIncidentEntity::class], version = 1, exportSchema = false)
+abstract class OfflineDatabase : RoomDatabase() {
+    abstract fun pendingIncidentDao(): PendingIncidentDao
 
     companion object {
-        @Volatile
-        private var INSTANCE: CrisisCoreDatabase? = null
+        @Volatile private var INSTANCE: OfflineDatabase? = null
 
-        fun getInstance(context: Context): CrisisCoreDatabase {
-            return INSTANCE ?: synchronized(this) {
-                Room.databaseBuilder(
+        fun getInstance(context: android.content.Context): OfflineDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
-                    CrisisCoreDatabase::class.java,
-                    "crisiscore_offline.db"
+                    OfflineDatabase::class.java,
+                    "offline_database"
                 ).build().also { INSTANCE = it }
             }
-        }
     }
 }

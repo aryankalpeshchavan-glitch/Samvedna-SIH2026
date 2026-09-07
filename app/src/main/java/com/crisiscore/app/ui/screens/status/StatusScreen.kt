@@ -3,7 +3,6 @@ package com.crisiscore.app.ui.screens.status
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -16,8 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,8 +29,7 @@ import com.crisiscore.app.util.T
 fun StatusScreen(
     sosState: SosState,
     sosDetail: SosStatusDetail,
-    onReset: () -> Unit,
-    onSimulate: (SosState) -> Unit
+    onReset: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -50,7 +46,6 @@ fun StatusScreen(
             EmptySosState()
         }
 
-        // Volunteer Verification QR
         CcCard(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -74,46 +69,6 @@ fun StatusScreen(
                     Icon(Icons.Filled.QrCodeScanner, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(T("status.verifyButton"), style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
-
-        // State Simulator
-        CcCard(modifier = Modifier.fillMaxWidth()) {
-            Text(T("status.simulatorTitle"), style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                T("status.simulatorText"),
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondaryLight
-            )
-            Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                listOf(
-                    SosState.IDLE, SosState.SENDING, SosState.SENT,
-                    SosState.VERIFIED, SosState.VOLUNTEER_EN_ROUTE, SosState.RESOLVED
-                ).forEach { state ->
-                    val isActive = sosState == state
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onSimulate(state) },
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isActive) PrimaryGreen else SurfaceLight,
-                        border = if (isActive) null else ButtonDefaults.outlinedButtonBorder()
-                    ) {
-                        Text(
-                            state.name.take(6),
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                            color = if (isActive) CanvasLight else TextPrimaryLight,
-                            textAlign = TextAlign.Center
-                        )
-                    }
                 }
             }
         }
@@ -165,7 +120,6 @@ private fun ActiveSosTracker(
 
         Spacer(Modifier.height(16.dp))
 
-        // Timeline stepper
         steps.forEachIndexed { index, (title, desc, icon) ->
             val isCompleted = index <= currentIndex
             val isCurrent = index == currentIndex
@@ -228,8 +182,12 @@ private fun ActiveSosTracker(
                         ),
                         color = if (isCompleted) TextPrimaryLight else TextSecondaryLight
                     )
-                    Text(desc, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = TextSecondaryLight)
-                    if (index == currentIndex) {
+                    Text(
+                        desc,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = TextSecondaryLight
+                    )
+                    if (isCurrent) {
                         Spacer(Modifier.height(4.dp))
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -246,10 +204,8 @@ private fun ActiveSosTracker(
                     }
                 }
             }
-            if (index < steps.lastIndex) Spacer(Modifier.height(0.dp))
         }
 
-        // Responder info
         if (sosDetail.assignedVolunteerName != null) {
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = BorderLight)
@@ -266,9 +222,18 @@ private fun ActiveSosTracker(
                     Icon(Icons.Filled.Person, null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(sosDetail.assignedVolunteerName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                        Text(
+                            sosDetail.assignedVolunteerName,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryGreen
+                        )
                         if (sosDetail.etaMinutes != null) {
-                            Text("${T("status.eta")} ${sosDetail.etaMinutes} ${T("status.mins")}", style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                            Text(
+                                "${T("status.eta")} ${sosDetail.etaMinutes} ${T("status.mins")}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondaryLight
+                            )
                         }
                     }
                     CcButton(onClick = {}, variant = CcButtonVariant.Secondary) {
@@ -286,7 +251,11 @@ private fun ActiveSosTracker(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("${T("status.stateLabel")} ${sosState.name}", style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
+            Text(
+                "${T("status.stateLabel")} ${sosState.name}",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondaryLight
+            )
             CcButton(onClick = onReset, variant = CcButtonVariant.Outline) {
                 Text(T("status.resetButton"))
             }
@@ -324,7 +293,9 @@ private fun EmptySosState() {
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondaryLight,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 32.dp).padding(top = 4.dp)
+                modifier = Modifier
+                    .padding(horizontal = 32.dp)
+                    .padding(top = 4.dp)
             )
         }
     }

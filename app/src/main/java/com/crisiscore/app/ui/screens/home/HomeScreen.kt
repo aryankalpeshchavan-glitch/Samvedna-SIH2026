@@ -1,8 +1,13 @@
 package com.crisiscore.app.ui.screens.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -68,7 +73,10 @@ fun HomeScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (isEmergencyMode) {
+        AnimatedVisibility(
+            visible = isEmergencyMode,
+            enter = fadeIn(tween(250)) + slideInVertically(tween(300)) { -it / 3 }
+        ) {
             ClaySurface(
                 color = EmergencyRed,
                 modifier = Modifier.fillMaxWidth(),
@@ -128,8 +136,14 @@ fun HomeScreen(
             DataSourceBadge(if (feedIsLive) "live" else "synthetic")
         }
 
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(topZones.take(5), key = { it.zone_id ?: it.name ?: it.lat.toString() }) { zone ->
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            state = rememberLazyListState()
+        ) {
+            items(
+                items = topZones.take(5),
+                key = { it.zone_id ?: it.name ?: it.lat.toString() }
+            ) { zone ->
                 RiskZoneCard(zone)
             }
         }

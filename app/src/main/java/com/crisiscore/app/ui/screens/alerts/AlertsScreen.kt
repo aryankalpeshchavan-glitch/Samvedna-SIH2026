@@ -1,5 +1,6 @@
 package com.crisiscore.app.ui.screens.alerts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,7 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crisiscore.app.data.model.Alert
@@ -20,26 +23,9 @@ import com.crisiscore.app.ui.theme.*
 import com.crisiscore.app.util.T
 
 @Composable
-fun AlertsScreen() {
-    val alerts = listOf(
-        Alert(
-            id = "alert-1",
-            title = T("alerts.sample1.title"),
-            body = T("alerts.sample1.body"),
-            level = SeverityLevel.CRITICAL,
-            issuedAgo = T("alerts.sample1.issuedAgo"),
-            source = T("alerts.sample1.source")
-        ),
-        Alert(
-            id = "alert-2",
-            title = T("alerts.sample2.title"),
-            body = T("alerts.sample2.body"),
-            level = SeverityLevel.HIGH,
-            issuedAgo = T("alerts.sample2.issuedAgo"),
-            source = T("alerts.sample2.source")
-        )
-    )
-
+fun AlertsScreen(
+    alerts: List<Alert> = emptyList()
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -49,7 +35,6 @@ fun AlertsScreen() {
     ) {
         PageHeader(tag = T("alerts.headerTag"), title = T("alerts.title"))
 
-        // Info banner
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -65,12 +50,55 @@ fun AlertsScreen() {
             }
         }
 
-        // Alert cards
-        alerts.forEach { alert ->
-            AlertCard(alert)
+        if (alerts.isEmpty()) {
+            EmptyAlertsState()
+        } else {
+            alerts.forEach { alert ->
+                AlertCard(alert)
+            }
         }
 
         Spacer(Modifier.height(80.dp))
+    }
+}
+
+@Composable
+private fun EmptyAlertsState() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 40.dp, horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(PrimaryGreen.copy(alpha = 0.08f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Filled.NotificationsOff,
+                null,
+                tint = PrimaryGreen.copy(alpha = 0.35f),
+                modifier = Modifier.size(36.dp)
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            T("alerts.title"),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Black,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            T("alerts.sub"),
+            style = MaterialTheme.typography.bodySmall,
+            color = TextSecondaryLight,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -94,7 +122,12 @@ private fun AlertCard(alert: Alert) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Warning, null, tint = borderColor, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(alert.title, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = borderColor, fontWeight = FontWeight.Bold)
+                Text(
+                    alert.title,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    color = borderColor,
+                    fontWeight = FontWeight.Bold
+                )
             }
             SeverityBadge(alert.level.name)
         }
@@ -119,7 +152,7 @@ private fun AlertCard(alert: Alert) {
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                 color = TextSecondaryLight
             )
-            IconButton(onClick = { /* Audio readout */ }, modifier = Modifier.size(28.dp)) {
+            IconButton(onClick = { }, modifier = Modifier.size(28.dp)) {
                 Icon(Icons.Filled.VolumeUp, null, tint = PrimaryGreen, modifier = Modifier.size(16.dp))
             }
         }

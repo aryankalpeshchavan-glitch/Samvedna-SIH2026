@@ -11,9 +11,28 @@ interface CrisisCoreApi {
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
+    // Intelligence / Decision endpoint for home risk
+    @POST("intelligence/decision")
+    suspend fun getDecision(@Body request: DecisionRequest): Response<DecisionResponse>
+
+    // Risk endpoints
+    @GET("risk")
+    suspend fun getRiskZones(@Query("bbox") bbox: String? = null): Response<List<RiskZone>>
+
+    @GET("risk/{zone_id}/explain")
+    suspend fun getRiskExplanation(@Path("zone_id") zoneId: String): Response<RiskExplanation>
+
+    // Incident endpoints
     @POST("incidents")
     suspend fun createIncident(@Body request: IncidentRequest): Response<IncidentResponse>
 
-    @GET("risk")
-    suspend fun getRisk(@Query("bbox") bbox: String? = null): Response<List<RiskZone>>
+    @POST("incidents/sync")
+    suspend fun syncIncidents(@Body request: SyncIncidentsRequest): Response<SyncIncidentsResponse>
+
+    @GET("incidents/{incident_id}")
+    suspend fun getIncident(@Path("incident_id") incidentId: String): Response<IncidentDetail>
+
+    // Notifications
+    @GET("notifications")
+    suspend fun getNotifications(@Query("since") since: String? = null): Response<List<Notification>>
 }

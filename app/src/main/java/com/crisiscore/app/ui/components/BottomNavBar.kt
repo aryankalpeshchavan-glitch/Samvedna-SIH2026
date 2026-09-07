@@ -1,11 +1,16 @@
 package com.crisiscore.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -14,12 +19,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.crisiscore.app.ui.theme.*
+import com.crisiscore.app.ui.theme.CanvasLight
+import com.crisiscore.app.ui.theme.ClayShapes
+import com.crisiscore.app.ui.theme.EmergencyRed
+import com.crisiscore.app.ui.theme.PrimaryGreen
+import com.crisiscore.app.ui.theme.TextSecondaryLight
 import com.crisiscore.app.util.T
 
 enum class TabType { Home, Incident, Status, Family, Alerts, Help }
@@ -42,11 +53,11 @@ fun BottomNavBar(
         NavTabItem(TabType.Help, "nav.help", Icons.Outlined.Help, Icons.Filled.Help),
     )
 
-    ClaySurface(
-        color = CanvasLight.copy(alpha = 0.97f),
+    Surface(
         modifier = modifier,
         shape = ClayShapes.card,
-        depth = 12.dp
+        color = CanvasLight.copy(alpha = 0.98f),
+        shadowElevation = 12.dp
     ) {
         Row(
             modifier = Modifier
@@ -76,26 +87,47 @@ private fun NavTile(
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
+    val isPressed by interactionSource.collectIsPressedAsState()
 
-    ClaySurface(
-        color = if (isActive) PrimaryGreen else ClayCreamTint,
+    val bgColor by animateColorAsState(
+        targetValue = if (isActive) PrimaryGreen else Color.Transparent,
+        animationSpec = tween(durationMillis = 200),
+        label = "navBg"
+    )
+    val iconSize by animateDpAsState(
+        targetValue = if (isActive) 24.dp else 20.dp,
+        animationSpec = tween(durationMillis = 150),
+        label = "navIconSize"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = tween(durationMillis = 80),
+        label = "navPress"
+    )
+
+    Box(
         modifier = Modifier
             .width(52.dp)
             .graphicsLayer {
-                scaleX = if (pressed) 0.9f else 1f
-                scaleY = if (pressed) 0.9f else 1f
-            },
-        shape = ClayShapes.control,
-        depth = if (isActive) 6.dp else 3.dp,
-        tint = if (isActive) null else BorderLight.copy(alpha = 0.5f),
-        contentColor = if (isActive) CanvasLight else TextSecondaryLight,
-        onClick = onClick
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = if (isActive) 6.dp else 0.dp,
+                shape = ClayShapes.control,
+                clip = false
+            )
+            .clip(ClayShapes.control)
+            .background(bgColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier
-                .padding(vertical = 6.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(vertical = 6.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -107,13 +139,13 @@ private fun NavTile(
                     imageVector = if (isActive) tab.activeIcon else tab.icon,
                     contentDescription = T(tab.labelKey),
                     tint = if (isActive) CanvasLight else TextSecondaryLight,
-                    modifier = Modifier.size(if (isActive) 24.dp else 20.dp)
+                    modifier = Modifier.size(iconSize)
                 )
                 if (isSosIndicator) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .offset(x = -2.dp, y = 2.dp)
+                            .offset(x = (-2).dp, y = 2.dp)
                             .size(9.dp)
                             .clip(CircleShape)
                             .background(EmergencyRed)

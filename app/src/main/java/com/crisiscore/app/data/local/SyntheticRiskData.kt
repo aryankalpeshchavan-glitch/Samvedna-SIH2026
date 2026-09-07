@@ -1,5 +1,6 @@
 package com.crisiscore.app.data.local
 
+import com.crisiscore.app.data.model.RiskExplanation
 import com.crisiscore.app.data.model.RiskZone
 
 object SyntheticRiskData {
@@ -17,4 +18,32 @@ object SyntheticRiskData {
         RiskZone("rz-10", "Fancy Bazar", 26.1730, 91.6980, 28.0, "LOW", "synthetic"),
         RiskZone("rz-11", "Beltola", 26.1200, 91.8200, 22.0, "LOW", "synthetic"),
     )
+
+    fun explanation(zoneId: String): RiskExplanation {
+        val zone = zones().find { it.zone_id == zoneId }
+        val risk = zone?.risk_level ?: "LOW"
+        val confidence = zone?.risk_score?.div(100.0) ?: 0.5
+        val drivers = when (risk) {
+            "CRITICAL" -> listOf("Proximity to river/flood zone", "High rainfall in catchment area", "Saturated soil conditions")
+            "HIGH" -> listOf("Moderate slope instability", "Recent precipitation events", "Limited drainage capacity")
+            "MEDIUM" -> listOf("Elevated groundwater levels", "Seasonal rainfall patterns", "Urban runoff contributing to risk")
+            "WATCH" -> listOf("Slightly elevated baseline risk", "Monitor conditions during monsoon")
+            else -> listOf("Low baseline risk", "Normal seasonal conditions")
+        }
+        val actions = when (risk) {
+            "CRITICAL" -> listOf("Evacuate if advised", "Move to higher ground", "Monitor emergency channels")
+            "HIGH" -> listOf("Stay alert for updates", "Prepare emergency kit", "Know evacuation routes")
+            "MEDIUM" -> listOf("Stay informed", "Keep phone charged", "Review family safety plan")
+            "WATCH" -> listOf("Monitor weather updates", "Review emergency contacts")
+            else -> listOf("Stay aware of conditions", "No immediate action required")
+        }
+        return RiskExplanation(
+            zone_id = zoneId,
+            risk = risk,
+            confidence = confidence,
+            drivers = drivers,
+            actions = actions,
+            freshness = "synthetic-feed"
+        )
+    }
 }

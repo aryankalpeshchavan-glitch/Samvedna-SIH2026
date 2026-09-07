@@ -84,7 +84,8 @@ fun CrisisCoreNavHost() {
             AnimatedContent(
                 targetState = activeTab,
                 transitionSpec = {
-                    fadeIn(tween(180)) togetherWith fadeOut(tween(120))
+                    slideInHorizontally(tween(200)) { it / 8 } + fadeIn(tween(200)) togetherWith
+                    slideOutHorizontally(tween(150)) { -it / 8 } + fadeOut(tween(150))
                 },
                 label = "tabTransition"
             ) { tab ->
@@ -104,11 +105,10 @@ fun CrisisCoreNavHost() {
                     TabType.Status -> StatusScreen(
                         sosState = sosState,
                         sosDetail = sosDetail,
-                        onReset = resetSos,
-                        onSimulate = { sosState = it }
+                        onReset = resetSos
                     )
                     TabType.Family -> FamilyScreen()
-                    TabType.Alerts -> AlertsScreen()
+                    TabType.Alerts -> AlertsScreen(alerts = emptyList())
                     TabType.Help -> HelpScreen()
                 }
             }

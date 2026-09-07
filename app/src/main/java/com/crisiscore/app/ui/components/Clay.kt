@@ -1,12 +1,14 @@
 package com.crisiscore.app.ui.components
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,10 +21,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -37,53 +37,6 @@ import com.crisiscore.app.ui.theme.*
 import com.crisiscore.app.util.T
 import kotlin.math.roundToInt
 
-private fun lerpColor(a: Color, b: Color, t: Float): Color = Color(
-    red = a.red + (b.red - a.red) * t,
-    green = a.green + (b.green - a.green) * t,
-    blue = a.blue + (b.blue - a.blue) * t,
-    alpha = a.alpha + (b.alpha - a.alpha) * t
-)
-
-@Composable
-private fun clayShadow(): Color = if (isSystemInDarkTheme()) ClayShadowNight else ClayShadow
-
-@Composable
-private fun clayHighlight(): Color = if (isSystemInDarkTheme()) Color.Transparent else ClayHighlight
-
-@Composable
-fun Modifier.clayBody(
-    color: Color,
-    shape: RoundedCornerShape,
-    pressed: Boolean,
-    depth: Dp,
-    tint: Color? = null,
-    shadow: Color,
-    highlight: Color
-): Modifier = composed {
-    val elevation = if (pressed) depth * 0.28f else depth
-    val top = lerpColor(color, Color.White, if (pressed) 0.015f else 0.16f)
-    val bottom = lerpColor(color, Color.Black, if (pressed) 0.12f else 0.05f)
-    this
-        .graphicsLayer {
-            translationY = if (pressed) depth.toPx() * 0.26f else 0f
-            scaleX = if (pressed) 0.975f else 1f
-            scaleY = if (pressed) 0.975f else 1f
-        }
-        .shadow(elevation, shape, clip = false, ambientColor = shadow, spotColor = shadow)
-        .shadow(if (pressed) 0.dp else 2.dp, shape, clip = false, ambientColor = highlight, spotColor = highlight)
-        .clip(shape)
-        .background(
-            Brush.linearGradient(
-                colors = listOf(top, color, bottom),
-                start = Offset.Zero,
-                end = Offset.Infinite
-            )
-        )
-        .then(
-            if (tint != null) Modifier.border(BorderStroke(1.dp, tint.copy(alpha = 0.55f)), shape) else Modifier
-        )
-}
-
 @Composable
 fun ClaySurface(
     color: Color,
@@ -96,13 +49,40 @@ fun ClaySurface(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val shadow = clayShadow()
-    val highlight = clayHighlight()
     val interactionSource = remember { MutableInteractionSource() }
-    val pressed by if (onClick != null) interactionSource.collectIsPressedAsState() else remember { mutableStateOf(false) }
+    val isPressed by if (onClick != null) interactionSource.collectIsPressedAsState() else remember { mutableStateOf(false) }
+
+    val animatedElevation by animateDpAsState(
+        targetValue = if (isPressed) depth * 0.3f else depth,
+        animationSpec = tween(durationMillis = 120),
+        label = "clayElevation"
+    )
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "clayScale"
+    )
+
+    val topColor = lerpColor(color, Color.White, if (isPressed) 0.02f else 0.14f)
+    val bottomColor = lerpColor(color, Color.Black, if (isPressed) 0.10f else 0.04f)
 
     val base = Modifier
-        .clayBody(color, shape, pressed, depth, tint, shadow, highlight)
+        .graphicsLayer {
+            scaleX = animatedScale
+            scaleY = animatedScale
+        }
+        .shadow(animatedElevation, shape, clip = false, ambientColor = ClayShadow, spotColor = ClayShadow)
+        .clip(shape)
+        .background(
+            Brush.verticalGradient(
+                colors = listOf(topColor, color, bottomColor),
+                startY = 0f,
+                endY = Float.POSITIVE_INFINITY
+            )
+        )
+        .then(
+            if (tint != null) Modifier.border(BorderStroke(1.dp, tint.copy(alpha = 0.5f)), shape) else Modifier
+        )
         .then(
             if (onClick != null) {
                 Modifier.clickable(
@@ -116,18 +96,6 @@ fun ClaySurface(
 
     val resolvedContent = LocalContentColor.current
     Box(modifier = modifier.then(base)) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(shape)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.10f), Color.Transparent),
-                        startY = 0f,
-                        endY = 0.62f
-                    )
-                )
-        )
         CompositionLocalProvider(LocalContentColor provides (if (contentColor == Color.Unspecified) resolvedContent else contentColor)) {
             content()
         }
@@ -180,12 +148,15 @@ fun ClayTextButton(
     content: @Composable RowScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val alpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.5f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "textBtnAlpha"
+    )
     Row(
         modifier = modifier
-            .graphicsLayer {
-                alpha = if (pressed) 0.6f else 1f
-            }
+            .graphicsLayer { this.alpha = alpha }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -210,21 +181,12 @@ fun EmergencySosButton(
     val pulse = rememberInfiniteTransition(label = "sosPulse")
     val scale by pulse.animateFloat(
         initialValue = 1f,
-        targetValue = 1.018f,
+        targetValue = 1.015f,
         animationSpec = infiniteRepeatable(
-            animation = tween(700, easing = FastOutSlowInEasing),
+            animation = tween(800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "sosScale"
-    )
-    val alpha by pulse.animateFloat(
-        initialValue = 0.92f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(700, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "sosAlpha"
     )
 
     ClaySurface(
@@ -233,9 +195,8 @@ fun EmergencySosButton(
             .fillMaxWidth()
             .height(62.dp)
             .graphicsLayer {
-                this.scaleX = scale
-                this.scaleY = scale
-                this.alpha = alpha
+                scaleX = scale
+                scaleY = scale
             },
         shape = ClayShapes.pill,
         depth = 12.dp,
@@ -311,6 +272,13 @@ fun ClayChip(
         }
     }
 }
+
+private fun lerpColor(a: Color, b: Color, t: Float): Color = Color(
+    red = a.red + (b.red - a.red) * t,
+    green = a.green + (b.green - a.green) * t,
+    blue = a.blue + (b.blue - a.blue) * t,
+    alpha = a.alpha + (b.alpha - a.alpha) * t
+)
 
 internal fun riskLevelColor(level: String): Color = when (level.uppercase()) {
     "CRITICAL" -> RiskCritical

@@ -1,6 +1,13 @@
 package com.crisiscore.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.*
@@ -8,11 +15,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.crisiscore.app.ui.theme.*
+import com.crisiscore.app.ui.theme.CanvasLight
+import com.crisiscore.app.ui.theme.ClayCreamTint
+import com.crisiscore.app.ui.theme.ClayRedTint
+import com.crisiscore.app.ui.theme.ClayShapes
+import com.crisiscore.app.ui.theme.EmergencyRed
+import com.crisiscore.app.ui.theme.PrimaryGreen
+import com.crisiscore.app.ui.theme.TextSecondaryLight
 import com.crisiscore.app.util.LocaleManager
 import com.crisiscore.app.util.T
 
@@ -24,11 +40,11 @@ fun AppHeader(
     val currentLang by LocaleManager.currentLanguage.collectAsState()
     var showLangMenu by remember { mutableStateOf(false) }
 
-    ClaySurface(
-        color = CanvasLight.copy(alpha = 0.97f),
+    Surface(
         modifier = modifier.fillMaxWidth(),
         shape = ClayShapes.card,
-        depth = 8.dp
+        color = CanvasLight.copy(alpha = 0.98f),
+        shadowElevation = 8.dp
     ) {
         Row(
             modifier = Modifier
@@ -38,21 +54,20 @@ fun AppHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ClaySurface(
-                    color = PrimaryGreen,
-                    modifier = Modifier.size(38.dp),
-                    shape = ClayShapes.control,
-                    depth = 6.dp,
-                    contentColor = CanvasLight
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .shadow(4.dp, ClayShapes.control, clip = false)
+                        .clip(ClayShapes.control)
+                        .background(PrimaryGreen),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Filled.Shield,
-                            contentDescription = null,
-                            tint = CanvasLight,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(
+                        Icons.Filled.Shield,
+                        contentDescription = null,
+                        tint = CanvasLight,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
                 Spacer(Modifier.width(10.dp))
                 Column {
@@ -77,22 +92,17 @@ fun AppHeader(
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box {
-                    ClaySurface(
+                    HeaderIconButton(
                         color = ClayCreamTint,
-                        modifier = Modifier.size(40.dp),
-                        shape = ClayShapes.control,
-                        depth = 4.dp,
-                        contentColor = PrimaryGreen,
+                        iconTint = PrimaryGreen,
                         onClick = { showLangMenu = true }
                     ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Outlined.Language,
-                                contentDescription = "Language",
-                                tint = PrimaryGreen,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        Icon(
+                            Icons.Outlined.Language,
+                            contentDescription = "Language",
+                            tint = PrimaryGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                     DropdownMenu(expanded = showLangMenu, onDismissRequest = { showLangMenu = false }) {
                         LocaleManager.supportedLanguages.forEach { (code, label, native) ->
@@ -113,24 +123,55 @@ fun AppHeader(
                     }
                 }
 
-                ClaySurface(
+                HeaderIconButton(
                     color = ClayRedTint,
-                    modifier = Modifier.size(40.dp),
-                    shape = ClayShapes.control,
-                    depth = 4.dp,
-                    contentColor = EmergencyRed,
+                    iconTint = EmergencyRed,
                     onClick = onHelpClick
                 ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Outlined.HelpOutline,
-                            contentDescription = T("nav.help"),
-                            tint = EmergencyRed,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(
+                        Icons.Outlined.HelpOutline,
+                        contentDescription = T("nav.help"),
+                        tint = EmergencyRed,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HeaderIconButton(
+    color: Color,
+    iconTint: Color,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(80),
+        label = "headerBtn"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(3.dp, ClayShapes.control, clip = false)
+            .clip(ClayShapes.control)
+            .background(color)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
     }
 }

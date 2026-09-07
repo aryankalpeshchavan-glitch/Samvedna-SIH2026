@@ -1,10 +1,13 @@
 package com.crisiscore.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -14,7 +17,16 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.crisiscore.app.ui.theme.*
+import com.crisiscore.app.ui.theme.BorderLight
+import com.crisiscore.app.ui.theme.CanvasLight
+import com.crisiscore.app.ui.theme.ClayCreamTint
+import com.crisiscore.app.ui.theme.ClayShapes
+import com.crisiscore.app.ui.theme.EmergencyRed
+import com.crisiscore.app.ui.theme.PrimaryGreen
+import com.crisiscore.app.ui.theme.SurfaceLight
+import com.crisiscore.app.ui.theme.TextPrimaryLight
+import com.crisiscore.app.ui.theme.TextSecondaryLight
+import com.crisiscore.app.ui.theme.WarningAmber
 
 enum class CcButtonVariant { Emergency, Warning, Secondary, Outline, Ghost }
 
@@ -68,7 +80,7 @@ fun CcCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     ClaySurface(
-        color = if (backgroundColor == SurfaceLight) ClayCreamTint else backgroundColor,
+        color = ClayCreamTint,
         modifier = modifier,
         shape = ClayShapes.card,
         depth = 8.dp,
@@ -96,10 +108,15 @@ fun DataSourceBadge(type: String = "synthetic", modifier: Modifier = Modifier) {
         "synthetic" -> "SYNTHETIC DEMO" to WarningAmber
         else -> "DEMO DATA" to TextSecondaryLight
     }
+    val bgColor by animateColorAsState(
+        targetValue = color.copy(alpha = 0.12f),
+        animationSpec = tween(300),
+        label = "badgeBg"
+    )
     Row(
         modifier = modifier
             .clip(ClayShapes.chip)
-            .background(color.copy(alpha = 0.12f))
+            .background(bgColor)
             .padding(horizontal = 8.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

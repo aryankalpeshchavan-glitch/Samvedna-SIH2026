@@ -117,7 +117,8 @@ data class IncidentRequest(
     val description: String,
     val lat: Double,
     val lng: Double,
-    val severity: Int
+    val severity: Int,
+    val idempotency_key: String
 )
 
 @Serializable
@@ -137,3 +138,91 @@ data class RiskZone(
     val data_status: String = "unavailable"
 )
 
+// Decision endpoint models
+@Serializable
+data class DecisionRequest(
+    val lat: Double,
+    val lng: Double
+)
+
+@Serializable
+data class DecisionResponse(
+    val risk: String,           // LOW, WATCH, MEDIUM, HIGH, CRITICAL
+    val confidence: Double,     // 0.0 - 1.0
+    val drivers: List<String>,  // Explanation factors
+    val actions: List<String>,  // Recommended actions
+    val data_status: String,    // live, synthetic, replayed
+    val freshness: String,      // ISO8601 timestamp
+    val explanation: String? = null
+)
+
+// Risk explanation
+@Serializable
+data class RiskExplanation(
+    val zone_id: String,
+    val risk: String,
+    val confidence: Double,
+    val drivers: List<String>,
+    val actions: List<String>,
+    val freshness: String
+)
+
+// Sync endpoints
+@Serializable
+data class SyncIncidentsRequest(
+    val incidents: List<IncidentRequest>
+)
+
+@Serializable
+data class SyncIncidentsResponse(
+    val synced: List<SyncedIncident>,
+    val failed: List<FailedIncident>
+)
+
+@Serializable
+data class SyncedIncident(
+    val idempotency_key: String,
+    val incident_id: String,
+    val status: String
+)
+
+@Serializable
+data class FailedIncident(
+    val idempotency_key: String,
+    val error: String
+)
+
+// Incident detail for tracking
+@Serializable
+data class IncidentDetail(
+    val id: String,
+    val type: String,
+    val description: String,
+    val lat: Double,
+    val lng: Double,
+    val severity: Int,
+    val status: String,         // submitted, verified, assigned, responding, resolved
+    val created_at: String,
+    val updated_at: String,
+    val citizen_id: String,
+    val assigned_volunteer: AssignedVolunteer? = null
+)
+
+@Serializable
+data class AssignedVolunteer(
+    val name: String,
+    val phone: String,
+    val eta_minutes: Int? = null
+)
+
+// Notifications
+@Serializable
+data class Notification(
+    val id: String,
+    val title: String,
+    val body: String,
+    val type: String,           // incident_update, alert, system
+    val incident_id: String? = null,
+    val created_at: String,
+    val read: Boolean = false
+)

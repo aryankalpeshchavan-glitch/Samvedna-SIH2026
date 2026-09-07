@@ -1,5 +1,8 @@
 package com.crisiscore.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -7,7 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -135,9 +140,23 @@ private fun SosCategoryTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val bgColor by animateColorAsState(
+        targetValue = if (isSelected) EmergencyRed.copy(alpha = 0.16f) else ClayCreamTint,
+        animationSpec = tween(200),
+        label = "catTileBg"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 0.95f else 1f,
+        animationSpec = tween(120),
+        label = "catTileScale"
+    )
+
     ClaySurface(
-        color = if (isSelected) EmergencyRed.copy(alpha = 0.16f) else ClayCreamTint,
-        modifier = modifier,
+        color = bgColor,
+        modifier = modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
         shape = ClayShapes.control,
         depth = if (isSelected) 4.dp else 2.dp,
         tint = if (isSelected) EmergencyRed else BorderLight,
@@ -155,7 +174,7 @@ private fun SosCategoryTile(
                 T("cat.${category}"),
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, lineHeight = 12.sp),
                 color = if (isSelected) EmergencyRed else TextPrimaryLight,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
         }
     }

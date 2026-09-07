@@ -17,17 +17,27 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000\"")
-        buildConfigField("String", "WS_BASE_URL", "\"ws://10.0.2.2:8000/ws/status\"")
+        // Default to emulator URL; overridden per build type
+        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8001/\"")
+        buildConfigField("String", "WS_BASE_URL", "\"ws://10.0.2.2:8001/ws/status\"")
     }
 
     buildTypes {
+        debug {
+            // For physical device on same Wi-Fi: replace with your machine's LAN IP
+            // e.g., "http://192.168.1.50:8001/"
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8001/\"")
+            buildConfigField("String", "WS_BASE_URL", "\"ws://10.0.2.2:8001/ws/status\"")
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Configure with your deployed domain
+            buildConfigField("String", "API_BASE_URL", "\"https://api.samvedna.example/\"")
+            buildConfigField("String", "WS_BASE_URL", "\"wss://api.samvedna.example/ws/status\"")
         }
     }
 
@@ -80,6 +90,8 @@ dependencies {
     implementation("org.maplibre.gl:android-sdk:11.11.0")
 
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 }
 
 configurations.all {
