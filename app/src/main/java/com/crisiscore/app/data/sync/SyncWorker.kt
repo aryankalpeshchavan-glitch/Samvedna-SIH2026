@@ -48,6 +48,9 @@ class SyncWorker(
                 }
             }
 
+            // Clean up incidents that have failed too many times
+            dao.deleteExceededRetries(5)
+
             val remaining = dao.getAll()
             val hasRetriable = remaining.any { it.retryCount < 5 }
             return@withContext if (hasRetriable) Result.retry() else Result.success()

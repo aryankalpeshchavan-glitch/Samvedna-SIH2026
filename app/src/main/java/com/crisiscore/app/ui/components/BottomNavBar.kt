@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -156,12 +157,14 @@ private fun NavTile(
             Text(
                 T(tab.labelKey),
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 6.sp,
+                    fontSize = 9.sp,
+                    fontWeight = if (isActive) FontWeight.Black else FontWeight.Bold,
                     letterSpacing = 0.sp
                 ),
-                color = if (isActive) CanvasLight.copy(alpha = 0.9f) else TextSecondaryLight,
+                color = if (isActive) CanvasLight.copy(alpha = 0.95f) else TextSecondaryLight,
                 textAlign = TextAlign.Center,
-                maxLines = 1
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
         }
     }

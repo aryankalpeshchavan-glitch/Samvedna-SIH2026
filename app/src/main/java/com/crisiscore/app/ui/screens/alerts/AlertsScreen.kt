@@ -20,7 +20,9 @@ import com.crisiscore.app.data.model.Alert
 import com.crisiscore.app.data.model.SeverityLevel
 import com.crisiscore.app.ui.components.*
 import com.crisiscore.app.ui.theme.*
+import com.crisiscore.app.util.LocaleManager
 import com.crisiscore.app.util.T
+import com.crisiscore.app.util.TtsManager
 
 @Composable
 fun AlertsScreen(
@@ -152,7 +154,12 @@ private fun AlertCard(alert: Alert) {
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                 color = TextSecondaryLight
             )
-            IconButton(onClick = { }, modifier = Modifier.size(28.dp)) {
+            IconButton(
+                onClick = {
+                    TtsManager.speak("${alert.title}. ${alert.body}", LocaleManager.currentLanguage.value)
+                },
+                modifier = Modifier.size(28.dp)
+            ) {
                 Icon(Icons.Filled.VolumeUp, null, tint = PrimaryGreen, modifier = Modifier.size(16.dp))
             }
         }

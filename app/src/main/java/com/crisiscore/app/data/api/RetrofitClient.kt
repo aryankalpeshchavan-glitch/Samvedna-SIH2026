@@ -37,7 +37,11 @@ object RetrofitClient {
             .create(CrisisCoreApi::class.java)
     }
 
-    fun getApi(): CrisisCoreApi = api!!
+    fun getApi(): CrisisCoreApi {
+        return api ?: throw IllegalStateException("RetrofitClient not initialized. Ensure RetrofitClient.initialize(context) was called in Application.onCreate().")
+    }
+
+    fun getOkHttpClient(): OkHttpClient = client
 
     fun getBaseUrl(): String = BuildConfig.API_BASE_URL
     fun getWsUrl(): String = BuildConfig.WS_BASE_URL

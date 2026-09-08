@@ -34,23 +34,50 @@ private val LightColorScheme = lightColorScheme(
     onError = CanvasLight,
 )
 
+private val DarkColorScheme = androidx.compose.material3.darkColorScheme(
+    primary = PrimaryGreenLight,
+    onPrimary = CanvasDark,
+    primaryContainer = PrimaryGreenDark,
+    onPrimaryContainer = CanvasLight,
+    secondary = WarningAmber,
+    onSecondary = CanvasDark,
+    secondaryContainer = WarningAmberDark.copy(alpha = 0.2f),
+    onSecondaryContainer = CanvasLight,
+    tertiary = EmergencyRed,
+    onTertiary = CanvasLight,
+    background = CanvasDark,
+    onBackground = TextPrimaryDark,
+    surface = SurfaceDark,
+    onSurface = TextPrimaryDark,
+    surfaceVariant = SurfaceElevatedDark,
+    surfaceContainerLow = CanvasDark,
+    surfaceContainer = SurfaceDark,
+    surfaceContainerHigh = BorderDark.copy(alpha = 0.4f),
+    onSurfaceVariant = TextSecondaryDark,
+    outline = BorderDark,
+    error = EmergencyRed,
+    onError = CanvasLight,
+)
+
 @Composable
 fun CrisisCoreTheme(
+    darkTheme: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = CanvasLight.toArgb()
-            window.navigationBarColor = CanvasLight.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
     MaterialTheme(
-        colorScheme = LightColorScheme,
+        colorScheme = colorScheme,
         typography = Typography,
         content = content
     )

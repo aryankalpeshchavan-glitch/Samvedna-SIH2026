@@ -28,8 +28,10 @@ import com.crisiscore.app.ui.theme.*
 import com.crisiscore.app.util.T
 
 @Composable
-fun FamilyScreen() {
-    var familyList by remember { mutableStateOf(emptyList<FamilyMember>()) }
+fun FamilyScreen(
+    viewModel: com.crisiscore.app.ui.viewmodel.FamilyViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    val familyList by viewModel.familyList.collectAsState()
     var showAddMember by remember { mutableStateOf(false) }
     var showCheckInOthers by remember { mutableStateOf(false) }
     var showReportSomeone by remember { mutableStateOf(false) }
@@ -43,24 +45,9 @@ fun FamilyScreen() {
             kotlinx.coroutines.delay(2500)
             toastMessage = null
         }
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            Surface(
-                modifier = Modifier.padding(top = 80.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = PrimaryGreen,
-                shadowElevation = 8.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Filled.CheckCircle, null, tint = CanvasLight, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(toastMessage ?: "", color = CanvasLight, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
     }
+
+    Box(modifier = Modifier.fillMaxSize()) {
 
     Column(
         modifier = Modifier
@@ -75,13 +62,7 @@ fun FamilyScreen() {
             EmptyFamilyState(onAddMember = { showAddMember = true })
         } else {
             FamilySummaryCard(familyList, checkedInCount, percentAccounted) {
-                familyList = familyList.map {
-                    if (it.isSelf) it.copy(
-                        status = FamilyMemberStatus.CHECKED_IN,
-                        checkedInBy = "Self",
-                        checkedInAt = "Just now"
-                    ) else it
-                }
+                viewModel.markSelfSafe()
                 toastMessage = T.get("family.youMarkedSafe")
             }
 
@@ -103,17 +84,31 @@ fun FamilyScreen() {
         Spacer(Modifier.height(80.dp))
     }
 
+    if (toastMessage != null) {
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = PrimaryGreen,
+            shadowElevation = 8.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.CheckCircle, null, tint = CanvasLight, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(toastMessage ?: "", color = CanvasLight, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+
     if (showAddMember) {
         AddMemberDialog(
             onDismiss = { showAddMember = false },
             onAdd = { name, rel ->
-                familyList = familyList + FamilyMember(
-                    id = "mem-${System.currentTimeMillis()}",
-                    name = name,
-                    relationship = rel,
-                    status = FamilyMemberStatus.NEEDS_CHECKIN,
-                    location = "Awaiting Check-in"
-                )
+                viewModel.addMember(name, rel)
                 toastMessage = T.get("family.addedToFamily").replace("{name}", name)
                 showAddMember = false
             }
@@ -125,13 +120,7 @@ fun FamilyScreen() {
             familyList = familyList.filter { !it.isSelf },
             onDismiss = { showCheckInOthers = false },
             onConfirm = { selectedIds ->
-                familyList = familyList.map {
-                    if (selectedIds.contains(it.id)) it.copy(
-                        status = FamilyMemberStatus.CHECKED_IN,
-                        checkedInBy = "Checked in",
-                        checkedInAt = "Just now"
-                    ) else it
-                }
+                viewModel.checkInMembers(selectedIds)
                 toastMessage = T.get("family.checkedInCount").replace("{count}", selectedIds.size.toString())
                 showCheckInOthers = false
             }
@@ -147,6 +136,7 @@ fun FamilyScreen() {
             }
         )
     }
+}
 }
 
 @Composable
@@ -473,23 +463,30 @@ private fun AddMemberDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Un
                 Spacer(Modifier.height(12.dp))
                 Text(T("family.relationshipLabel"), style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
                 Spacer(Modifier.height(4.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    relationships.take(4).forEach { rel ->
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp)),
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (relationship == rel) PrimaryGreen else SurfaceLight,
-                            onClick = { relationship = rel }
-                        ) {
-                            Text(
-                                rel,
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                color = if (relationship == rel) CanvasLight else TextPrimaryLight,
-                                textAlign = TextAlign.Center
-                            )
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    relationships.chunked(4).forEach { rowRels ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            rowRels.forEach { rel ->
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (relationship == rel) PrimaryGreen else SurfaceLight,
+                                    onClick = { relationship = rel }
+                                ) {
+                                    Text(
+                                        rel,
+                                        modifier = Modifier.padding(vertical = 8.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                        color = if (relationship == rel) CanvasLight else TextPrimaryLight,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                            if (rowRels.size < 4) {
+                                Spacer(Modifier.weight((4 - rowRels.size).toFloat()))
+                            }
                         }
                     }
                 }

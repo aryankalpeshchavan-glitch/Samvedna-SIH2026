@@ -22,6 +22,7 @@ import com.crisiscore.app.data.repository.CrisisCoreRepository
 import com.crisiscore.app.ui.components.*
 import com.crisiscore.app.ui.theme.*
 import com.crisiscore.app.util.T
+import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(
@@ -35,6 +36,24 @@ fun AuthScreen(
     var showPassword by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun validateInputs(): Boolean {
+        if (!isLogin && name.trim().length < 2) {
+            error = "Please enter your full name"
+            return false
+        }
+        val cleanPhone = phone.trim()
+        if (cleanPhone.length < 10) {
+            error = "Please enter a valid 10-digit phone number"
+            return false
+        }
+        if (password.length < 6) {
+            error = "Password must be at least 6 characters"
+            return false
+        }
+        return true
+    }
 
     Column(
         modifier = Modifier
@@ -136,8 +155,36 @@ fun AuthScreen(
 
         CcButton(
             onClick = {
+                if (!validateInputs()) return@CcButton
                 isLoading = true
                 error = null
+                scope.launch {
+                    val formattedPhone = if (phone.startsWith("+")) phone.trim() else "+91${phone.trim()}"
+                    if (isLogin) {
+                        val token = repository.login(formattedPhone, password)
+                        isLoading = false
+                        if (token != null) {
+                            onLoginSuccess()
+                        } else {
+                            error = "Invalid phone number or password"
+                        }
+                    } else {
+                        val success = repository.register(formattedPhone, password, name.trim())
+                        if (success) {
+                            val token = repository.login(formattedPhone, password)
+                            isLoading = false
+                            if (token != null) {
+                                onLoginSuccess()
+                            } else {
+                                isLogin = true
+                                error = "Account registered successfully. Please sign in."
+                            }
+                        } else {
+                            isLoading = false
+                            error = "Registration failed. Try a different phone number."
+                        }
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading && phone.isNotBlank() && password.isNotBlank()
@@ -155,9 +202,19 @@ fun AuthScreen(
             onClick = {
                 isLoading = true
                 error = null
+                scope.launch {
+                    val token = repository.autoLoginDemo()
+                    isLoading = false
+                    if (token != null) {
+                        onLoginSuccess()
+                    } else {
+                        error = "Could not initialize demo session. Try again."
+                    }
+                }
             },
             variant = CcButtonVariant.Secondary,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
         ) {
             Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))

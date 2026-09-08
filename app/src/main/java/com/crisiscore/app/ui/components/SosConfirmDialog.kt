@@ -94,8 +94,8 @@ fun SosConfirmDialog(
                     listOf(
                         "LANDSLIDE" to "⛰\uFE0F",
                         "FLOOD" to "\uD83C\uDF0A",
-                        "PERSON_TRAPPED" to "\uD83C\uDFDA\uFE0F",
-                        "OTHER" to "\uD83C\uDE91"
+                        "PERSON_TRAPPED" to "\uD83C\uDD98",
+                        "OTHER" to "⚠️"
                     ).forEach { (cat, emoji) ->
                         val isSelected = selectedCategory == cat
                         SosCategoryTile(

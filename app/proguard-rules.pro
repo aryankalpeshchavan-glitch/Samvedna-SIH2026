@@ -33,3 +33,7 @@
 -keep class com.mapbox.** { *; }
 -keep class org.maplibre.** { *; }
 -dontwarn org.maplibre.**
+
+# Room
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**

@@ -43,7 +43,10 @@ fun IncidentScreen(
     var note by remember { mutableStateOf("") }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     var submitted by remember { mutableStateOf(false) }
+    var isSubmitting by remember { mutableStateOf(false) }
+    var submitStatus by remember { mutableStateOf<String?>(null) }
     var location by remember { mutableStateOf<LocationData?>(null) }
+    val scope = rememberCoroutineScope()
 
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         photoUri = uri
@@ -60,6 +63,7 @@ fun IncidentScreen(
     }
 
     if (submitted) {
+        val isOffline = submitStatus == "QUEUED_OFFLINE"
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -79,22 +83,32 @@ fun IncidentScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(RoundedCornerShape(40.dp))
-                            .background(PrimaryGreen.copy(alpha = 0.1f))
-                            .border(2.dp, PrimaryGreen, RoundedCornerShape(40.dp)),
+                            .background(if (isOffline) WarningAmber.copy(alpha = 0.1f) else PrimaryGreen.copy(alpha = 0.1f))
+                            .border(2.dp, if (isOffline) WarningAmber else PrimaryGreen, RoundedCornerShape(40.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Filled.CheckCircle, null, tint = PrimaryGreen, modifier = Modifier.size(44.dp))
+                        Icon(
+                            if (isOffline) Icons.Filled.CloudOff else Icons.Filled.CheckCircle,
+                            null,
+                            tint = if (isOffline) WarningAmber else PrimaryGreen,
+                            modifier = Modifier.size(44.dp)
+                        )
                     }
-                    Text(T("report.successTitle"), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
                     Text(
-                        T("report.successMessage").replace("{category}", selectedCategory.name.replace("_", " ")),
+                        if (isOffline) T("report.offlineSuccessTitle") else T("report.successTitle"),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        if (isOffline) T("report.offlineSuccessMessage")
+                        else T("report.successMessage").replace("{category}", selectedCategory.name.replace("_", " ")),
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondaryLight,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                     Spacer(Modifier.height(8.dp))
-                    CcButton(onClick = { submitted = false }, variant = CcButtonVariant.Secondary) {
+                    CcButton(onClick = { submitted = false; note = ""; photoUri = null }, variant = CcButtonVariant.Secondary) {
                         Text(T("report.anotherButton"))
                     }
                 }
@@ -112,8 +126,15 @@ fun IncidentScreen(
     ) {
         PageHeader(tag = T("report.subtitle"), title = T("report.title"))
 
-        // Step indicator
-        StepIndicator(currentStep = 1, totalSteps = 4)
+        // Step indicator (5 steps)
+        val currentStep = when {
+            note.isNotBlank() -> 5
+            severity != SeverityLevel.WATCH -> 4
+            location != null -> 3
+            photoUri != null -> 2
+            else -> 1
+        }
+        StepIndicator(currentStep = currentStep, totalSteps = 5)
 
         // 1. Category Selection
         ReportSection(
@@ -178,43 +199,47 @@ fun IncidentScreen(
             subtitle = T("report.step4Sub"),
             icon = Icons.Filled.PriorityHigh
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf(SeverityLevel.LOW, SeverityLevel.WATCH, SeverityLevel.CRITICAL).forEach { lvl ->
+            val levels = listOf(
+                SeverityLevel.LOW,
+                SeverityLevel.WATCH,
+                SeverityLevel.MEDIUM,
+                SeverityLevel.HIGH,
+                SeverityLevel.CRITICAL
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                levels.forEach { lvl ->
                     val isSelected = severity == lvl
-                    val bgColor = when (lvl) {
+                    val levelColor = when (lvl) {
                         SeverityLevel.CRITICAL -> EmergencyRed
-                        SeverityLevel.WATCH -> WarningAmber
-                        else -> PrimaryGreen
+                        SeverityLevel.HIGH -> HighSeverity
+                        SeverityLevel.MEDIUM -> WarningAmber
+                        SeverityLevel.WATCH -> WarningAmberDark
+                        SeverityLevel.LOW -> PrimaryGreen
                     }
                     ClaySurface(
-                        color = if (isSelected) bgColor else SurfaceLight,
-                        modifier = Modifier.weight(1f).height(56.dp),
-                        shape = ClayShapes.button,
-                        depth = if (isSelected) 5.dp else 2.dp,
+                        color = if (isSelected) levelColor else SurfaceLight,
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = ClayShapes.control,
+                        depth = if (isSelected) 4.dp else 2.dp,
                         tint = if (isSelected) null else BorderLight,
                         contentColor = if (isSelected) CanvasLight else TextPrimaryLight,
                         onClick = { severity = lvl }
                     ) {
-                        Row(
+                        Box(
                             modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                when (lvl) {
-                                    SeverityLevel.CRITICAL -> Icons.Filled.Error
-                                    SeverityLevel.WATCH -> Icons.Filled.WarningAmber
-                                    else -> Icons.Filled.CheckCircle
-                                },
-                                contentDescription = null,
-                                tint = if (isSelected) CanvasLight else bgColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
                             Text(
                                 lvl.name,
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = if (isSelected) CanvasLight else TextPrimaryLight
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                                    fontSize = 8.sp
+                                ),
+                                color = if (isSelected) CanvasLight else TextPrimaryLight,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }
@@ -230,9 +255,16 @@ fun IncidentScreen(
         ) {
             OutlinedTextField(
                 value = note,
-                onValueChange = { note = it },
+                onValueChange = { if (it.length <= 500) note = it },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(T("report.notesPlaceholder"), style = MaterialTheme.typography.bodySmall) },
+                supportingText = {
+                    Text(
+                        "${note.length}/500",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        color = TextSecondaryLight
+                    )
+                },
                 minLines = 3,
                 shape = ClayShapes.control,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -246,13 +278,45 @@ fun IncidentScreen(
 
         // Submit
         CcButton(
-            onClick = { onSubmit(selectedCategory, severity, note); submitted = true },
+            onClick = {
+                isSubmitting = true
+                scope.launch {
+                    val severityInt = when (severity) {
+                        SeverityLevel.LOW -> 1
+                        SeverityLevel.WATCH -> 2
+                        SeverityLevel.MEDIUM -> 3
+                        SeverityLevel.HIGH -> 4
+                        SeverityLevel.CRITICAL -> 5
+                    }
+                    val lat = location?.latitude ?: 26.1445
+                    val lng = location?.longitude ?: 91.7362
+                    val desc = note.ifBlank { "${selectedCategory.name} reported" }
+                    val res = repository.createIncident(
+                        type = selectedCategory.name,
+                        description = desc,
+                        lat = lat,
+                        lng = lng,
+                        severity = severityInt
+                    )
+                    isSubmitting = false
+                    submitStatus = res?.status ?: "QUEUED_OFFLINE"
+                    submitted = true
+                    onSubmit(selectedCategory, severity, note)
+                }
+            },
             variant = CcButtonVariant.Emergency,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isSubmitting
         ) {
-            Icon(Icons.Filled.Send, null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(T("report.submitButton"), fontWeight = FontWeight.Black)
+            if (isSubmitting) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = CanvasLight, strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("SUBMITTING...", fontWeight = FontWeight.Black)
+            } else {
+                Icon(Icons.Filled.Send, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(T("report.submitButton"), fontWeight = FontWeight.Black)
+            }
         }
 
         Spacer(Modifier.height(80.dp))

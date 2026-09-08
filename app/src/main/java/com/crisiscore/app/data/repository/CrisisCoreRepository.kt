@@ -131,9 +131,6 @@ class CrisisCoreRepository(private val context: Context) {
     // Incident / SOS / Reports
     // ============================================================
 
-    private val incidentIdempotencyKey: String
-        get() = "${SecurePreferences.getLanguage()}_${System.currentTimeMillis()}"
-
     suspend fun createIncident(
         type: String,
         description: String,
@@ -141,28 +138,28 @@ class CrisisCoreRepository(private val context: Context) {
         lng: Double,
         severity: Int
     ): IncidentResponse? = withContext(Dispatchers.IO) {
+        val key = java.util.UUID.randomUUID().toString()
         try {
             val res = api.createIncident(IncidentRequest(
-                type, description, lat, lng, severity, incidentIdempotencyKey
+                type, description, lat, lng, severity, key
             ))
-            if (res.isSuccessful) {
+            if (res.isSuccessful && res.body() != null) {
                 res.body()
             } else {
-                queueIncidentForSync(type, description, lat, lng, severity)
-                null
+                queueIncidentForSync(key, type, description, lat, lng, severity)
+                IncidentResponse(id = key, status = "QUEUED_OFFLINE")
             }
         } catch (e: Exception) {
             Log.e("CrisisCoreRepo", "Create incident failed, queuing", e)
-            queueIncidentForSync(type, description, lat, lng, severity)
-            null
+            queueIncidentForSync(key, type, description, lat, lng, severity)
+            IncidentResponse(id = key, status = "QUEUED_OFFLINE")
         }
     }
 
     private suspend fun queueIncidentForSync(
-        type: String, description: String, lat: Double, lng: Double, severity: Int
+        key: String, type: String, description: String, lat: Double, lng: Double, severity: Int
     ) {
         val dao = db.pendingIncidentDao()
-        val key = incidentIdempotencyKey
         val request = IncidentRequest(type, description, lat, lng, severity, key)
         val entity = PendingIncidentEntity(
             idempotencyKey = key,
@@ -172,8 +169,14 @@ class CrisisCoreRepository(private val context: Context) {
             lastAttemptAt = System.currentTimeMillis()
         )
         dao.insert(entity)
-        val workRequest = OneTimeWorkRequestBuilder<SyncWorker>().build()
-        workManager.enqueue(workRequest)
+        val constraints = androidx.work.Constraints.Builder()
+            .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+            .build()
+        val workRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+            .setConstraints(constraints)
+            .setBackoffCriteria(androidx.work.BackoffPolicy.EXPONENTIAL, 10, java.util.concurrent.TimeUnit.MINUTES)
+            .build()
+        workManager.enqueueUniqueWork("incident_sync", androidx.work.ExistingWorkPolicy.KEEP, workRequest)
     }
 
     suspend fun syncPendingIncidents() {
@@ -270,6 +273,46 @@ class CrisisCoreRepository(private val context: Context) {
                 status = "LOCATION_UNAVAILABLE", isFallbackLocation = true
             )
         }
+    }
+
+    // ============================================================
+    // Family Members Persistence
+    // ============================================================
+
+    fun getFamilyMembersFlow(): kotlinx.coroutines.flow.Flow<List<FamilyMember>> {
+        return db.familyMemberDao().getAllFlow().let { flow ->
+            kotlinx.coroutines.flow.flow {
+                flow.collect { entities ->
+                    emit(entities.map { it.toFamilyMember() })
+                }
+            }
+        }
+    }
+
+    suspend fun getAllFamilyMembers(): List<FamilyMember> = withContext(Dispatchers.IO) {
+        db.familyMemberDao().getAll().map { it.toFamilyMember() }
+    }
+
+    suspend fun addFamilyMember(member: FamilyMember) = withContext(Dispatchers.IO) {
+        db.familyMemberDao().insert(com.crisiscore.app.data.local.FamilyMemberEntity.fromFamilyMember(member))
+    }
+
+    suspend fun updateFamilyMemberStatus(id: String, status: FamilyMemberStatus, checkedInBy: String?, checkedInAt: String?) = withContext(Dispatchers.IO) {
+        db.familyMemberDao().updateStatus(id, status.name, checkedInBy, checkedInAt)
+    }
+
+    suspend fun deleteFamilyMember(id: String) = withContext(Dispatchers.IO) {
+        db.familyMemberDao().deleteById(id)
+    }
+
+    // ============================================================
+    // WebSocket
+    // ============================================================
+
+    fun getWebSocketEvents(): kotlinx.coroutines.flow.SharedFlow<com.crisiscore.app.data.api.WsEvent> = ws.events
+
+    fun reconnectWebSocket() {
+        ws.connect()
     }
 
     fun resetAuth() {

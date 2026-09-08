@@ -22,7 +22,9 @@ import com.crisiscore.app.data.model.Helpline
 import com.crisiscore.app.data.model.HelplineColorType
 import com.crisiscore.app.ui.components.*
 import com.crisiscore.app.ui.theme.*
+import com.crisiscore.app.util.LocaleManager
 import com.crisiscore.app.util.T
+import com.crisiscore.app.util.TtsManager
 
 @Composable
 fun HelpScreen() {
@@ -69,7 +71,10 @@ fun HelpScreen() {
                     Text(T("help.subtitle"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(T("help.tollFreeSub"), style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
                 }
-                IconButton(onClick = { /* Audio */ }) {
+                IconButton(onClick = {
+                    val speech = helplines.joinToString(". ") { "${it.title}: dial ${it.number}" }
+                    TtsManager.speak(speech, LocaleManager.currentLanguage.value)
+                }) {
                     Icon(Icons.Filled.VolumeUp, null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
                 }
             }
