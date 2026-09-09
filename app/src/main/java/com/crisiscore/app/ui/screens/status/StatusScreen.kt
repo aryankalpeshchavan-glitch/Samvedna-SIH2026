@@ -17,24 +17,68 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crisiscore.app.data.model.SosState
 import com.crisiscore.app.data.model.SosStatusDetail
+import com.crisiscore.app.data.model.StatusResponse
+import com.crisiscore.app.data.repository.CrisisCoreRepository
 import com.crisiscore.app.ui.components.*
 import com.crisiscore.app.ui.theme.*
 import com.crisiscore.app.util.T
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @Composable
 fun StatusScreen(
+    repository: CrisisCoreRepository,
+    incidentId: String?,
     sosState: SosState,
     sosDetail: SosStatusDetail,
     onReset: () -> Unit,
+    onStatusUpdate: (SosState, StatusResponse) -> Unit,
     onSimulate: (SosState) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    var isSyncing by remember { mutableStateOf(false) }
+
+    // Live Polling Effect when an active backend incident is being tracked
+    LaunchedEffect(incidentId, sosState) {
+        if (incidentId.isNullOrBlank()) return@LaunchedEffect
+        if (sosState == SosState.IDLE || sosState == SosState.RESOLVED || sosState == SosState.ERROR || sosState == SosState.OFFLINE_QUEUED) {
+            return@LaunchedEffect
+        }
+
+        while (isActive) {
+            delay(3000)
+            val res = repository.getStatus(incidentId)
+            if (res != null) {
+                val newState = when (res.status?.lowercase()) {
+                    "reported" -> SosState.SENT
+                    "verified" -> {
+                        val assignStatus = res.assignment?.status?.lowercase()
+                        if (assignStatus == "assigned") SosState.ASSIGNED
+                        else if (assignStatus in listOf("en_route", "in_progress")) SosState.VOLUNTEER_EN_ROUTE
+                        else SosState.VERIFIED
+                    }
+                    "assigned" -> SosState.ASSIGNED
+                    "in_progress", "en_route" -> SosState.VOLUNTEER_EN_ROUTE
+                    "resolved" -> SosState.RESOLVED
+                    "rejected" -> SosState.ERROR
+                    else -> sosState
+                }
+                onStatusUpdate(newState, res)
+                if (newState == SosState.RESOLVED || newState == SosState.ERROR) {
+                    break
+                }
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -45,7 +89,26 @@ fun StatusScreen(
         PageHeader(tag = T.get("status.headerTag"), title = "SOS STATUS")
 
         if (sosState != SosState.IDLE) {
-            ActiveSosTracker(sosState, sosDetail, onReset)
+            ActiveSosTracker(
+                sosState = sosState,
+                sosDetail = sosDetail,
+                incidentId = incidentId,
+                onReset = onReset,
+                onSyncNow = {
+                    scope.launch {
+                        isSyncing = true
+                        val success = repository.syncOfflineIncidents()
+                        isSyncing = false
+                        if (success) {
+                            // If synced, transition out of OFFLINE_QUEUED
+                            if (sosState == SosState.OFFLINE_QUEUED) {
+                                onStatusUpdate(SosState.SENT, StatusResponse(incident_id = incidentId, status = "reported"))
+                            }
+                        }
+                    }
+                },
+                isSyncing = isSyncing
+            )
         } else {
             EmptySosState()
         }
@@ -78,46 +141,6 @@ fun StatusScreen(
             }
         }
 
-        // State Simulator
-        CcCard(modifier = Modifier.fillMaxWidth()) {
-            Text("STATE SIMULATOR", style = MaterialTheme.typography.labelSmall, color = PrimaryGreen)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "For demo: tap a state to simulate SOS lifecycle.",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondaryLight
-            )
-            Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                listOf(
-                    SosState.IDLE, SosState.SENDING, SosState.SENT,
-                    SosState.VERIFIED, SosState.VOLUNTEER_EN_ROUTE, SosState.RESOLVED
-                ).forEach { state ->
-                    val isActive = sosState == state
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onSimulate(state) },
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isActive) PrimaryGreen else SurfaceLight,
-                        border = if (isActive) null else ButtonDefaults.outlinedButtonBorder()
-                    ) {
-                        Text(
-                            state.name.take(6),
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                            color = if (isActive) CanvasLight else TextPrimaryLight,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-        }
-
         Spacer(Modifier.height(80.dp))
     }
 }
@@ -126,20 +149,41 @@ fun StatusScreen(
 private fun ActiveSosTracker(
     sosState: SosState,
     sosDetail: SosStatusDetail,
-    onReset: () -> Unit
+    incidentId: String?,
+    onReset: () -> Unit,
+    onSyncNow: () -> Unit,
+    isSyncing: Boolean
 ) {
     val steps = listOf(
-        Triple("Sending", "Transmitting signal", Icons.Filled.Send),
-        Triple("Received", "Acknowledged by relay", Icons.Filled.Inbox),
-        Triple("Verified", "Confirmed by operator", Icons.Filled.Verified),
-        Triple("En Route", "Responder dispatched", Icons.Filled.DirectionsRun),
-        Triple("Resolved", "Incident closed", Icons.Filled.CheckCircle),
+        Triple(
+            if (sosState == SosState.OFFLINE_QUEUED) "Offline Queued" else "Sending",
+            if (sosState == SosState.OFFLINE_QUEUED) "Will sync when connectivity returns" else "Transmitting to CrisisCore...",
+            Icons.Filled.Send
+        ),
+        Triple("Report Received", "Your emergency report was received by CrisisCore.", Icons.Filled.Inbox),
+        Triple("Verified by Disaster Operator", "Confirmed by disaster operator", Icons.Filled.Verified),
+        Triple(
+            when {
+                sosState == SosState.VOLUNTEER_EN_ROUTE -> "Responder En Route"
+                sosState == SosState.ASSIGNED && sosDetail.assignedVolunteerName != null -> "Responder Assigned"
+                sosDetail.assignedVolunteerName != null -> "Responder Assigned"
+                else -> "Response Team Assignment"
+            },
+            if (sosDetail.assignedVolunteerName != null) {
+                if (sosState == SosState.VOLUNTEER_EN_ROUTE) "Responder en route (${sosDetail.assignedVolunteerName})"
+                else "Assigned: ${sosDetail.assignedVolunteerName}"
+            } else {
+                "Response team assignment pending"
+            },
+            Icons.Filled.DirectionsRun
+        ),
+        Triple("Incident Resolved", "Incident successfully closed", Icons.Filled.CheckCircle),
     )
 
     val currentIndex = when (sosState) {
         SosState.SENDING -> 0
+        SosState.OFFLINE_QUEUED -> 0
         SosState.SENT -> 1
-        SosState.OFFLINE_QUEUED -> 1
         SosState.VERIFIED -> 2
         SosState.ASSIGNED, SosState.VOLUNTEER_EN_ROUTE -> 3
         SosState.HELP_ARRIVED, SosState.RESOLVED -> 4
@@ -151,16 +195,63 @@ private fun ActiveSosTracker(
         modifier = Modifier.fillMaxWidth(),
         borderColor = if (sosState == SosState.ERROR) EmergencyRed else PrimaryGreen
     ) {
+        val displayIncidentId = incidentId ?: sosDetail.sosId
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "SOS TRACKER \u2022 ${sosDetail.sosId ?: "PENDING"}",
-                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
-                color = TextSecondaryLight
-            )
-            DataSourceBadge()
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "EMERGENCY DISPATCH TRACKER",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                    color = TextSecondaryLight
+                )
+                if (displayIncidentId != null) {
+                    Text(
+                        "Incident ID: $displayIncidentId",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = PrimaryGreen
+                    )
+                }
+            }
+            DataSourceBadge(if (sosState == SosState.OFFLINE_QUEUED) "offline_queued" else "live")
+        }
+
+        if (sosState == SosState.OFFLINE_QUEUED) {
+            Spacer(Modifier.height(8.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                color = WarningAmber.copy(alpha = 0.12f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Offline Queued", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = WarningAmber)
+                        Text("Will sync when connectivity returns", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextSecondaryLight)
+                    }
+                    Button(
+                        onClick = onSyncNow,
+                        enabled = !isSyncing,
+                        colors = ButtonDefaults.buttonColors(containerColor = WarningAmber),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(modifier = Modifier.size(12.dp), color = CanvasLight, strokeWidth = 2.dp)
+                        } else {
+                            Text("Sync Now", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = CanvasLight)
+                        }
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -236,7 +327,7 @@ private fun ActiveSosTracker(
                             color = PrimaryGreen.copy(alpha = 0.08f)
                         ) {
                             Text(
-                                "Current step",
+                                "Live Status",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                                 color = PrimaryGreen,
@@ -246,10 +337,9 @@ private fun ActiveSosTracker(
                     }
                 }
             }
-            if (index < steps.lastIndex) Spacer(Modifier.height(0.dp))
         }
 
-        // Responder info
+        // Responder info if assigned
         if (sosDetail.assignedVolunteerName != null) {
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = BorderLight)
@@ -286,9 +376,27 @@ private fun ActiveSosTracker(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("State: ${sosState.name}", style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
+            val stateLabel = when (sosState) {
+                SosState.SENDING -> "Sending"
+                SosState.SENT -> "Report Received"
+                SosState.OFFLINE_QUEUED -> "Offline Queued"
+                SosState.VERIFIED -> "Verified by Disaster Operator"
+                SosState.ASSIGNED -> if (sosDetail.assignedVolunteerName != null) "Responder Assigned" else "Response Team Assignment"
+                SosState.VOLUNTEER_EN_ROUTE -> "Responder En Route"
+                SosState.RESOLVED -> "Incident Resolved"
+                SosState.ERROR -> "Error"
+                else -> "Active"
+            }
+            Text(
+                "Status: $stateLabel",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = TextSecondaryLight,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(8.dp))
             CcButton(onClick = onReset, variant = CcButtonVariant.Outline) {
-                Text("RESET")
+                Text("RESET", maxLines = 1)
             }
         }
     }

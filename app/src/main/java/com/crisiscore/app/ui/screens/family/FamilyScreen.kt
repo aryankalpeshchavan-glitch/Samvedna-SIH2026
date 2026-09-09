@@ -25,10 +25,7 @@ import com.crisiscore.app.ui.theme.*
 fun FamilyScreen() {
     var familyList by remember {
         mutableStateOf(listOf(
-            FamilyMember("mem-self", "Priya Sharma (You)", "Self", FamilyMemberStatus.CHECKED_IN, "Self", "5 min ago", "Guwahati Sector 4", true),
-            FamilyMember("mem-1", "Rahul Sharma", "Son", FamilyMemberStatus.CHECKED_IN, "Checked in by Priya", "5 min ago", "Community Shelter B"),
-            FamilyMember("mem-2", "Ananya Sharma", "Daughter", FamilyMemberStatus.NEEDS_CHECKIN, location = "School High Ground Shelter"),
-            FamilyMember("mem-3", "Sunil Sharma", "Father", FamilyMemberStatus.UNVERIFIED, location = "Last seen: Sector 4 Pass"),
+            FamilyMember("mem-self", "My Status", "Self", FamilyMemberStatus.CHECKED_IN, "Self", "Active", "Current Device", true)
         ))
     }
     var showAddMember by remember { mutableStateOf(false) }
@@ -74,7 +71,7 @@ fun FamilyScreen() {
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        PageHeader(tag = "COMMUNITY MESH", title = "FAMILY & COMMUNITY")
+        PageHeader(tag = "LOCAL SAFETY CIRCLE", title = "EMERGENCY CONTACTS")
 
         // Safety summary
         CcCard(modifier = Modifier.fillMaxWidth(), borderColor = PrimaryGreen.copy(alpha = 0.3f)) {
@@ -170,7 +167,7 @@ fun FamilyScreen() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("FAMILY MEMBERS (${familyList.size})", style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
+            Text("EMERGENCY CONTACTS (${familyList.size})", style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
             TextButton(onClick = { showAddMember = true }) {
                 Icon(Icons.Filled.PersonAdd, null, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))

@@ -115,11 +115,14 @@ fun SeverityBadge(level: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun DataSourceBadge(type: String = "synthetic", modifier: Modifier = Modifier) {
-    val (label, color) = when (type) {
+fun DataSourceBadge(type: String = "live", modifier: Modifier = Modifier) {
+    val (label, color) = when (type.lowercase()) {
         "live" -> "LIVE GIS" to PrimaryGreen
         "replayed" -> "REPLAYED FEED" to TextSecondaryLight
-        else -> "SYNTHETIC DEMO" to WarningAmber
+        "offline", "queued", "offline_queued" -> "OFFLINE QUEUED" to WarningAmber
+        "stale" -> "STALE" to WarningAmber
+        "unavailable" -> "UNAVAILABLE" to EmergencyRed
+        else -> "LIVE GIS" to PrimaryGreen
     }
     Row(
         modifier = modifier

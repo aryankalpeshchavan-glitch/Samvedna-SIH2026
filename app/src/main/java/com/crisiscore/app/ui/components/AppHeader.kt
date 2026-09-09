@@ -21,7 +21,8 @@ import com.crisiscore.app.util.T
 @Composable
 fun AppHeader(
     modifier: Modifier = Modifier,
-    onHelpClick: () -> Unit = {}
+    onHelpClick: () -> Unit = {},
+    onAuthClick: () -> Unit = {}
 ) {
     val currentLang by LocaleManager.currentLanguage.collectAsState()
     var showLangMenu by remember { mutableStateOf(false) }
@@ -101,6 +102,15 @@ fun AppHeader(
                             )
                         }
                     }
+                }
+
+                IconButton(onClick = onAuthClick) {
+                    Icon(
+                        Icons.Outlined.AccountCircle,
+                        contentDescription = "Account / Sign In",
+                        tint = PrimaryGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
 
                 IconButton(onClick = onHelpClick) {

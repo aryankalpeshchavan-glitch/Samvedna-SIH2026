@@ -34,11 +34,6 @@ object SecurePreferences {
         getPrefs().edit().putString("auth_token", token).apply()
     }
 
-    fun getDemoPhone(): String? = getPrefs().getString("demo_phone", null)
-
-    fun setDemoPhone(phone: String) {
-        getPrefs().edit().putString("demo_phone", phone).apply()
-    }
 
     fun getLanguage(): String = getPrefs().getString("language", "en") ?: "en"
 

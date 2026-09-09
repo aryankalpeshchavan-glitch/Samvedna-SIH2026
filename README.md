@@ -63,7 +63,7 @@ app/src/main/java/com/crisiscore/app/
 2. Sync Gradle (auto-downloads dependencies)
 3. Set run target to an emulator (API 26+) or physical device
 4. Configure backend URL in `app/build.gradle.kts` → `buildConfigField`:
-   - Default: `http://10.0.2.2:8000` (Android emulator localhost)
+   - Default: `http://10.0.2.2:8001` (Android emulator localhost)
    - For physical device: use your machine's local IP
 5. Run the app
 
@@ -71,8 +71,8 @@ app/src/main/java/com/crisiscore/app/
 
 | Config | Location | Default | Purpose |
 |---|---|---|---|
-| `API_BASE_URL` | `app/build.gradle.kts` buildConfigField | `http://10.0.2.2:8000` | Backend REST API |
-| `WS_BASE_URL` | `app/build.gradle.kts` buildConfigField | `ws://10.0.2.2:8000/ws/status` | WebSocket status feed |
+| `API_BASE_URL` | `app/build.gradle.kts` buildConfigField | `http://10.0.2.2:8001` | Backend REST API |
+| `WS_BASE_URL` | `app/build.gradle.kts` buildConfigField | `ws://10.0.2.2:8001/ws/status` | WebSocket status feed |
 
 No external API keys required for demo mode. The app auto-registers a demo citizen account on first launch.
 

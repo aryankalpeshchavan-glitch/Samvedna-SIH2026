@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.crisiscore.app.data.model.IncidentReportPayload
+import com.crisiscore.app.data.model.SosPayload
 import com.crisiscore.app.data.model.SosState
 import com.crisiscore.app.data.model.SosStatusDetail
 import com.crisiscore.app.data.repository.CrisisCoreRepository
@@ -20,30 +22,90 @@ import com.crisiscore.app.ui.screens.help.HelpScreen
 import com.crisiscore.app.ui.screens.home.HomeScreen
 import com.crisiscore.app.ui.screens.incident.IncidentScreen
 import com.crisiscore.app.ui.screens.status.StatusScreen
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 @Composable
 fun CrisisCoreNavHost() {
     val context = LocalContext.current
     val repository = remember { CrisisCoreRepository(context) }
+    val scope = rememberCoroutineScope()
 
     var activeTab by remember { mutableStateOf(TabType.Home) }
     var sosState by remember { mutableStateOf(SosState.IDLE) }
     var sosDetail by remember { mutableStateOf(SosStatusDetail()) }
+    var activeIncidentId by remember { mutableStateOf<String?>(null) }
     var showAuth by remember { mutableStateOf(false) }
 
     val triggerSos: () -> Unit = {
-        sosState = SosState.SOS_CONFIRMATION
+        if (!repository.isAuthenticated()) {
+            showAuth = true
+        } else {
+            sosState = SosState.SOS_CONFIRMATION
+        }
     }
+
     val confirmSos: (String?) -> Unit = { category ->
-        sosState = SosState.SENDING
-        sosDetail = sosDetail.copy(state = SosState.SENDING)
-        activeTab = TabType.Status
+        if (!repository.isAuthenticated()) {
+            showAuth = true
+        } else {
+            sosState = SosState.SENDING
+            sosDetail = sosDetail.copy(state = SosState.SENDING)
+            activeTab = TabType.Status
+            scope.launch {
+            val loc = repository.getCurrentLocation()
+            val idempotencyKey = UUID.randomUUID().toString()
+            val lat = loc.latitude ?: 26.1445
+            val lng = loc.longitude ?: 91.7362
+            val type = category?.let { CrisisCoreRepository.mapCategoryToBackendType(it) } ?: "other"
+
+            val res = repository.createIncident(
+                type = type,
+                description = "EMERGENCY SOS SIGNAL",
+                lat = lat,
+                lng = lng,
+                severity = 5,
+                idempotencyKey = idempotencyKey
+            )
+            if (res != null) {
+                activeIncidentId = res.id.toString()
+                sosState = SosState.SENT
+                sosDetail = sosDetail.copy(
+                    sosId = activeIncidentId,
+                    state = SosState.SENT,
+                    timestamp = System.currentTimeMillis()
+                )
+                activeTab = TabType.Status
+            } else {
+                val sosPayload = SosPayload(
+                    sosId = idempotencyKey,
+                    timestamp = System.currentTimeMillis(),
+                    location = loc,
+                    incidentType = type,
+                    note = "EMERGENCY SOS SIGNAL",
+                    networkStatusOnTrigger = "OFFLINE"
+                )
+                repository.savePendingSos(sosPayload)
+                activeIncidentId = idempotencyKey
+                sosState = SosState.OFFLINE_QUEUED
+                sosDetail = sosDetail.copy(
+                    sosId = idempotencyKey,
+                    state = SosState.OFFLINE_QUEUED,
+                    timestamp = System.currentTimeMillis()
+                )
+                activeTab = TabType.Status
+            }
+        }
     }
+}
+
     val cancelSos: () -> Unit = {
         sosState = SosState.IDLE
     }
+
     val resetSos: () -> Unit = {
         sosState = SosState.IDLE
+        activeIncidentId = null
         sosDetail = SosStatusDetail()
     }
 
@@ -59,7 +121,8 @@ fun CrisisCoreNavHost() {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppHeader(
-                onHelpClick = { activeTab = TabType.Help }
+                onHelpClick = { activeTab = TabType.Help },
+                onAuthClick = { showAuth = true }
             )
         },
         bottomBar = {
@@ -98,18 +161,78 @@ fun CrisisCoreNavHost() {
                     )
                     TabType.Incident -> IncidentScreen(
                         repository = repository,
-                        onSubmit = { cat, _, _ ->
-                            confirmSos(cat.name)
+                        onSubmit = { cat, sev, note ->
+                            if (!repository.isAuthenticated()) {
+                                showAuth = true
+                            } else {
+                                sosState = SosState.SENDING
+                                sosDetail = sosDetail.copy(state = SosState.SENDING)
+                                activeTab = TabType.Status
+                                scope.launch {
+                                    val loc = repository.getCurrentLocation()
+                                    val idempotencyKey = UUID.randomUUID().toString()
+                                    val lat = loc.latitude ?: 26.1445
+                                    val lng = loc.longitude ?: 91.7362
+                                    val type = CrisisCoreRepository.mapCategoryToBackendType(cat.name)
+                                    val severityInt = CrisisCoreRepository.mapSeverityToBackendInt(sev.name)
+                                    val desc = note.ifBlank { "Incident report: ${cat.name}" }
+
+                                    val res = repository.createIncident(
+                                        type = type,
+                                        description = desc,
+                                        lat = lat,
+                                        lng = lng,
+                                        severity = severityInt,
+                                        idempotencyKey = idempotencyKey
+                                    )
+                                    if (res != null) {
+                                        activeIncidentId = res.id.toString()
+                                        sosState = SosState.SENT
+                                        sosDetail = sosDetail.copy(
+                                            sosId = activeIncidentId,
+                                            state = SosState.SENT,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+                                    } else {
+                                        val reportPayload = IncidentReportPayload(
+                                            id = idempotencyKey,
+                                            category = cat.name,
+                                            severity = sev.name,
+                                            description = desc,
+                                            location = loc,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+                                        repository.savePendingIncident(reportPayload)
+                                        activeIncidentId = idempotencyKey
+                                        sosState = SosState.OFFLINE_QUEUED
+                                        sosDetail = sosDetail.copy(
+                                            sosId = idempotencyKey,
+                                            state = SosState.OFFLINE_QUEUED,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+                                    }
+                                }
+                            }
                         }
                     )
                     TabType.Status -> StatusScreen(
+                        repository = repository,
+                        incidentId = activeIncidentId,
                         sosState = sosState,
                         sosDetail = sosDetail,
                         onReset = resetSos,
+                        onStatusUpdate = { newState, res ->
+                            sosState = newState
+                            sosDetail = sosDetail.copy(
+                                state = newState,
+                                sosId = res.incident_id,
+                                assignedVolunteerName = res.assignment?.volunteer_id?.let { "Responder #$it" }
+                            )
+                        },
                         onSimulate = { sosState = it }
                     )
                     TabType.Family -> FamilyScreen()
-                    TabType.Alerts -> AlertsScreen()
+                    TabType.Alerts -> AlertsScreen(repository = repository)
                     TabType.Help -> HelpScreen()
                 }
             }

@@ -1,12 +1,14 @@
 package com.crisiscore.app.ui.screens.home
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,8 +20,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.crisiscore.app.data.model.LocationData
-import com.crisiscore.app.data.model.RiskZone
+import com.crisiscore.app.data.model.*
 import com.crisiscore.app.data.repository.CrisisCoreRepository
 import com.crisiscore.app.ui.components.*
 import com.crisiscore.app.ui.components.TabType
@@ -39,10 +40,19 @@ fun HomeScreen(
     var location by remember { mutableStateOf<LocationData?>(null) }
     var isEmergencyMode by remember { mutableStateOf(false) }
     var riskZones by remember { mutableStateOf<List<RiskZone>>(emptyList()) }
+    var decision by remember { mutableStateOf<DecisionResponse?>(null) }
+    var isLoadingIntelligence by remember { mutableStateOf(true) }
+    var showWhyRiskDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
-        location = repository.getCurrentLocation()
+        val loc = repository.getCurrentLocation()
+        location = loc
+        val lat = loc.latitude ?: 26.1445
+        val lng = loc.longitude ?: 91.7362
+        riskZones = repository.getRiskZones("24h")
+        decision = repository.getDecision(lat, lng)
+        isLoadingIntelligence = false
     }
 
     val pulseAnim = rememberInfiniteTransition(label = "pulse")
@@ -64,6 +74,56 @@ fun HomeScreen(
         ),
         label = "pulseScale"
     )
+
+    if (showWhyRiskDialog && decision != null) {
+        AlertDialog(
+            onDismissRequest = { showWhyRiskDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Psychology, null, tint = PrimaryGreen, modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Risk Assessment Explanation", style = MaterialTheme.typography.titleMedium)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        decision?.explanation?.summary ?: "Risk level is derived from regional rainfall, slope stability, and real-time ground sensors.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    decision?.explanation?.narrative?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                    }
+
+                    if (!decision?.risk?.top_drivers.isNullOrEmpty()) {
+                        Text("Top Drivers:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                        for (driver in decision?.risk?.top_drivers.orEmpty()) {
+                            Text("\u2022 $driver", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+
+                    if (!decision?.actions.isNullOrEmpty()) {
+                        Text("Recommended Actions:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = WarningAmber)
+                        for (action in decision?.actions.orEmpty()) {
+                            Text("\u2192 $action", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showWhyRiskDialog = false }) {
+                    Text("Understood", color = PrimaryGreen, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -105,11 +165,126 @@ fun HomeScreen(
                 isEmergencyMode = isEmergencyMode,
                 onMyLocationClick = {
                     scope.launch {
-                        location = repository.getCurrentLocation()
+                        isLoadingIntelligence = true
+                        val loc = repository.getCurrentLocation()
+                        location = loc
+                        val lat = loc.latitude ?: 26.1445
+                        val lng = loc.longitude ?: 91.7362
+                        decision = repository.getDecision(lat, lng)
+                        isLoadingIntelligence = false
                     }
                 },
                 onEmergencyToggle = { isEmergencyMode = !isEmergencyMode }
             )
+        }
+
+        // Live Risk Intelligence Card
+        CcCard(
+            modifier = Modifier.fillMaxWidth(),
+            borderColor = when (decision?.risk?.risk_level?.uppercase()) {
+                "CRITICAL" -> EmergencyRed.copy(alpha = 0.6f)
+                "HIGH" -> WarningAmber.copy(alpha = 0.6f)
+                else -> PrimaryGreen.copy(alpha = 0.4f)
+            }
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Analytics, null, tint = PrimaryGreen, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("SECTOR RISK INTELLIGENCE", style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp), color = PrimaryGreen, fontWeight = FontWeight.Bold)
+                }
+                DataSourceBadge(if (decision != null) "live" else if (isLoadingIntelligence) "replayed" else "live")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            if (isLoadingIntelligence) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = PrimaryGreen, strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Fetching real-time intelligence...", style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                }
+            } else {
+                val currentRisk = decision?.risk
+                val riskLevel = currentRisk?.risk_level ?: "MODERATE"
+                val score = currentRisk?.risk_score ?: 0.45
+                val sectorName = decision?.location_id?.ifBlank { null } ?: "Current Sector"
+                val latVal = decision?.lat ?: location?.latitude ?: 26.1445
+                val lngVal = decision?.lng ?: location?.longitude ?: 91.7362
+
+                // Geographic Location Identifier
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.Place, null, tint = PrimaryGreen, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "$sectorName \u2022 ${String.format("%.4f\u00b0 N, %.4f\u00b0 E", latVal, lngVal)}",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = TextPrimaryLight
+                    )
+                }
+
+                Spacer(Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SeverityBadge(riskLevel)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Score: ${String.format("%.2f", score)}",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = TextPrimaryLight
+                            )
+                            currentRisk?.confidence?.let { conf ->
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    "(${(conf * 100).toInt()}% conf)",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = TextSecondaryLight
+                                )
+                            }
+                        }
+                        if (!currentRisk?.top_drivers.isNullOrEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Drivers: ${currentRisk?.top_drivers?.joinToString(", ")}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = TextSecondaryLight
+                            )
+                        }
+                        val freshness = decision?.computed_at?.take(19)?.replace("T", " ") ?: "Live telemetry"
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "Freshness: $freshness",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = TextSecondaryLight.copy(alpha = 0.8f)
+                        )
+                    }
+
+                    TextButton(
+                        onClick = { showWhyRiskDialog = true },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(Icons.Outlined.Info, null, modifier = Modifier.size(16.dp), tint = PrimaryGreen)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Why Risk?", style = MaterialTheme.typography.labelSmall, color = PrimaryGreen, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
 
         Surface(

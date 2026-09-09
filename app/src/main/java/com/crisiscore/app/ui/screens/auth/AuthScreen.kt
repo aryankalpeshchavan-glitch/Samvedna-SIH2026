@@ -22,12 +22,14 @@ import com.crisiscore.app.data.repository.CrisisCoreRepository
 import com.crisiscore.app.ui.components.*
 import com.crisiscore.app.ui.theme.*
 import com.crisiscore.app.util.T
+import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(
     repository: CrisisCoreRepository,
     onLoginSuccess: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var isLogin by remember { mutableStateOf(true) }
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -136,8 +138,37 @@ fun AuthScreen(
 
         CcButton(
             onClick = {
-                isLoading = true
-                error = null
+                scope.launch {
+                    isLoading = true
+                    error = null
+                    val cleanPhone = phone.trim()
+                    val cleanPass = password.trim()
+                    if (isLogin) {
+                        val token = repository.login(cleanPhone, cleanPass)
+                        isLoading = false
+                        if (token != null) {
+                            onLoginSuccess()
+                        } else {
+                            error = "Login failed. Check credentials or network connectivity."
+                        }
+                    } else {
+                        val cleanName = name.trim().ifBlank { "Citizen" }
+                        val registered = repository.register(cleanPhone, cleanPass, cleanName)
+                        if (registered) {
+                            val token = repository.login(cleanPhone, cleanPass)
+                            isLoading = false
+                            if (token != null) {
+                                onLoginSuccess()
+                            } else {
+                                error = "Account created. Please log in with your credentials."
+                                isLogin = true
+                            }
+                        } else {
+                            isLoading = false
+                            error = "Registration failed. Ensure phone has 10-15 digits and is unique."
+                        }
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading && phone.isNotBlank() && password.isNotBlank()
@@ -149,20 +180,6 @@ fun AuthScreen(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-
-        CcButton(
-            onClick = {
-                isLoading = true
-                error = null
-            },
-            variant = CcButtonVariant.Secondary,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(T.get("auth.demoButton"))
-        }
 
         Spacer(Modifier.height(16.dp))
 

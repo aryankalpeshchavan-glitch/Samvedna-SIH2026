@@ -32,6 +32,9 @@ interface OfflineDao {
     @Query("SELECT * FROM pending_sos ORDER BY createdAt DESC")
     fun getAllSos(): Flow<List<PendingSosEntity>>
 
+    @Query("SELECT * FROM pending_sos WHERE synced = 0")
+    suspend fun getUnsyncedSos(): List<PendingSosEntity>
+
     @Query("UPDATE pending_sos SET synced = 1 WHERE id = :id")
     suspend fun markSosSynced(id: String)
 
@@ -43,6 +46,9 @@ interface OfflineDao {
 
     @Query("SELECT * FROM pending_incidents ORDER BY createdAt DESC")
     fun getAllIncidents(): Flow<List<PendingIncidentEntity>>
+
+    @Query("SELECT * FROM pending_incidents WHERE synced = 0")
+    suspend fun getUnsyncedIncidents(): List<PendingIncidentEntity>
 
     @Query("UPDATE pending_incidents SET synced = 1 WHERE id = :id")
     suspend fun markIncidentSynced(id: String)
