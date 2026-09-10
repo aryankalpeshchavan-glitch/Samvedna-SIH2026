@@ -13,8 +13,8 @@ import { TerrainScanner } from '../components/interactive/TerrainScanner';
 import { SafeRouteOverlay } from '../components/interactive/SafeRouteOverlay';
 import { StoryModeModal } from '../components/interactive/StoryModeModal';
 import { EmergencyModeBanner } from '../components/emergency/EmergencyModeBanner';
-import { PhoneCall, AlertOctagon } from 'lucide-react';
-import { getRisk, getIncidents } from '../services/api';
+import { PhoneCall, AlertOctagon, ShieldAlert } from 'lucide-react';
+import { getRisk, getIncidents, getUserRole, logout } from '../services/api';
 import { RiskZoneOut, IncidentOut } from '../types/api';
 
 interface HomeProps {
@@ -50,6 +50,17 @@ export const Home: React.FC<HomeProps> = ({
     localStorage.setItem('samvedna_map_view_style', mapViewStyle);
   }, [mapViewStyle]);
 
+  // Operations User Role State
+  const [userRole, setUserRole] = useState<string | null>(() => getUserRole());
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setUserRole(getUserRole());
+    };
+    window.addEventListener('crisiscore-auth-change', handleAuthChange);
+    return () => window.removeEventListener('crisiscore-auth-change', handleAuthChange);
+  }, []);
+
   // 3D Map & Interactive Modals State
   const [mapLayerMode, setMapLayerMode] = useState<MapLayerMode>('risk');
   const [selectedState, setSelectedState] = useState<NeStateInfo | null>(null);
@@ -62,10 +73,18 @@ export const Home: React.FC<HomeProps> = ({
 
   // Live Risk State
   const [riskZones, setRiskZones] = useState<RiskZoneOut[]>([]);
-  const [isRiskLoading, setIsRiskLoading] = useState(true);
+  const [isRiskLoading, setIsRiskLoading] = useState(false);
   const [riskError, setRiskError] = useState<string | null>(null);
 
   const fetchLiveRisk = async () => {
+    const role = getUserRole();
+    if (role !== 'officer' && role !== 'admin') {
+      setIsRiskLoading(false);
+      setRiskError(role === 'citizen' ? 'Operations access required' : 'Operations login required');
+      setRiskZones([]);
+      return;
+    }
+
     setIsRiskLoading(true);
     setRiskError(null);
     try {
@@ -77,8 +96,13 @@ export const Home: React.FC<HomeProps> = ({
       }
     } catch (err: any) {
       console.error('[Home] Failed to fetch live risk data:', err);
-      setRiskError(err?.message || 'Failed to connect to Risk Service');
-      setRiskZones([]); // Never silently replace failed live risk data with fake risk numbers
+      const msg = err?.message || 'Failed to connect to Risk Service';
+      if (msg.includes('401')) {
+        setRiskError('Authentication expired (401). Please re-login.');
+      } else {
+        setRiskError(msg);
+      }
+      setRiskZones([]);
     } finally {
       setIsRiskLoading(false);
     }
@@ -86,10 +110,18 @@ export const Home: React.FC<HomeProps> = ({
 
   // Live Incidents State
   const [incidents, setIncidents] = useState<IncidentOut[]>([]);
-  const [isIncidentsLoading, setIsIncidentsLoading] = useState(true);
+  const [isIncidentsLoading, setIsIncidentsLoading] = useState(false);
   const [incidentsError, setIncidentsError] = useState<string | null>(null);
 
   const fetchLiveIncidents = async () => {
+    const role = getUserRole();
+    if (role !== 'officer' && role !== 'admin') {
+      setIsIncidentsLoading(false);
+      setIncidentsError(role === 'citizen' ? 'Operations access required' : 'Operations login required');
+      setIncidents([]);
+      return;
+    }
+
     setIsIncidentsLoading(true);
     setIncidentsError(null);
     try {
@@ -101,7 +133,12 @@ export const Home: React.FC<HomeProps> = ({
       }
     } catch (err: any) {
       console.warn('[Home] Failed to fetch live incidents:', err);
-      setIncidentsError(err?.message || 'Failed to connect to Incident Service');
+      const msg = err?.message || 'Failed to connect to Incident Service';
+      if (msg.includes('401')) {
+        setIncidentsError('Authentication expired (401). Please re-login.');
+      } else {
+        setIncidentsError(msg);
+      }
       setIncidents([]);
     } finally {
       setIsIncidentsLoading(false);
@@ -109,9 +146,39 @@ export const Home: React.FC<HomeProps> = ({
   };
 
   useEffect(() => {
-    fetchLiveRisk();
-    fetchLiveIncidents();
-  }, []);
+    if (userRole === 'officer' || userRole === 'admin') {
+      fetchLiveRisk();
+      fetchLiveIncidents();
+    } else if (userRole === 'citizen') {
+      setIsRiskLoading(false);
+      setRiskError('Operations access required');
+      setRiskZones([]);
+      setIsIncidentsLoading(false);
+      setIncidentsError('Operations access required');
+      setIncidents([]);
+    } else {
+      setIsRiskLoading(false);
+      setRiskError('Operations login required');
+      setRiskZones([]);
+      setIsIncidentsLoading(false);
+      setIncidentsError('Operations login required');
+      setIncidents([]);
+    }
+  }, [userRole]);
+
+  useEffect(() => {
+    if (userRole !== 'officer' && userRole !== 'admin') return;
+    const handleRefresh = () => {
+      fetchLiveRisk();
+      fetchLiveIncidents();
+    };
+    window.addEventListener('crisiscore-refresh-telemetry', handleRefresh);
+    const interval = setInterval(handleRefresh, 15000);
+    return () => {
+      window.removeEventListener('crisiscore-refresh-telemetry', handleRefresh);
+      clearInterval(interval);
+    };
+  }, [userRole]);
 
   // Interactive Explainer Modals
   const [isWhyRiskOpen, setIsWhyRiskOpen] = useState(false);
@@ -151,6 +218,51 @@ export const Home: React.FC<HomeProps> = ({
             onShowRoute={() => setShowSafeRoute(true)}
             onExitEmergencyMode={() => setIsEmergencyMode(false)}
           />
+        </div>
+      )}
+
+      {/* Operations Access Barrier for Citizen Tokens */}
+      {userRole === 'citizen' && (
+        <div className="max-w-xl mx-auto p-3.5 rounded-2xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-[#8E2F2B] font-mono text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-sm">
+          <div className="flex items-center space-x-2.5">
+            <AlertOctagon className="w-5 h-5 shrink-0 text-[#8E2F2B]" />
+            <div>
+              <strong className="block font-heading text-sm uppercase">Operations Access Required</strong>
+              <span className="text-[11px] text-[#8E2F2B]/90">
+                Citizen session active. Live tactical risk and incident telemetry require Officer or Admin authorization.
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 shrink-0 w-full sm:w-auto justify-end">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-operations-auth'))}
+              className="px-3 py-1.5 rounded-xl bg-[#23483A] text-[#FAF9F3] text-xs font-heading font-bold hover:bg-[#1b382d] transition-all cursor-pointer"
+            >
+              Sign In as Officer
+            </button>
+            <button
+              onClick={() => logout()}
+              className="px-2.5 py-1.5 rounded-xl bg-[#F4F1E8] border border-[#C7B89B] text-[#8E2F2B] text-xs font-mono font-bold hover:bg-[#E8E6DC] transition-all cursor-pointer"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Operations Login Banner when Unauthenticated */}
+      {!userRole && (
+        <div className="max-w-xl mx-auto p-3 rounded-2xl bg-[#23483A]/10 border border-[#23483A]/30 text-[#23483A] font-mono text-xs flex items-center justify-between shadow-sm">
+          <div className="flex items-center space-x-2">
+            <ShieldAlert className="w-4 h-4 shrink-0 text-[#23483A]" />
+            <span>Tactical Command Interface: Please authenticate as Officer or Admin.</span>
+          </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-operations-auth'))}
+            className="px-3 py-1 rounded-xl bg-[#23483A] text-[#FAF9F3] text-xs font-heading font-bold hover:bg-[#1b382d] transition-all cursor-pointer shrink-0 ml-2"
+          >
+            Log In
+          </button>
         </div>
       )}
 

@@ -124,14 +124,21 @@ export const OperationsAuthModal: React.FC<OperationsAuthModalProps> = ({
             )}
 
             {currentRole === 'citizen' && (
-              <div className="p-2.5 rounded-xl bg-[#D88A32]/10 border border-[#D88A32]/40 text-[#8E2F2B] text-xs font-mono space-y-1">
+              <div className="p-3 rounded-xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-[#8E2F2B] text-xs font-mono space-y-2">
                 <div className="flex items-center space-x-1.5 font-bold">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Citizen Session (Restricted)</span>
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-[#8E2F2B]" />
+                  <span>Operations Access Required</span>
                 </div>
                 <p className="text-[11px] leading-relaxed">
-                  Citizen accounts cannot execute counterfactual What-If scenarios. Log in with Officer or Admin credentials below for command operations.
+                  Citizen accounts are not authorized for tactical operations or live command data. Sign in below with an Officer or Admin account, or sign out to reset your session.
                 </p>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-2.5 py-1 rounded bg-[#8E2F2B] text-white text-[10px] font-bold hover:bg-[#702420] transition-colors cursor-pointer"
+                >
+                  Sign Out Citizen Session
+                </button>
               </div>
             )}
           </div>

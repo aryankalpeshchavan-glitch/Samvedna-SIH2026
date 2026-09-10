@@ -15,9 +15,9 @@ export const DataSourceBadge: React.FC<DataSourceBadgeProps> = ({ type, size = '
       className: 'bg-[#23483A]/10 text-[#23483A] border-[#23483A]/30',
     },
     synthetic: {
-      label: 'SYNTHETIC DEMO',
+      label: 'STATIC REFERENCE',
       icon: Database,
-      className: 'bg-[#D88A32]/15 text-[#D88A32] border-[#D88A32]/40',
+      className: 'bg-[#536A72]/15 text-[#536A72] border-[#536A72]/40',
     },
     replayed: {
       label: 'REPLAYED FEED',

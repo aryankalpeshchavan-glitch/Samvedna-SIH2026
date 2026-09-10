@@ -22,15 +22,46 @@ let authToken: string | null =
     ? localStorage.getItem('crisiscore_token')
     : null
 
+export function decodeTokenPayload(token: string): { sub?: string; role?: string; exp?: number } | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length === 3) {
+      return JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+export function isTokenExpired(token: string): boolean {
+  const payload = decodeTokenPayload(token)
+  if (!payload || !payload.exp) return false
+  return payload.exp * 1000 < Date.now() + 10000
+}
+
+export function notifyAuthChange() {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('crisiscore-auth-change'))
+  }
+}
+
 export function setAuthToken(token: string | null) {
   authToken = token
   if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
     if (token) localStorage.setItem('crisiscore_token', token)
-    else localStorage.removeItem('crisiscore_token')
+    else {
+      localStorage.removeItem('crisiscore_token')
+      localStorage.removeItem('crisiscore_user_role')
+    }
   }
 }
 
 export function getAuthToken(): string | null {
+  if (authToken && isTokenExpired(authToken)) {
+    logout()
+    return null
+  }
   return authToken
 }
 
@@ -39,9 +70,14 @@ async function request(path: string, opts: RequestInit = {}) {
     'Content-Type': 'application/json',
     ...(opts.headers as Record<string, string> || {}),
   }
-  if (authToken) headers['Authorization'] = `Bearer ${authToken}`
+  const token = getAuthToken()
+  if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(apiUrl(path), { ...opts, headers })
   if (!res.ok) {
+    if (res.status === 401) {
+      // Clear expired / invalid token
+      logout()
+    }
     const txt = await res.text().catch(() => '')
     throw new Error(`${res.status} ${txt}`)
   }
@@ -49,21 +85,29 @@ async function request(path: string, opts: RequestInit = {}) {
 }
 
 export function getUserRole(): string | null {
-  if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
-    const cached = localStorage.getItem('crisiscore_user_role')
-    if (cached) return cached
+  if (!authToken && typeof localStorage !== 'undefined') {
+    authToken = localStorage.getItem('crisiscore_token')
   }
   if (!authToken) return null
-  try {
-    const parts = authToken.split('.')
-    if (parts.length === 3) {
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-      return payload.role || null
-    }
-  } catch {
-    // ignore
+  if (isTokenExpired(authToken)) {
+    logout()
+    return null
   }
-  return null
+  const payload = decodeTokenPayload(authToken)
+  const role = payload?.role || null
+  if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+    if (role) localStorage.setItem('crisiscore_user_role', role)
+    else localStorage.removeItem('crisiscore_user_role')
+  }
+  return role
+}
+
+export function isOperationsRole(role: string | null): boolean {
+  return role === 'officer' || role === 'admin'
+}
+
+export function isOperationsUser(): boolean {
+  return isOperationsRole(getUserRole())
 }
 
 // --- Auth ---
@@ -77,6 +121,7 @@ export async function login(phone: string, password: string): Promise<{ access_t
     if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
       localStorage.setItem('crisiscore_user_role', data.role || '')
     }
+    notifyAuthChange()
   }
   return data
 }
@@ -87,6 +132,7 @@ export function logout(): void {
     localStorage.removeItem('crisiscore_user_role')
     localStorage.removeItem('crisiscore_token')
   }
+  notifyAuthChange()
 }
 
 // --- Incidents ---

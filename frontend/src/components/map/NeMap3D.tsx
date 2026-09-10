@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { MONITORING_POINTS, NE_CENTER, NORTHEAST_STATES } from '../../data/northeastGeoData';
-import { CITIZEN_MAP_REPORTS, MOCK_SAFE_ROUTE } from '../../data/mockStoryData';
+import { MOCK_SAFE_ROUTE } from '../../data/mockStoryData';
 import { MapLayerMode, MapViewStyle, NeStateInfo, MonitoringPoint } from '../../types/map';
 import { CitizenMapReport, IncidentCategory, SeverityLevel } from '../../types/emergency';
 import { RainCanvasOverlay } from './RainCanvasOverlay';
@@ -569,6 +569,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
       MONITORING_POINTS.forEach((station) => {
         const el = document.createElement('div');
         el.className = 'group relative cursor-pointer z-30';
+        el.setAttribute('title', `Monitoring Station: ${station.name} (${station.id}) • Static Reference Sensor`);
 
         const colorBg =
           station.riskLevel === 'CRITICAL' || station.riskLevel === 'HIGH'
@@ -582,6 +583,9 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
             <span class="animate-ping absolute inline-flex h-5 w-5 rounded-full opacity-60 ${colorBg}"></span>
             <div class="relative inline-flex rounded-full h-4 w-4 border-2 border-[#FAF9F3] items-center justify-center font-mono text-[8px] font-black text-white shadow-md ${colorBg}">
               ●
+            </div>
+            <div class="absolute -bottom-6 px-1.5 py-0.5 rounded bg-[#202622]/90 text-white font-mono text-[9px] font-bold whitespace-nowrap shadow border border-[#C7B89B]/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-40">
+              Station ${station.id}: ${station.name} (Sensor Node)
             </div>
           </div>
         `;
@@ -831,7 +835,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     });
   }, [riskZones, isMapLoading, mapViewStyle]);
 
-  // Render Incident Markers on MapLibre (Live from backend, with benchmark fallback when backend is empty)
+  // Render Incident Markers on MapLibre (Live from backend incidents)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || isMapLoading) return;
@@ -840,7 +844,6 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     citizenMarkersRef.current.forEach((m) => m.remove());
     citizenMarkersRef.current = [];
 
-    const isLive = Boolean(incidents && incidents.length > 0);
     const reportsToRender: {
       id: string;
       lat: number;
@@ -850,39 +853,25 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
       statusBadge: string;
       statusBg: string;
       reportObj: CitizenMapReport;
-    }[] = isLive
-      ? (incidents || []).map((inc) => {
-          const report = mapIncidentOutToCitizenReport(inc);
-          let statusBg = 'bg-[#D88A32] text-white'; // amber for reported
-          if (inc.status === 'verified') statusBg = 'bg-[#23483A] text-white';
-          else if (inc.status === 'assigned') statusBg = 'bg-[#1F4E5B] text-white';
-          else if (inc.status === 'resolved') statusBg = 'bg-[#2E6F40] text-white';
-          else if (inc.status === 'rejected') statusBg = 'bg-[#536A72] text-white';
+    }[] = (incidents || []).map((inc) => {
+      const report = mapIncidentOutToCitizenReport(inc);
+      let statusBg = 'bg-[#D88A32] text-white'; // amber for reported
+      if (inc.status === 'verified') statusBg = 'bg-[#23483A] text-white';
+      else if (inc.status === 'assigned') statusBg = 'bg-[#1F4E5B] text-white';
+      else if (inc.status === 'resolved') statusBg = 'bg-[#2E6F40] text-white';
+      else if (inc.status === 'rejected') statusBg = 'bg-[#536A72] text-white';
 
-          return {
-            id: inc.id,
-            lat: inc.lat,
-            lng: inc.lng,
-            category: inc.type,
-            label: inc.type.toUpperCase(),
-            statusBadge: inc.status.toUpperCase(),
-            statusBg,
-            reportObj: report,
-          };
-        })
-      : CITIZEN_MAP_REPORTS.map((report) => ({
-          id: report.id,
-          lat: report.lat,
-          lng: report.lng,
-          category: report.category,
-          label: t(`hazards.${report.category}`),
-          statusBadge: 'DEMO',
-          statusBg: 'bg-[#536A72] text-white',
-          reportObj: {
-            ...report,
-            title: report.title.startsWith('[DEMO]') ? report.title : `[DEMO] ${report.title}`,
-          },
-        }));
+      return {
+        id: inc.id,
+        lat: inc.lat,
+        lng: inc.lng,
+        category: inc.type,
+        label: inc.type.toUpperCase(),
+        statusBadge: inc.status.toUpperCase(),
+        statusBg,
+        reportObj: report,
+      };
+    });
 
     reportsToRender.forEach((item) => {
       const el = document.createElement('div');
@@ -920,7 +909,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
 
       citizenMarkersRef.current.push(marker);
     });
-  }, [incidents, isMapLoading, mapViewStyle, t]);
+  }, [incidents, isMapLoading, mapViewStyle]);
 
   return (
     <div
@@ -986,8 +975,8 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
           </div>
         ) : (
           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/85 backdrop-blur-md border border-[#C7B89B]/30 text-[#FAF9F3]/90 shadow-md text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-[#D88A32]"></span>
-            <span>Demo Benchmark Incidents ({CITIZEN_MAP_REPORTS.length} Fallback)</span>
+            <span className="w-2 h-2 rounded-full bg-[#536A72]"></span>
+            <span>Live Incidents: 0 Active</span>
           </div>
         )}
       </div>

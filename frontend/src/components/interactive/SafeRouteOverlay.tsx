@@ -18,9 +18,11 @@ export const SafeRouteOverlay: React.FC<SafeRouteOverlayProps> = ({ isOpen, onCl
             <Navigation className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] font-mono font-bold text-[#23483A] uppercase tracking-widest block">
-              SAFE EVACUATION CORRIDOR
-            </span>
+            <div className="flex items-center space-x-1.5 mb-0.5">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#D88A32]/20 text-[#965C22] border border-[#D88A32]/40">
+                SCENARIO / NOT A LIVE ROUTE
+              </span>
+            </div>
             <h3 className="text-base font-heading font-bold text-[#202622]">
               {MOCK_SAFE_ROUTE.title}
             </h3>

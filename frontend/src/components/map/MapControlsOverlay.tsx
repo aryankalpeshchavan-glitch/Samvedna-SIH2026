@@ -3,9 +3,9 @@ import { MapLayerMode, MapViewStyle, NeStateInfo, MonitoringPoint } from '../../
 import { CitizenMapReport } from '../../types/emergency';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { useClickOutside } from '../../hooks/useClickOutside';
-import { Compass, RotateCcw, MapPin, X, Activity, Mountain, CloudRain, Droplets, Gauge, Sparkles, Navigation, Layers, HelpCircle, Globe, Check, ChevronDown } from 'lucide-react';
-
+import { Compass, RotateCcw, MapPin, X, Activity, Mountain, CloudRain, Droplets, Gauge, Sparkles, Navigation, Layers, HelpCircle, Globe, Check, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { RiskZoneOut, classifyRiskLevel } from '../../types/api';
+import { verifyIncident, isOperationsUser } from '../../services/api';
 
 interface MapControlsOverlayProps {
   mapViewStyle?: MapViewStyle;
@@ -266,9 +266,11 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
               <Activity className={`w-5 h-5 ${classifyRiskLevel(selectedRiskZone.risk_score) === 'HIGH' ? 'text-[#C6533C]' : classifyRiskLevel(selectedRiskZone.risk_score) === 'MEDIUM' ? 'text-[#D88A32]' : 'text-[#23483A]'}`} />
               <div>
                 <h4 className="text-sm font-heading font-bold text-[#202622]">
-                  ML Risk Zone ({classifyRiskLevel(selectedRiskZone.risk_score)})
+                  {selectedRiskZone.state ? `${selectedRiskZone.state.toUpperCase()} • ` : ''}Zone {selectedRiskZone.id.slice(0, 8)} ({classifyRiskLevel(selectedRiskZone.risk_score)})
                 </h4>
-                <span className="text-[11px] font-mono text-[#536A72]">ID: {selectedRiskZone.id.slice(0, 8)}...</span>
+                <span className="text-[11px] font-mono text-[#536A72]">
+                  {selectedRiskZone.lat?.toFixed(3)}°N, {selectedRiskZone.lng?.toFixed(3)}°E • Horizon: {selectedRiskZone.horizon_hours}h
+                </span>
               </div>
             </div>
             <button onClick={onCloseDetail} className="text-[#536A72] hover:text-[#202622] p-1" title={t('aria.closeDetail')}>
@@ -342,6 +344,27 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
             </span>
             <span className="text-[#C6533C] font-bold">{t('controls.severity')} {t(`severity.${selectedCitizenReport.severity}`)}</span>
           </div>
+
+          {isOperationsUser() && selectedCitizenReport.verifiedStatus !== 'VERIFIED' && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await verifyIncident(selectedCitizenReport.id);
+                    window.dispatchEvent(new CustomEvent('crisiscore-refresh-telemetry'));
+                    onCloseDetail();
+                  } catch (err: any) {
+                    alert(err?.message || 'Failed to verify incident');
+                  }
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-[#23483A] text-[#FAF9F3] text-xs font-heading font-bold hover:bg-[#1b382d] transition-all cursor-pointer flex items-center justify-center space-x-1.5 shadow-sm"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Verify Incident (Officer Action)</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -446,7 +469,7 @@ export const MapControlsOverlay: React.FC<MapControlsOverlayProps> = ({
               REGIONAL 12H SCENARIO OUTLOOK
             </span>
             <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-[#D88A32]/15 text-[#965C22] border border-[#D88A32]/30">
-              OUTLOOK
+              SCENARIO / NOT LIVE FORECAST
             </span>
           </div>
           <div className="flex items-center space-x-3 shrink-0">

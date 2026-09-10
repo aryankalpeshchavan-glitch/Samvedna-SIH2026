@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NetworkIndicator } from '../ui/NetworkIndicator';
 import { DataSourceBadge } from '../ui/DataSourceBadge';
 import { NetworkStatusType } from '../../types/emergency';
@@ -28,7 +28,40 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
 
   useClickOutside(langDropdownRef, () => setShowLangDropdown(false), showLangDropdown);
 
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setRole(getUserRole());
+    };
+    const handleOpenAuth = () => {
+      setIsAuthModalOpen(true);
+    };
+    window.addEventListener('crisiscore-auth-change', handleAuthChange);
+    window.addEventListener('open-operations-auth', handleOpenAuth);
+    return () => {
+      window.removeEventListener('crisiscore-auth-change', handleAuthChange);
+      window.removeEventListener('open-operations-auth', handleOpenAuth);
+    };
+  }, []);
+
   const activeLangObj = languages.find((l) => l.code === language) || languages[0];
+  const isOpsUser = role === 'officer' || role === 'admin';
+
+  const opsBadgeText = !role
+    ? 'OPS: LOGIN'
+    : role === 'citizen'
+    ? 'OPS: ACCESS REQUIRED'
+    : role === 'officer'
+    ? 'OPS: OFFICER'
+    : role === 'admin'
+    ? 'OPS: ADMIN'
+    : `OPS: ${role.toUpperCase()}`;
+
+  const opsBadgeColor =
+    role === 'officer' || role === 'admin'
+      ? 'bg-[#23483A]/10 border-[#23483A]/30 text-[#23483A] hover:bg-[#23483A]/20'
+      : role === 'citizen'
+      ? 'bg-[#8E2F2B]/15 border-[#8E2F2B]/40 text-[#8E2F2B] hover:bg-[#8E2F2B]/25'
+      : 'bg-[#D88A32]/15 border-[#D88A32]/40 text-[#965C22] hover:bg-[#D88A32]/25';
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF9F3]/95 backdrop-blur-md border-b border-[#C7B89B]/50 px-4 py-3 font-sans">
@@ -99,17 +132,17 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
             )}
           </div>
 
-          <DataSourceBadge type="synthetic" size="sm" />
+          <DataSourceBadge type={isOpsUser ? 'live' : 'synthetic'} size="sm" />
           <NetworkIndicator status={networkStatus} />
 
           {/* Operations Authorization Status & Command Access */}
           <button
             onClick={() => setIsAuthModalOpen(true)}
-            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#23483A]/10 border border-[#23483A]/30 text-xs font-mono font-bold text-[#23483A] hover:bg-[#23483A]/20 transition-colors cursor-pointer shadow-sm"
+            className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono font-bold transition-colors cursor-pointer shadow-sm ${opsBadgeColor}`}
             title="Operations Authentication"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-[#23483A]" />
-            <span className="hidden sm:inline uppercase">{role ? `Ops: ${role}` : 'Operations'}</span>
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline uppercase">{opsBadgeText}</span>
           </button>
 
           {/* Dedicated Visually-Separated Volunteer Verification & Emergency Help Section */}
