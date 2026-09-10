@@ -21,6 +21,7 @@ class Settings:
     FCM_SERVER_KEY: str = os.getenv("FCM_SERVER_KEY", "")
 
     RISK_API_URL: str = os.getenv("RISK_API_URL", "")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
     AUTO_REASSIGN_MINUTES: int = int(os.getenv("AUTO_REASSIGN_MINUTES", "5"))
     ASSIGNMENT_ACK_TIMEOUT_SECONDS: int = int(

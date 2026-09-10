@@ -20,7 +20,7 @@ class Incident(Base):
     lng = Column(Float, nullable=False)
     severity = Column(Integer, default=1)
     status = Column(String(20), default="reported", nullable=False)
-    data_label = Column(String(20), default="synthetic", nullable=False)
+    data_label = Column(String(20), default="live", nullable=False)
     photo_url = Column(String(512), nullable=True)
     idempotency_key = Column(String(128), unique=True, nullable=True, index=True)
     occurred_at = Column(DateTime, default=datetime.utcnow, nullable=True)

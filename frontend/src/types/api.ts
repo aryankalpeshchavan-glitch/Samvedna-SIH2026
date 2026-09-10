@@ -123,6 +123,14 @@ export interface ExposureSummary {
   source?: string | null;
 }
 
+export interface SopCitation {
+  source: string;
+  title: string;
+  document_type: string;
+  relevance: number;
+  excerpt: string;
+}
+
 export interface DecisionResponse {
   location_id: string;
   lat: number;
@@ -134,6 +142,11 @@ export interface DecisionResponse {
   actions: string[];
   data_status: string;
   computed_at: string;
+  ai_summary?: string | null;
+  ai_driver_analysis?: string | null;
+  ai_vulnerability_impact?: string | null;
+  sop_citations?: SopCitation[] | null;
+  ai_provider?: string | null;
 }
 
 export interface WhatIfRequest {

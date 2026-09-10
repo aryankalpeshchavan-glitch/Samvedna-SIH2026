@@ -34,7 +34,7 @@ async def create_incident(
         if existing_incident:
             return existing_incident
 
-    data_label_val = data.data_label.value if data.data_label else "synthetic"
+    data_label_val = data.data_label.value if data.data_label else "live"
     occurred_at_val = data.occurred_at or datetime.utcnow()
 
     incident = Incident(

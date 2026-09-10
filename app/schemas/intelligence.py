@@ -95,6 +95,11 @@ class DecisionResponse(BaseModel):
     actions: list[str]
     data_status: str
     computed_at: datetime
+    ai_summary: Optional[str] = None
+    ai_driver_analysis: Optional[str] = None
+    ai_vulnerability_impact: Optional[str] = None
+    sop_citations: Optional[list[dict[str, Any]]] = None
+    ai_provider: Optional[str] = None
 
 
 class DecisionRequest(BaseModel):

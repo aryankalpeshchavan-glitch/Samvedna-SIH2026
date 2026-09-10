@@ -26,6 +26,7 @@ from app.models.exposure import ExposureZone
 from app.models.volunteer import Volunteer
 from app.models.resource import Resource
 from app.models.user import User
+from app.models.incident import Incident
 from app.schemas.intelligence import (
     DecisionRequest, DecisionResponse,
     ExposureCreate, ExposureOut,
@@ -40,6 +41,7 @@ from app.intelligence.priority import (
 )
 from app.intelligence.actions import generate_actions
 from app.services.prediction_service import prediction_service
+from app.intelligence.rag_service import rag_gemini_service
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 
@@ -210,6 +212,33 @@ async def _build_decision(
         available_volunteers=n_volunteers,
     )
 
+    # 7. Grounded RAG & Gemini Operational Synthesis
+    inc_result = await db.execute(
+        select(Incident).where(Incident.status.in_(["verified", "investigating", "reported"]))
+    )
+    nearby_incidents = [
+        f"{i.type} ({i.status})"
+        for i in inc_result.scalars().all()
+        if haversine_km(lat, lng, i.lat, i.lng) <= 25.0
+    ]
+
+    ai_res = rag_gemini_service.generate_explanation(
+        risk_score=risk_score,
+        risk_level=risk_lv,
+        confidence=confidence,
+        model_version=model_version,
+        top_drivers=drivers,
+        driver_attributions=attributions or {},
+        environmental_inputs=raw_features if raw_features else None,
+        exposure=exposure_out.model_dump() if exposure_out else None,
+        priority_score=priority_out.priority_score,
+        priority_level=priority_out.priority_level,
+        response_gap_score=response_gap,
+        available_volunteers=n_volunteers,
+        nearby_resources=n_resources,
+        verified_incidents=nearby_incidents,
+    )
+
     return DecisionResponse(
         location_id=zone_id_str,
         lat=lat,
@@ -227,6 +256,11 @@ async def _build_decision(
         actions=actions,
         data_status=data_status,
         computed_at=now,
+        ai_summary=ai_res.summary,
+        ai_driver_analysis=ai_res.driver_analysis,
+        ai_vulnerability_impact=ai_res.vulnerability_impact,
+        sop_citations=ai_res.citations,
+        ai_provider=ai_res.ai_provider,
     )
 
 

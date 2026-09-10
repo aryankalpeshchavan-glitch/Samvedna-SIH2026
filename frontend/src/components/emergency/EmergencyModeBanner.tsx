@@ -21,9 +21,11 @@ export const EmergencyModeBanner: React.FC<EmergencyModeBannerProps> = ({
         <div className="flex items-center space-x-2.5">
           <ShieldAlert className="w-6 h-6 text-[#FAF9F3] shrink-0 animate-pulse" />
           <div>
-            <span className="text-[10px] font-mono font-bold tracking-widest text-[#FAF9F3]/80 uppercase block">
-              {t('evac.title')}
-            </span>
+            <div className="flex items-center space-x-1.5 mb-1">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-white/20 text-white border border-white/30">
+                SCENARIO / NOT A LIVE EVACUATION
+              </span>
+            </div>
             <h3 className="text-lg font-heading font-black tracking-wide uppercase">
               {t('evac.title')}
             </h3>

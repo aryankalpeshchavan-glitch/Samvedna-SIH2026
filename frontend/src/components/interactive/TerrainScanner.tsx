@@ -48,9 +48,11 @@ export const TerrainScanner: React.FC<TerrainScannerProps> = ({ isOpen, onClose 
               <Sparkles className="w-6 h-6 animate-pulse" />
             </div>
             <div>
-              <span className="text-xs font-mono font-bold text-[#A87C58] uppercase tracking-widest block">
-                ENVIRONMENTAL TOPOGRAPHY SCAN
-              </span>
+              <div className="flex items-center space-x-1.5 mb-1">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#D88A32]/20 text-[#965C22] border border-[#D88A32]/40">
+                  SCENARIO / NOT A LIVE FORECAST
+                </span>
+              </div>
               <h2 className="text-xl font-heading font-bold text-[#202622]">
                 {scanned ? 'Scan Complete' : 'Scanning Local Terrain...'}
               </h2>

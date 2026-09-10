@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Activity,
   Lock,
+  Sparkles,
 } from 'lucide-react';
 import { getIntelligenceDecision, simulateWhatIf } from '../../services/api';
 import { DecisionResponse, WhatIfResponse, classifyRiskLevel } from '../../types/api';
@@ -408,6 +409,58 @@ export const WhyRiskModal: React.FC<WhyRiskModalProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* AI / RAG Operational Grounding Synthesis */}
+                {decision.ai_summary && (
+                  <div className="p-4 rounded-2xl bg-[#23483A]/10 border border-[#23483A]/30 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-[#23483A] uppercase tracking-wider flex items-center space-x-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#23483A]" />
+                        <span>AI Operational Grounding &bull; {decision.ai_provider === 'google-genai' ? 'Google Gemini 2.5' : 'Verified RAG Engine'}</span>
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#23483A]/20 text-[#23483A] border border-[#23483A]/30">
+                        FACTUAL / NO FABRICATION
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-[#202622] font-medium leading-relaxed">
+                      {decision.ai_summary}
+                    </p>
+
+                    {decision.ai_driver_analysis && (
+                      <div className="text-[11px] text-[#202622]/90 leading-relaxed pt-1.5 border-t border-[#23483A]/20">
+                        <strong className="text-[#23483A] font-mono block mb-0.5">TERRAIN &amp; HAZARD DRIVER ANALYSIS:</strong>
+                        {decision.ai_driver_analysis}
+                      </div>
+                    )}
+
+                    {decision.ai_vulnerability_impact && (
+                      <div className="text-[11px] text-[#202622]/90 leading-relaxed pt-1.5 border-t border-[#23483A]/20">
+                        <strong className="text-[#23483A] font-mono block mb-0.5">EXPOSURE &amp; RESPONSE CAPACITY IMPACT:</strong>
+                        {decision.ai_vulnerability_impact}
+                      </div>
+                    )}
+
+                    {decision.sop_citations && decision.sop_citations.length > 0 && (
+                      <div className="pt-2 border-t border-[#23483A]/20 space-y-1.5">
+                        <span className="text-[10px] font-mono font-bold text-[#536A72] uppercase block">
+                          VERIFIED CANONICAL SOP CITATIONS ({decision.sop_citations.length}):
+                        </span>
+                        <div className="space-y-1.5">
+                          {decision.sop_citations.map((cite, idx) => (
+                            <div key={idx} className="p-2 rounded-xl bg-white/70 border border-[#C7B89B]/40 text-[10px] font-mono text-[#202622]">
+                              <div className="flex items-center justify-between text-[#23483A] font-bold">
+                                <span>{cite.title}</span>
+                                <span className="text-[9px] text-[#536A72]">{cite.source}</span>
+                              </div>
+                              <p className="text-[10px] text-[#536A72] mt-0.5 line-clamp-2">{cite.excerpt}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Recommended Response Actions */}
                 {decision.actions && decision.actions.length > 0 && (
