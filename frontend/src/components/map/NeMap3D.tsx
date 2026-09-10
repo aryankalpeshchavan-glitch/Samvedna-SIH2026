@@ -6,10 +6,11 @@ import { MapLayerMode, MapViewStyle, NeStateInfo, MonitoringPoint } from '../../
 import { CitizenMapReport, IncidentCategory, SeverityLevel } from '../../types/emergency';
 import { RainCanvasOverlay } from './RainCanvasOverlay';
 import { useTranslation } from '../../i18n/LanguageContext';
-import { Loader2, AlertOctagon } from 'lucide-react';
-import { RiskZoneOut, classifyRiskLevel, IncidentOut } from '../../types/api';
+import { Loader2, AlertOctagon, ShieldAlert } from 'lucide-react';
+import { RiskZoneOut, classifyRiskLevel, IncidentOut, AuthStatus } from '../../types/api';
 
 interface NeMap3DProps {
+  authStatus?: AuthStatus;
   mapViewStyle?: MapViewStyle;
   layerMode: MapLayerMode;
   selectedState: NeStateInfo | null;
@@ -426,6 +427,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
   selectedStation,
   selectedCitizenReport: _selectedCitizenReport,
   selectedRiskZone,
+  authStatus = 'bootstrapping',
   riskZones = [],
   isRiskLoading = false,
   riskError = null,
@@ -918,66 +920,85 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     >
       {/* Live Status Indicators (ML Risk + Incidents) */}
       <div className="absolute top-3 left-3 z-20 pointer-events-auto flex flex-col space-y-1.5">
-        {/* Live ML Risk Status Indicator */}
-        {isRiskLoading ? (
+        {authStatus === 'bootstrapping' ? (
           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#C7B89B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
             <Loader2 className="w-3.5 h-3.5 text-[#D88A32] animate-spin" />
-            <span>Fetching live ML risk data...</span>
+            <span>Initializing Operations Command...</span>
           </div>
-        ) : riskError ? (
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#8E2F2B]/95 backdrop-blur-md border border-[#FF5252]/50 text-white shadow-lg text-xs font-mono">
-            <AlertOctagon className="w-4 h-4 text-red-200 shrink-0" />
-            <span className="max-w-[220px] truncate">Risk API Error: {riskError}</span>
-            {onRetryRisk && (
-              <button
-                onClick={onRetryRisk}
-                className="ml-1 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer transition-colors"
-              >
-                Retry
-              </button>
-            )}
+        ) : authStatus === 'unauthenticated' ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#C7B89B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
+            <ShieldAlert className="w-3.5 h-3.5 text-[#D88A32]" />
+            <span>Operations Authentication Required</span>
           </div>
-        ) : riskZones && riskZones.length > 0 ? (
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#23483A]/80 text-[#FAF9F3] shadow-md text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
-            <span>Live ML Risk: {riskZones.length} Zone{riskZones.length > 1 ? 's' : ''} Active</span>
+        ) : authStatus === 'access_required' ? (
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#8E2F2B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
+            <AlertOctagon className="w-3.5 h-3.5 text-[#D88A32]" />
+            <span>Officer / Admin Access Required</span>
           </div>
         ) : (
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/85 backdrop-blur-md border border-[#C7B89B]/30 text-[#FAF9F3]/90 shadow-md text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-            <span>Live ML Risk: 0 active zones</span>
-          </div>
-        )}
+          <>
+            {/* Live ML Risk Status Indicator */}
+            {isRiskLoading ? (
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#C7B89B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
+                <Loader2 className="w-3.5 h-3.5 text-[#D88A32] animate-spin" />
+                <span>Connecting to live ML risk telemetry...</span>
+              </div>
+            ) : riskError ? (
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#8E2F2B]/95 backdrop-blur-md border border-[#FF5252]/50 text-white shadow-lg text-xs font-mono">
+                <AlertOctagon className="w-4 h-4 text-red-200 shrink-0" />
+                <span className="max-w-[240px] truncate">{riskError}</span>
+                {onRetryRisk && (
+                  <button
+                    onClick={onRetryRisk}
+                    className="ml-1 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer transition-colors"
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+            ) : riskZones && riskZones.length > 0 ? (
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#23483A]/80 text-[#FAF9F3] shadow-md text-xs font-mono">
+                <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
+                <span>Live ML Risk: {riskZones.length} Zone{riskZones.length > 1 ? 's' : ''} Active</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/85 backdrop-blur-md border border-[#C7B89B]/30 text-[#FAF9F3]/90 shadow-md text-xs font-mono">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                <span>Live ML Risk: 0 active zones</span>
+              </div>
+            )}
 
-        {/* Live Incidents Status Indicator */}
-        {isIncidentsLoading ? (
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#C7B89B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
-            <Loader2 className="w-3.5 h-3.5 text-[#D88A32] animate-spin" />
-            <span>Fetching live incidents...</span>
-          </div>
-        ) : incidentError ? (
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#8E2F2B]/95 backdrop-blur-md border border-[#FF5252]/50 text-white shadow-lg text-xs font-mono">
-            <AlertOctagon className="w-4 h-4 text-red-200 shrink-0" />
-            <span className="max-w-[220px] truncate">Incident Error: {incidentError}</span>
-            {onRetryIncidents && (
-              <button
-                onClick={onRetryIncidents}
-                className="ml-1 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer transition-colors"
-              >
-                Retry
-              </button>
+            {/* Live Incidents Status Indicator */}
+            {isIncidentsLoading ? (
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#C7B89B]/40 text-[#FAF9F3] shadow-md text-xs font-mono">
+                <Loader2 className="w-3.5 h-3.5 text-[#D88A32] animate-spin" />
+                <span>Connecting to live incident telemetry...</span>
+              </div>
+            ) : incidentError ? (
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#8E2F2B]/95 backdrop-blur-md border border-[#FF5252]/50 text-white shadow-lg text-xs font-mono">
+                <AlertOctagon className="w-4 h-4 text-red-200 shrink-0" />
+                <span className="max-w-[240px] truncate">{incidentError}</span>
+                {onRetryIncidents && (
+                  <button
+                    onClick={onRetryIncidents}
+                    className="ml-1 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer transition-colors"
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+            ) : incidents && incidents.length > 0 ? (
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#23483A]/80 text-[#FAF9F3] shadow-md text-xs font-mono">
+                <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
+                <span>Live Incidents: {incidents.length} Active</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/85 backdrop-blur-md border border-[#C7B89B]/30 text-[#FAF9F3]/90 shadow-md text-xs font-mono">
+                <span className="w-2 h-2 rounded-full bg-[#536A72]"></span>
+                <span>Live Incidents: 0 Active</span>
+              </div>
             )}
-          </div>
-        ) : incidents && incidents.length > 0 ? (
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/90 backdrop-blur-md border border-[#23483A]/80 text-[#FAF9F3] shadow-md text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
-            <span>Live Incidents: {incidents.length} Active</span>
-          </div>
-        ) : (
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#202622]/85 backdrop-blur-md border border-[#C7B89B]/30 text-[#FAF9F3]/90 shadow-md text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-[#536A72]"></span>
-            <span>Live Incidents: 0 Active</span>
-          </div>
+          </>
         )}
       </div>
 

@@ -13,8 +13,8 @@ import { TerrainScanner } from '../components/interactive/TerrainScanner';
 import { SafeRouteOverlay } from '../components/interactive/SafeRouteOverlay';
 import { StoryModeModal } from '../components/interactive/StoryModeModal';
 import { EmergencyModeBanner } from '../components/emergency/EmergencyModeBanner';
-import { PhoneCall, AlertOctagon, ShieldAlert } from 'lucide-react';
-import { getRisk, getIncidents, getUserRole, logout } from '../services/api';
+import { PhoneCall, AlertOctagon, ShieldAlert, Loader2 } from 'lucide-react';
+import { getRisk, getIncidents, getAuthInfo, AuthInfo, logout } from '../services/api';
 import { RiskZoneOut, IncidentOut } from '../types/api';
 
 interface HomeProps {
@@ -50,12 +50,12 @@ export const Home: React.FC<HomeProps> = ({
     localStorage.setItem('samvedna_map_view_style', mapViewStyle);
   }, [mapViewStyle]);
 
-  // Operations User Role State
-  const [userRole, setUserRole] = useState<string | null>(() => getUserRole());
+  // Unified Operations Auth State
+  const [authInfo, setAuthInfo] = useState<AuthInfo>(() => getAuthInfo());
 
   useEffect(() => {
     const handleAuthChange = () => {
-      setUserRole(getUserRole());
+      setAuthInfo(getAuthInfo());
     };
     window.addEventListener('crisiscore-auth-change', handleAuthChange);
     return () => window.removeEventListener('crisiscore-auth-change', handleAuthChange);
@@ -77,10 +77,10 @@ export const Home: React.FC<HomeProps> = ({
   const [riskError, setRiskError] = useState<string | null>(null);
 
   const fetchLiveRisk = async () => {
-    const role = getUserRole();
-    if (role !== 'officer' && role !== 'admin') {
+    const currentAuth = getAuthInfo();
+    if (currentAuth.status !== 'authenticated') {
       setIsRiskLoading(false);
-      setRiskError(role === 'citizen' ? 'Operations access required' : 'Operations login required');
+      setRiskError(null);
       setRiskZones([]);
       return;
     }
@@ -88,7 +88,7 @@ export const Home: React.FC<HomeProps> = ({
     setIsRiskLoading(true);
     setRiskError(null);
     try {
-      const data = await getRisk(undefined, '24h');
+      const data = await getRisk(undefined, '24h', 2);
       if (Array.isArray(data)) {
         setRiskZones(data);
       } else {
@@ -96,13 +96,12 @@ export const Home: React.FC<HomeProps> = ({
       }
     } catch (err: any) {
       console.error('[Home] Failed to fetch live risk data:', err);
-      const msg = err?.message || 'Failed to connect to Risk Service';
-      if (msg.includes('401')) {
-        setRiskError('Authentication expired (401). Please re-login.');
+      if (err?.status === 401) {
+        setRiskError(null);
+        setRiskZones([]);
       } else {
-        setRiskError(msg);
+        setRiskError(err?.message || 'Live Risk Telemetry Unavailable');
       }
-      setRiskZones([]);
     } finally {
       setIsRiskLoading(false);
     }
@@ -114,10 +113,10 @@ export const Home: React.FC<HomeProps> = ({
   const [incidentsError, setIncidentsError] = useState<string | null>(null);
 
   const fetchLiveIncidents = async () => {
-    const role = getUserRole();
-    if (role !== 'officer' && role !== 'admin') {
+    const currentAuth = getAuthInfo();
+    if (currentAuth.status !== 'authenticated') {
       setIsIncidentsLoading(false);
-      setIncidentsError(role === 'citizen' ? 'Operations access required' : 'Operations login required');
+      setIncidentsError(null);
       setIncidents([]);
       return;
     }
@@ -125,7 +124,7 @@ export const Home: React.FC<HomeProps> = ({
     setIsIncidentsLoading(true);
     setIncidentsError(null);
     try {
-      const data = await getIncidents();
+      const data = await getIncidents(undefined, undefined, undefined, 2);
       if (Array.isArray(data)) {
         setIncidents(data);
       } else {
@@ -133,41 +132,35 @@ export const Home: React.FC<HomeProps> = ({
       }
     } catch (err: any) {
       console.warn('[Home] Failed to fetch live incidents:', err);
-      const msg = err?.message || 'Failed to connect to Incident Service';
-      if (msg.includes('401')) {
-        setIncidentsError('Authentication expired (401). Please re-login.');
+      if (err?.status === 401) {
+        setIncidentsError(null);
+        setIncidents([]);
       } else {
-        setIncidentsError(msg);
+        setIncidentsError(err?.message || 'Live Incident Telemetry Unavailable');
       }
-      setIncidents([]);
     } finally {
       setIsIncidentsLoading(false);
     }
   };
 
+  // Immediate First-Load Data Initialization on Authentication
   useEffect(() => {
-    if (userRole === 'officer' || userRole === 'admin') {
+    if (authInfo.status === 'authenticated') {
       fetchLiveRisk();
       fetchLiveIncidents();
-    } else if (userRole === 'citizen') {
-      setIsRiskLoading(false);
-      setRiskError('Operations access required');
-      setRiskZones([]);
-      setIsIncidentsLoading(false);
-      setIncidentsError('Operations access required');
-      setIncidents([]);
     } else {
-      setIsRiskLoading(false);
-      setRiskError('Operations login required');
       setRiskZones([]);
-      setIsIncidentsLoading(false);
-      setIncidentsError('Operations login required');
       setIncidents([]);
+      setRiskError(null);
+      setIncidentsError(null);
+      setIsRiskLoading(false);
+      setIsIncidentsLoading(false);
     }
-  }, [userRole]);
+  }, [authInfo.status]);
 
+  // Periodic Telemetry Refresh (Only when authenticated)
   useEffect(() => {
-    if (userRole !== 'officer' && userRole !== 'admin') return;
+    if (authInfo.status !== 'authenticated') return;
     const handleRefresh = () => {
       fetchLiveRisk();
       fetchLiveIncidents();
@@ -178,7 +171,7 @@ export const Home: React.FC<HomeProps> = ({
       window.removeEventListener('crisiscore-refresh-telemetry', handleRefresh);
       clearInterval(interval);
     };
-  }, [userRole]);
+  }, [authInfo.status]);
 
   // Interactive Explainer Modals
   const [isWhyRiskOpen, setIsWhyRiskOpen] = useState(false);
@@ -222,7 +215,7 @@ export const Home: React.FC<HomeProps> = ({
       )}
 
       {/* Operations Access Barrier for Citizen Tokens */}
-      {userRole === 'citizen' && (
+      {authInfo.status === 'access_required' && (
         <div className="max-w-xl mx-auto p-3.5 rounded-2xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-[#8E2F2B] font-mono text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-sm">
           <div className="flex items-center space-x-2.5">
             <AlertOctagon className="w-5 h-5 shrink-0 text-[#8E2F2B]" />
@@ -251,7 +244,7 @@ export const Home: React.FC<HomeProps> = ({
       )}
 
       {/* Operations Login Banner when Unauthenticated */}
-      {!userRole && (
+      {authInfo.status === 'unauthenticated' && (
         <div className="max-w-xl mx-auto p-3 rounded-2xl bg-[#23483A]/10 border border-[#23483A]/30 text-[#23483A] font-mono text-xs flex items-center justify-between shadow-sm">
           <div className="flex items-center space-x-2">
             <ShieldAlert className="w-4 h-4 shrink-0 text-[#23483A]" />
@@ -266,9 +259,18 @@ export const Home: React.FC<HomeProps> = ({
         </div>
       )}
 
+      {/* Initializing Session State */}
+      {authInfo.status === 'bootstrapping' && (
+        <div className="max-w-xl mx-auto p-2.5 rounded-2xl bg-[#23483A]/10 border border-[#23483A]/30 text-[#23483A] font-mono text-xs flex items-center justify-center space-x-2 shadow-sm">
+          <Loader2 className="w-4 h-4 animate-spin text-[#23483A]" />
+          <span>Initializing Operations Command Session...</span>
+        </div>
+      )}
+
       {/* 90% Viewport Hero Map Section — THE MAP IS THE HERO */}
       <div className="relative rounded-2xl overflow-hidden shadow-lg border border-[#C7B89B]/50 bg-[#F4F1E8]">
         <NeMap3D
+          authStatus={authInfo.status}
           mapViewStyle={mapViewStyle}
           layerMode={mapLayerMode}
           selectedState={selectedState}

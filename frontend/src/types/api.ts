@@ -212,3 +212,11 @@ export type IncidentDataLabel = 'live' | 'synthetic' | 'replayed';
 export interface IncidentVerifyPayload {
   data_label?: IncidentDataLabel;
 }
+
+export type AuthStatus = 'bootstrapping' | 'authenticated' | 'unauthenticated' | 'access_required';
+
+export interface AuthInfo {
+  status: AuthStatus;
+  role: string | null;
+  token: string | null;
+}

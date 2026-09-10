@@ -8,7 +8,7 @@ import { useAudioAlert } from '../../hooks/useAudioAlert';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { QrCode, Shield, ShieldCheck, Globe, Volume2, VolumeX, LifeBuoy } from 'lucide-react';
 import { OperationsAuthModal } from './OperationsAuthModal';
-import { getUserRole } from '../../services/api';
+import { getAuthInfo, AuthInfo } from '../../services/api';
 
 interface HeaderProps {
   networkStatus: NetworkStatusType;
@@ -23,14 +23,14 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
   const { audioEnabled, toggleAudioEnabled } = useAudioAlert();
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [role, setRole] = useState<string | null>(() => getUserRole());
+  const [authInfo, setAuthInfo] = useState<AuthInfo>(() => getAuthInfo());
   const langDropdownRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(langDropdownRef, () => setShowLangDropdown(false), showLangDropdown);
 
   useEffect(() => {
     const handleAuthChange = () => {
-      setRole(getUserRole());
+      setAuthInfo(getAuthInfo());
     };
     const handleOpenAuth = () => {
       setIsAuthModalOpen(true);
@@ -44,22 +44,26 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
   }, []);
 
   const activeLangObj = languages.find((l) => l.code === language) || languages[0];
-  const isOpsUser = role === 'officer' || role === 'admin';
+  const isOpsUser = authInfo.status === 'authenticated';
+  const role = authInfo.role;
 
-  const opsBadgeText = !role
-    ? 'OPS: LOGIN'
-    : role === 'citizen'
-    ? 'OPS: ACCESS REQUIRED'
-    : role === 'officer'
-    ? 'OPS: OFFICER'
-    : role === 'admin'
-    ? 'OPS: ADMIN'
-    : `OPS: ${role.toUpperCase()}`;
+  const opsBadgeText =
+    authInfo.status === 'bootstrapping'
+      ? 'OPS: INITIALIZING'
+      : authInfo.status === 'unauthenticated'
+      ? 'OPS: LOGIN'
+      : authInfo.status === 'access_required'
+      ? 'OPS: ACCESS REQUIRED'
+      : role === 'officer'
+      ? 'OPS: OFFICER'
+      : role === 'admin'
+      ? 'OPS: ADMIN'
+      : `OPS: ${role ? role.toUpperCase() : 'LOGIN'}`;
 
   const opsBadgeColor =
-    role === 'officer' || role === 'admin'
+    authInfo.status === 'authenticated'
       ? 'bg-[#23483A]/10 border-[#23483A]/30 text-[#23483A] hover:bg-[#23483A]/20'
-      : role === 'citizen'
+      : authInfo.status === 'access_required'
       ? 'bg-[#8E2F2B]/15 border-[#8E2F2B]/40 text-[#8E2F2B] hover:bg-[#8E2F2B]/25'
       : 'bg-[#D88A32]/15 border-[#D88A32]/40 text-[#965C22] hover:bg-[#D88A32]/25';
 
@@ -175,7 +179,7 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
       <OperationsAuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        onAuthChange={() => setRole(getUserRole())}
+        onAuthChange={() => setAuthInfo(getAuthInfo())}
       />
     </header>
   );

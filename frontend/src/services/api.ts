@@ -7,7 +7,11 @@ import {
   DecisionResponse,
   WhatIfRequest,
   WhatIfResponse,
+  AuthStatus,
+  AuthInfo,
 } from '../types/api'
+
+export type { AuthStatus, AuthInfo }
 
 const API_BASE =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || ''
@@ -26,7 +30,10 @@ export function decodeTokenPayload(token: string): { sub?: string; role?: string
   try {
     const parts = token.split('.')
     if (parts.length === 3) {
-      return JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      const decoded = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+      if (decoded && typeof decoded === 'object') {
+        return decoded
+      }
     }
   } catch {
     // ignore
@@ -36,8 +43,8 @@ export function decodeTokenPayload(token: string): { sub?: string; role?: string
 
 export function isTokenExpired(token: string): boolean {
   const payload = decodeTokenPayload(token)
-  if (!payload || !payload.exp) return false
-  return payload.exp * 1000 < Date.now() + 10000
+  if (!payload || typeof payload.exp !== 'number') return true
+  return payload.exp * 1000 < Date.now() + 5000
 }
 
 export function notifyAuthChange() {
@@ -58,6 +65,9 @@ export function setAuthToken(token: string | null) {
 }
 
 export function getAuthToken(): string | null {
+  if (typeof localStorage !== 'undefined') {
+    authToken = localStorage.getItem('crisiscore_token')
+  }
   if (authToken && isTokenExpired(authToken)) {
     logout()
     return null
@@ -65,41 +75,31 @@ export function getAuthToken(): string | null {
   return authToken
 }
 
-async function request(path: string, opts: RequestInit = {}) {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(opts.headers as Record<string, string> || {}),
-  }
-  const token = getAuthToken()
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(apiUrl(path), { ...opts, headers })
-  if (!res.ok) {
-    if (res.status === 401) {
-      // Clear expired / invalid token
-      logout()
-    }
-    const txt = await res.text().catch(() => '')
-    throw new Error(`${res.status} ${txt}`)
-  }
-  return res.json().catch(() => ({}))
-}
-
-export function getUserRole(): string | null {
-  if (!authToken && typeof localStorage !== 'undefined') {
+export function getAuthInfo(): AuthInfo {
+  if (typeof localStorage !== 'undefined') {
     authToken = localStorage.getItem('crisiscore_token')
   }
-  if (!authToken) return null
+  if (!authToken) {
+    return { status: 'unauthenticated', role: null, token: null }
+  }
   if (isTokenExpired(authToken)) {
     logout()
-    return null
+    return { status: 'unauthenticated', role: null, token: null }
   }
   const payload = decodeTokenPayload(authToken)
   const role = payload?.role || null
-  if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
-    if (role) localStorage.setItem('crisiscore_user_role', role)
-    else localStorage.removeItem('crisiscore_user_role')
+  if (role === 'officer' || role === 'admin') {
+    return { status: 'authenticated', role, token: authToken }
   }
-  return role
+  if (role === 'citizen') {
+    return { status: 'access_required', role: 'citizen', token: authToken }
+  }
+  logout()
+  return { status: 'unauthenticated', role: null, token: null }
+}
+
+export function getUserRole(): string | null {
+  return getAuthInfo().role
 }
 
 export function isOperationsRole(role: string | null): boolean {
@@ -108,6 +108,68 @@ export function isOperationsRole(role: string | null): boolean {
 
 export function isOperationsUser(): boolean {
   return isOperationsRole(getUserRole())
+}
+
+export interface RequestOptions extends RequestInit {
+  retries?: number
+  retryDelayMs?: number
+  skipAuth?: boolean
+}
+
+async function request(path: string, opts: RequestOptions = {}) {
+  const { retries = 0, retryDelayMs = 800, skipAuth = false, ...fetchOpts } = opts
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(fetchOpts.headers as Record<string, string> || {}),
+  }
+
+  if (!skipAuth) {
+    const token = getAuthToken()
+    if (token) headers['Authorization'] = `Bearer ${token}`
+  }
+
+  let attempt = 0
+  while (true) {
+    try {
+      const res = await fetch(apiUrl(path), { ...fetchOpts, headers })
+      if (!res.ok) {
+        if (res.status === 401) {
+          // Explicitly clear session on 401; never retry 401 indefinitely
+          logout()
+          const txt = await res.text().catch(() => '')
+          const err = new Error(`401 Unauthorized: ${txt}`)
+          ;(err as any).status = 401
+          throw err
+        }
+
+        // Transient gateway/server startup codes (502, 503, 504)
+        if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < retries) {
+          attempt++
+          await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt))
+          continue
+        }
+
+        const txt = await res.text().catch(() => '')
+        const err = new Error(`${res.status} ${txt}`)
+        ;(err as any).status = res.status
+        throw err
+      }
+      return res.json().catch(() => ({}))
+    } catch (err: any) {
+      // Never retry 401
+      if (err?.status === 401 || err?.message?.includes('401')) {
+        throw err
+      }
+
+      // Retry transient network errors (Failed to fetch, backend startup delay)
+      if (attempt < retries) {
+        attempt++
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt))
+        continue
+      }
+      throw err
+    }
+  }
 }
 
 // --- Auth ---
@@ -147,14 +209,15 @@ export async function createIncidentSMS(payload: { phone: string; text: string; 
 export async function getIncidents(
   status?: string,
   bbox?: string,
-  limit?: number
+  limit?: number,
+  retries = 2
 ): Promise<IncidentOut[]> {
   const params = new URLSearchParams()
   if (status) params.set('status', status)
   if (bbox) params.set('bbox', bbox)
   if (limit !== undefined) params.set('limit', String(limit))
   const q = params.toString() ? `?${params.toString()}` : ''
-  return request(`/incidents${q}`)
+  return request(`/incidents${q}`, { retries, retryDelayMs: 900 })
 }
 
 export async function verifyIncident(
@@ -179,17 +242,21 @@ export async function getStatus(incidentId: string): Promise<IncidentStatusRespo
 }
 
 // --- Health ---
-export async function getHealth() {
-  return request('/health')
+export async function getHealth(retries = 2) {
+  return request('/health', { retries, retryDelayMs: 800, skipAuth: true })
 }
 
 // --- Risk ---
-export async function getRisk(bbox?: string, horizon: string = '24h'): Promise<RiskZoneOut[]> {
+export async function getRisk(
+  bbox?: string,
+  horizon: string = '24h',
+  retries = 2
+): Promise<RiskZoneOut[]> {
   const params = new URLSearchParams()
   if (bbox) params.set('bbox', bbox)
   if (horizon) params.set('horizon', horizon)
   const q = params.toString() ? `?${params.toString()}` : ''
-  return request(`/risk${q}`)
+  return request(`/risk${q}`, { retries, retryDelayMs: 900 })
 }
 
 // --- Intelligence ---
