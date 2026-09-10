@@ -28,6 +28,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val releaseApiUrl = project.findProperty("RELEASE_API_BASE_URL") as? String
+                ?: System.getenv("RELEASE_API_BASE_URL")
+                ?: "https://api.samvedna.gov.in"
+            val releaseWsUrl = project.findProperty("RELEASE_WS_BASE_URL") as? String
+                ?: System.getenv("RELEASE_WS_BASE_URL")
+                ?: "wss://api.samvedna.gov.in/ws/status"
+            buildConfigField("String", "API_BASE_URL", "\"$releaseApiUrl\"")
+            buildConfigField("String", "WS_BASE_URL", "\"$releaseWsUrl\"")
         }
     }
 
