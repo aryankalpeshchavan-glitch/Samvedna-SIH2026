@@ -195,9 +195,9 @@ fun HomeScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Analytics, null, tint = PrimaryGreen, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("SECTOR RISK INTELLIGENCE", style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp), color = PrimaryGreen, fontWeight = FontWeight.Bold)
+                    Text("LIVE SECTOR RISK ASSESSMENT", style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp), color = PrimaryGreen, fontWeight = FontWeight.Bold)
                 }
-                DataSourceBadge(if (decision != null) "live" else if (isLoadingIntelligence) "replayed" else "live")
+                DataSourceBadge("live")
             }
 
             Spacer(Modifier.height(8.dp))
@@ -215,7 +215,7 @@ fun HomeScreen(
                 val currentRisk = decision?.risk
                 val riskLevel = currentRisk?.risk_level ?: "MODERATE"
                 val score = currentRisk?.risk_score ?: 0.45
-                val sectorName = decision?.location_id?.ifBlank { null } ?: "Current Sector"
+                val sectorName = location?.addressName ?: decision?.location_id?.ifBlank { null } ?: "Guwahati / Assam Sector"
                 val latVal = decision?.lat ?: location?.latitude ?: 26.1445
                 val lngVal = decision?.lng ?: location?.longitude ?: 91.7362
 
@@ -269,7 +269,7 @@ fun HomeScreen(
                         val freshness = decision?.computed_at?.take(19)?.replace("T", " ") ?: "Live telemetry"
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            "Freshness: $freshness",
+                            "Updated: $freshness",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                             color = TextSecondaryLight.copy(alpha = 0.8f)
                         )
@@ -287,10 +287,13 @@ fun HomeScreen(
             }
         }
 
+        Spacer(Modifier.height(10.dp))
+
+        // CENTERED EMERGENCY SOS BUTTON (Primary Emergency Action)
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .then(
                     Modifier.graphicsLayer {
                         scaleX = pulseScale
@@ -298,7 +301,7 @@ fun HomeScreen(
                         alpha = pulseAlpha
                     }
                 ),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             color = EmergencyRed,
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -306,28 +309,33 @@ fun HomeScreen(
             }
         ) {
             Row(
-                modifier = Modifier.padding(vertical = 18.dp, horizontal = 20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 20.dp, horizontal = 24.dp),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Filled.Emergency, null, tint = CanvasLight, modifier = Modifier.size(28.dp))
-                Spacer(Modifier.width(14.dp))
-                Column {
+                Icon(Icons.Filled.Emergency, null, tint = CanvasLight, modifier = Modifier.size(32.dp))
+                Spacer(Modifier.width(16.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         T.get("home.triggerSos"),
                         color = CanvasLight,
                         fontWeight = FontWeight.Black,
-                        fontSize = 16.sp,
-                        letterSpacing = 1.5.sp
+                        fontSize = 18.sp,
+                        letterSpacing = 2.sp
                     )
                     Text(
                         T.get("home.sosDescription"),
-                        color = CanvasLight.copy(alpha = 0.75f),
+                        color = CanvasLight.copy(alpha = 0.85f),
                         fontSize = 11.sp,
-                        letterSpacing = 0.8.sp
+                        letterSpacing = 0.5.sp
                     )
                 }
             }
         }
+
+        Spacer(Modifier.height(10.dp))
 
         CcCard(
             modifier = Modifier.fillMaxWidth(),

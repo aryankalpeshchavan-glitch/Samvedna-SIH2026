@@ -238,7 +238,7 @@ fun FamilyScreen() {
             onDismiss = { showCheckInOthers = false },
             onConfirm = { selectedIds ->
                 familyList = familyList.map {
-                    if (selectedIds.contains(it.id)) it.copy(status = FamilyMemberStatus.CHECKED_IN, checkedInBy = "Checked in by Priya", checkedInAt = "Just now")
+                    if (selectedIds.contains(it.id)) it.copy(status = FamilyMemberStatus.CHECKED_IN, checkedInBy = "Checked in via device", checkedInAt = "Just now")
                     else it
                 }
                 toastMessage = "Checked in ${selectedIds.size} family member(s)!"
