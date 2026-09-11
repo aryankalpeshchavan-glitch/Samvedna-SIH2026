@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAudioAlert } from '../../hooks/useAudioAlert';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { Volume2, Pause, Play, Square } from 'lucide-react';
 
 interface AudioAlertButtonProps {
