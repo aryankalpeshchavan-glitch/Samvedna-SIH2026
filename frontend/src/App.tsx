@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useLocationStatus } from './hooks/useLocationStatus';
 import { useSosState } from './hooks/useSosState';
@@ -12,15 +12,24 @@ import { AlertsPlaceholder } from './pages/AlertsPlaceholder';
 import { CustomerServiceHelp } from './pages/CustomerServiceHelp';
 import { SosConfirmModal } from './components/emergency/SosConfirmModal';
 import { VolunteerQrScannerModal } from './components/emergency/VolunteerQrScannerModal';
+import { OperationsAuthModal } from './components/navigation/OperationsAuthModal';
 import { IncidentCategory, SeverityLevel, SosState } from './types/emergency';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
-
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const networkStatus = useNetworkStatus();
   const { location, refreshLocation } = useLocationStatus();
+
+  useEffect(() => {
+    const handleOpenAuth = () => {
+      setIsAuthModalOpen(true);
+    };
+    window.addEventListener('open-operations-auth', handleOpenAuth);
+    return () => window.removeEventListener('open-operations-auth', handleOpenAuth);
+  }, []);
 
   const {
     sosState,
@@ -106,6 +115,16 @@ export function App() {
       <VolunteerQrScannerModal
         isOpen={isQrScannerOpen}
         onClose={() => setIsQrScannerOpen(false)}
+      />
+
+      {/* Operations Authentication Modal (Mounted at Root to avoid any containing-block interference) */}
+      <OperationsAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthChange={() => {
+          // Trigger custom event so all listeners update their state
+          window.dispatchEvent(new CustomEvent('crisiscore-auth-change'));
+        }}
       />
 
       {/* Single Unified Floating Navigation Dock (Left Vertical on Desktop, Bottom Horizontal on Mobile) */}

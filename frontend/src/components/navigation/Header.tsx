@@ -22,7 +22,6 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
   const { language, setLanguage, languages, t } = useTranslation();
   const { audioEnabled, toggleAudioEnabled } = useAudioAlert();
   const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authInfo, setAuthInfo] = useState<AuthInfo>(() => getAuthInfo());
   const langDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -32,14 +31,9 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
     const handleAuthChange = () => {
       setAuthInfo(getAuthInfo());
     };
-    const handleOpenAuth = () => {
-      setIsAuthModalOpen(true);
-    };
     window.addEventListener('crisiscore-auth-change', handleAuthChange);
-    window.addEventListener('open-operations-auth', handleOpenAuth);
     return () => {
       window.removeEventListener('crisiscore-auth-change', handleAuthChange);
-      window.removeEventListener('open-operations-auth', handleOpenAuth);
     };
   }, []);
 
@@ -141,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
 
           {/* Operations Authorization Status & Command Access */}
           <button
-            onClick={() => setIsAuthModalOpen(true)}
+            onClick={() => window.dispatchEvent(new CustomEvent('open-operations-auth'))}
             className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono font-bold transition-colors cursor-pointer shadow-sm ${opsBadgeColor}`}
             title="Operations Authentication"
           >
@@ -175,12 +169,6 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
           </div>
         </div>
       </div>
-
-      <OperationsAuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onAuthChange={() => setAuthInfo(getAuthInfo())}
-      />
     </header>
   );
 };
