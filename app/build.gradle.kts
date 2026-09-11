@@ -17,8 +17,10 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8001\"")
-        buildConfigField("String", "WS_BASE_URL", "\"ws://10.0.2.2:8001/ws/status\"")
+        val apiUrl = (project.findProperty("API_BASE_URL") as? String) ?: "https://samvedna-sih2026-1.onrender.com"
+        val wsUrl = (project.findProperty("WS_BASE_URL") as? String) ?: "wss://samvedna-sih2026-1.onrender.com/ws/status"
+        buildConfigField("String", "API_BASE_URL", "\"$apiUrl\"")
+        buildConfigField("String", "WS_BASE_URL", "\"$wsUrl\"")
     }
 
     buildTypes {
