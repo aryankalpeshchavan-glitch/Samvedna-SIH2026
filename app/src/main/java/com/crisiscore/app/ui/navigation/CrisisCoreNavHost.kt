@@ -38,21 +38,15 @@ fun CrisisCoreNavHost() {
     var showAuth by remember { mutableStateOf(false) }
 
     val triggerSos: () -> Unit = {
-        if (!repository.isAuthenticated()) {
-            showAuth = true
-        } else {
-            sosState = SosState.SOS_CONFIRMATION
-        }
+        sosState = SosState.SOS_CONFIRMATION
     }
 
     val confirmSos: (String?) -> Unit = { category ->
-        if (!repository.isAuthenticated()) {
-            showAuth = true
-        } else {
-            sosState = SosState.SENDING
-            sosDetail = sosDetail.copy(state = SosState.SENDING)
-            activeTab = TabType.Status
-            scope.launch {
+        sosState = SosState.SENDING
+        sosDetail = sosDetail.copy(state = SosState.SENDING)
+        activeTab = TabType.Status
+        scope.launch {
+            repository.ensureAuthenticated()
             val loc = repository.getCurrentLocation()
             val idempotencyKey = UUID.randomUUID().toString()
             val lat = loc.latitude ?: 26.1445
@@ -97,7 +91,6 @@ fun CrisisCoreNavHost() {
             }
         }
     }
-}
 
     val cancelSos: () -> Unit = {
         sosState = SosState.IDLE
@@ -162,55 +155,52 @@ fun CrisisCoreNavHost() {
                     TabType.Incident -> IncidentScreen(
                         repository = repository,
                         onSubmit = { cat, sev, note ->
-                            if (!repository.isAuthenticated()) {
-                                showAuth = true
-                            } else {
-                                sosState = SosState.SENDING
-                                sosDetail = sosDetail.copy(state = SosState.SENDING)
-                                activeTab = TabType.Status
-                                scope.launch {
-                                    val loc = repository.getCurrentLocation()
-                                    val idempotencyKey = UUID.randomUUID().toString()
-                                    val lat = loc.latitude ?: 26.1445
-                                    val lng = loc.longitude ?: 91.7362
-                                    val type = CrisisCoreRepository.mapCategoryToBackendType(cat.name)
-                                    val severityInt = CrisisCoreRepository.mapSeverityToBackendInt(sev.name)
-                                    val desc = note.ifBlank { "Incident report: ${cat.name}" }
+                            sosState = SosState.SENDING
+                            sosDetail = sosDetail.copy(state = SosState.SENDING)
+                            activeTab = TabType.Status
+                            scope.launch {
+                                repository.ensureAuthenticated()
+                                val loc = repository.getCurrentLocation()
+                                val idempotencyKey = UUID.randomUUID().toString()
+                                val lat = loc.latitude ?: 26.1445
+                                val lng = loc.longitude ?: 91.7362
+                                val type = CrisisCoreRepository.mapCategoryToBackendType(cat.name)
+                                val severityInt = CrisisCoreRepository.mapSeverityToBackendInt(sev.name)
+                                val desc = note.ifBlank { "Incident report: ${cat.name}" }
 
-                                    val res = repository.createIncident(
-                                        type = type,
-                                        description = desc,
-                                        lat = lat,
-                                        lng = lng,
-                                        severity = severityInt,
-                                        idempotencyKey = idempotencyKey
+                                val res = repository.createIncident(
+                                    type = type,
+                                    description = desc,
+                                    lat = lat,
+                                    lng = lng,
+                                    severity = severityInt,
+                                    idempotencyKey = idempotencyKey
+                                )
+                                if (res != null) {
+                                    activeIncidentId = res.id.toString()
+                                    sosState = SosState.SENT
+                                    sosDetail = sosDetail.copy(
+                                        sosId = activeIncidentId,
+                                        state = SosState.SENT,
+                                        timestamp = System.currentTimeMillis()
                                     )
-                                    if (res != null) {
-                                        activeIncidentId = res.id.toString()
-                                        sosState = SosState.SENT
-                                        sosDetail = sosDetail.copy(
-                                            sosId = activeIncidentId,
-                                            state = SosState.SENT,
-                                            timestamp = System.currentTimeMillis()
-                                        )
-                                    } else {
-                                        val reportPayload = IncidentReportPayload(
-                                            id = idempotencyKey,
-                                            category = cat.name,
-                                            severity = sev.name,
-                                            description = desc,
-                                            location = loc,
-                                            timestamp = System.currentTimeMillis()
-                                        )
-                                        repository.savePendingIncident(reportPayload)
-                                        activeIncidentId = idempotencyKey
-                                        sosState = SosState.OFFLINE_QUEUED
-                                        sosDetail = sosDetail.copy(
-                                            sosId = idempotencyKey,
-                                            state = SosState.OFFLINE_QUEUED,
-                                            timestamp = System.currentTimeMillis()
-                                        )
-                                    }
+                                } else {
+                                    val reportPayload = IncidentReportPayload(
+                                        id = idempotencyKey,
+                                        category = cat.name,
+                                        severity = sev.name,
+                                        description = desc,
+                                        location = loc,
+                                        timestamp = System.currentTimeMillis()
+                                    )
+                                    repository.savePendingIncident(reportPayload)
+                                    activeIncidentId = idempotencyKey
+                                    sosState = SosState.OFFLINE_QUEUED
+                                    sosDetail = sosDetail.copy(
+                                        sosId = idempotencyKey,
+                                        state = SosState.OFFLINE_QUEUED,
+                                        timestamp = System.currentTimeMillis()
+                                    )
                                 }
                             }
                         }

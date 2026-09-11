@@ -46,6 +46,7 @@ fun HomeScreen(
     val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
+        repository.ensureAuthenticated()
         val loc = repository.getCurrentLocation()
         location = loc
         val lat = loc.latitude ?: 26.1445
