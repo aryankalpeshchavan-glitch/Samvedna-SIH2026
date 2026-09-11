@@ -14,7 +14,8 @@ import {
 export type { AuthStatus, AuthInfo }
 
 const API_BASE =
-  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || ''
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
+  'https://samvedna-sih2026-1.onrender.com'
 
 export function apiUrl(path: string): string {
   if (!API_BASE) return path

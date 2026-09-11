@@ -151,16 +151,28 @@ export const OperationsAuthModal: React.FC<OperationsAuthModalProps> = ({
           {/* Operational Login Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="text-xs font-mono font-bold text-[#202622] block mb-1.5">
-                Authorized Phone Number
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-mono font-bold text-[#202622]">
+                  Authorized Phone Number
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhone('9876543211');
+                    setPassword('Officer@123');
+                  }}
+                  className="text-[10px] font-mono text-[#23483A] hover:underline font-bold"
+                >
+                  Fill Officer Creds
+                </button>
+              </div>
               <div className="relative">
                 <Phone className="w-4 h-4 text-[#536A72] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91..."
+                  placeholder="9876543211"
                   autoComplete="tel"
                   className="w-full pl-9 pr-3 py-2 bg-[#F4F1E8] border border-[#C7B89B] rounded-xl text-xs font-mono text-[#202622] placeholder:text-[#536A72]/60 focus:outline-none focus:border-[#23483A]"
                 />
@@ -177,7 +189,7 @@ export const OperationsAuthModal: React.FC<OperationsAuthModalProps> = ({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
+                  placeholder="Officer@123"
                   autoComplete="current-password"
                   className="w-full pl-9 pr-3 py-2 bg-[#F4F1E8] border border-[#C7B89B] rounded-xl text-xs font-mono text-[#202622] placeholder:text-[#536A72]/60 focus:outline-none focus:border-[#23483A]"
                 />
