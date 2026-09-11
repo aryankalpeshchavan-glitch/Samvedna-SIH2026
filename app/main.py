@@ -54,16 +54,24 @@ app = FastAPI(
 
 # Allowed frontend origins
 origins = [
-    "http://localhost:5173",  # Local Vite
-    "http://localhost:3000",  # Local React
-    "https://samvedna-sih2026.vercel.app",  # Production
-    "https://samvedna-sih2026-2cg2r5elz-aj-e6d0.vercel.app",  # Preview
-    "https://samvedna-sih2026-nerhsq2ji-aj-e6d0.vercel.app",  # Current preview
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://samvedna-sih-2026.vercel.app",
+    "https://samvedna-sih2026.vercel.app",
+    "https://samvedna-sih-2026-qv8wrabw9-aj-e6d0.vercel.app",
+    "https://samvedna-sih2026-2cg2r5elz-aj-e6d0.vercel.app",
+    "https://samvedna-sih2026-nerhsq2ji-aj-e6d0.vercel.app",
 ]
+
+# Merge any custom origins from settings/environment
+for o in settings.CORS_ORIGINS:
+    if o and o not in origins:
+        origins.append(o)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
