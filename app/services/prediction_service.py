@@ -236,7 +236,7 @@ class PredictionService:
         prob = 1.0 / (1.0 + math.exp(-logit))
         return prob
 
-        def predict_hazard(
+    def predict_hazard(
         self,
         lat: float,
         lng: float,
@@ -321,6 +321,7 @@ class PredictionService:
             feature_attributions=attributions,
             early_warning=(risk_score >= threshold),
         )
+
     def _compute_fallback(self, r24: float, r7: float, slope: float) -> tuple[float, float, str, str, float]:
         """Clearly marked deterministic fallback based on physical precipitation and terrain thresholds."""
         heuristic = (r24 / 200.0) * 0.5 + (r7 / 500.0) * 0.3 + (slope / 45.0) * 0.2
