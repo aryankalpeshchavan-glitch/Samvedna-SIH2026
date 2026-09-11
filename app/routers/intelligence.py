@@ -312,6 +312,11 @@ async def decision_by_location(
             zone=zone,
             location_id=data.location_id,
         )
+
+    except HTTPException:
+        # Preserve the original FastAPI error (503, 404, etc.)
+        raise
+
     except Exception as e:
         logger.exception("Decision endpoint failed")
         raise HTTPException(
