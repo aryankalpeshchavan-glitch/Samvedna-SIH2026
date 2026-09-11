@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { STORY_MODE_SLIDES } from '../../data/mockStoryData';
 import { animateStorySlideEnter } from '../../animations/storyAnimations';
-import { X, ChevronLeft, ChevronRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ModalPortal } from '../ui/ModalPortal';
 
 interface StoryModeModalProps {
   isOpen: boolean;
@@ -23,8 +24,18 @@ export const StoryModeModal: React.FC<StoryModeModalProps> = ({ isOpen, onClose 
   const slide = STORY_MODE_SLIDES[currentSlideIndex];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-md">
-      <div className="w-full max-w-xl bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden font-sans">
+    <ModalPortal onClose={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="story-mode-modal-title"
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-md"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-xl bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden font-sans"
+        >
         
         {/* Header */}
         <div className="flex items-start justify-between pb-3 border-b border-[#E8E6DC]">
@@ -47,7 +58,7 @@ export const StoryModeModal: React.FC<StoryModeModalProps> = ({ isOpen, onClose 
           <span className="text-xs font-mono font-bold text-[#D88A32] tracking-wider uppercase block">
             {slide.subtitle}
           </span>
-          <h2 className="text-2xl sm:text-3xl font-heading font-black text-[#202622] leading-tight">
+          <h2 id="story-mode-modal-title" className="text-2xl sm:text-3xl font-heading font-black text-[#202622] leading-tight">
             {slide.title}
           </h2>
           <p className="text-sm sm:text-base text-[#202622]/85 font-medium leading-relaxed">
@@ -88,6 +99,7 @@ export const StoryModeModal: React.FC<StoryModeModalProps> = ({ isOpen, onClose 
         </div>
 
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };

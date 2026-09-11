@@ -6,7 +6,6 @@ import { SosStateViewer } from '../components/emergency/SosStateViewer';
 import { Card } from '../components/ui/Card';
 import { animatePageEnter } from '../animations/pageTransitions';
 import { useTranslation } from '../i18n/LanguageContext';
-import { SpecularHeading } from '../components/ui/SpecularHeading';
 import { Activity, Database, RefreshCw, Layers, QrCode, ShieldCheck } from 'lucide-react';
 
 interface StatusProps {
@@ -27,6 +26,11 @@ export const Status: React.FC<StatusProps> = ({
   const { t } = useTranslation();
   const [offlineSosList, setOfflineSosList] = useState<PendingSosEntry[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const isDemoMode =
+    import.meta.env.DEV ||
+    (typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('demo'));
 
   const fetchOfflineList = async () => {
     const list = await getPendingSOS();
@@ -86,7 +90,7 @@ export const Status: React.FC<StatusProps> = ({
                   {t('qr.verifyTitle')}
                 </h4>
                 <p className="text-xs text-[#536A72]">
-                  Scan NDRF / SDRF responder QR badge credentials.
+                  {t('qr.scanResponderSubtitle')}
                 </p>
               </div>
             </div>
@@ -101,30 +105,37 @@ export const Status: React.FC<StatusProps> = ({
         </div>
       )}
 
-      {/* Interactive State Simulation Controls */}
-      <Card className="p-4 bg-[#FAF9F3] border-[#C7B89B]">
-        <h4 className="text-xs font-mono font-bold text-[#23483A] uppercase mb-2 flex items-center">
-          <Layers className="w-4 h-4 mr-1.5" /> {t('status.simulatorTitle')}
-        </h4>
-        <p className="text-xs text-[#536A72] mb-3">
-          {t('status.simulatorText')}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {(['IDLE', 'SENDING', 'SENT', 'OFFLINE_QUEUED', 'VERIFIED', 'VOLUNTEER_EN_ROUTE', 'RESOLVED', 'ERROR'] as SosState[]).map((state) => (
-            <button
-              key={state}
-              onClick={() => onSimulateStateChange(state)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold border transition-colors cursor-pointer ${
-                sosState === state
-                  ? 'bg-[#23483A] text-[#FAF9F3] border-[#23483A] font-bold'
-                  : 'bg-[#F4F1E8] text-[#202622] border-[#C7B89B]/50 hover:bg-[#E8E6DC]'
-              }`}
-            >
-              {state}
-            </button>
-          ))}
-        </div>
-      </Card>
+      {/* Interactive State Simulation Controls (Gated for Dev & Demo Testing) */}
+      {isDemoMode && (
+        <Card className="p-4 bg-[#FAF9F3] border-[#C7B89B]">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-mono font-bold text-[#23483A] uppercase flex items-center">
+              <Layers className="w-4 h-4 mr-1.5" /> {t('status.simulatorTitle')}
+            </h4>
+            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#D88A32]/20 text-[#965C22] border border-[#D88A32]/30">
+              DEMO / EVALUATION MODE
+            </span>
+          </div>
+          <p className="text-xs text-[#536A72] mb-3">
+            {t('status.simulatorText')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(['IDLE', 'SENDING', 'SENT', 'OFFLINE_QUEUED', 'VERIFIED', 'VOLUNTEER_EN_ROUTE', 'RESOLVED', 'ERROR'] as SosState[]).map((state) => (
+              <button
+                key={state}
+                onClick={() => onSimulateStateChange(state)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold border transition-colors cursor-pointer ${
+                  sosState === state
+                    ? 'bg-[#23483A] text-[#FAF9F3] border-[#23483A] font-bold'
+                    : 'bg-[#F4F1E8] text-[#202622] border-[#C7B89B]/50 hover:bg-[#E8E6DC]'
+                }`}
+              >
+                {state}
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* IndexedDB Local Persistence Queue */}
       <div className="pt-2">

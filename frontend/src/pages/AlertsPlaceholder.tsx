@@ -5,7 +5,6 @@ import { Badge } from '../components/ui/Badge';
 import { animatePageEnter } from '../animations/pageTransitions';
 import { useTranslation } from '../i18n/LanguageContext';
 import { AudioAlertButton } from '../components/ui/AudioAlertButton';
-import { SpecularHeading } from '../components/ui/SpecularHeading';
 import { Bell, ShieldAlert } from 'lucide-react';
 
 export const AlertsPlaceholder: React.FC = () => {

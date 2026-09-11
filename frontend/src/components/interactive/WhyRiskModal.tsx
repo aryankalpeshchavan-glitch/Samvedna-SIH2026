@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { AudioAlertButton } from '../ui/AudioAlertButton';
+import { ModalPortal } from '../ui/ModalPortal';
+
 import {
   X,
   HelpCircle,
@@ -133,11 +135,19 @@ export const WhyRiskModal: React.FC<WhyRiskModalProps> = ({
     : t('home.whyRisk');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#202622]/60 backdrop-blur-sm font-sans animate-in fade-in duration-200">
+    <ModalPortal onClose={onClose}>
       <div
-        ref={modalRef}
-        className="w-full max-w-2xl bg-[#FAF9F3] border-2 border-[#C7B89B] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="why-risk-modal-title"
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#202622]/60 backdrop-blur-sm font-sans animate-in fade-in duration-200"
       >
+        <div
+          ref={modalRef}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-2xl bg-[#FAF9F3] border-2 border-[#C7B89B] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto"
+        >
         {/* Header */}
         <div className="flex items-start justify-between pb-3 border-b border-[#E8E6DC]">
           <div className="flex items-center space-x-3">
@@ -159,7 +169,7 @@ export const WhyRiskModal: React.FC<WhyRiskModalProps> = ({
                   </span>
                 )}
               </div>
-              <h2 className="text-xl sm:text-2xl font-heading font-black text-[#202622]">
+              <h2 id="why-risk-modal-title" className="text-xl sm:text-2xl font-heading font-black text-[#202622]">
                 {locationName || t('home.whyRisk')}
               </h2>
               <span className="text-[11px] font-mono text-[#536A72]">
@@ -657,6 +667,7 @@ export const WhyRiskModal: React.FC<WhyRiskModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };

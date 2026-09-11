@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { AlertOctagon, X, CheckCircle2 } from 'lucide-react';
 import { IncidentCategory } from '../../types/emergency';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { ModalPortal } from '../ui/ModalPortal';
 
 interface SosConfirmModalProps {
   onConfirm: (category?: IncidentCategory) => void;
@@ -20,16 +21,19 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({ onConfirm, onC
   }, []);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-    >
+    <ModalPortal onClose={onCancel}>
       <div
-        ref={modalRef}
-        className="w-full max-w-md bg-[#FAF9F3] border-2 border-[#8E2F2B] rounded-3xl p-6 shadow-2xl text-left space-y-4"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        onClick={onCancel}
       >
+        <div
+          ref={modalRef}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-md bg-[#FAF9F3] border-2 border-[#8E2F2B] rounded-3xl p-6 shadow-2xl text-left space-y-4"
+        >
         <div className="flex items-start justify-between pb-3 border-b border-[#E8E6DC]">
           <div className="flex items-center space-x-2 text-[#8E2F2B]">
             <AlertOctagon className="w-6 h-6 shrink-0" />
@@ -94,6 +98,7 @@ export const SosConfirmModal: React.FC<SosConfirmModalProps> = ({ onConfirm, onC
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };

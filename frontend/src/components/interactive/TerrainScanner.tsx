@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MOCK_TERRAIN_SCAN } from '../../data/mockStoryData';
 import { animateScannerLine } from '../../animations/storyAnimations';
 import { X, Sparkles, Mountain, CloudRain, Droplets, Gauge, AlertTriangle } from 'lucide-react';
+import { ModalPortal } from '../ui/ModalPortal';
+
 
 interface TerrainScannerProps {
   isOpen: boolean;
@@ -30,34 +32,44 @@ export const TerrainScanner: React.FC<TerrainScannerProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg bg-[#FAF9F3] border-2 border-[#A87C58] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 overflow-hidden">
-        
-        {/* Animated Scanner Bar Line */}
-        {!scanned && (
-          <div
-            ref={lineRef}
-            className="absolute left-0 right-0 h-1 bg-[#23483A] shadow-[0_0_15px_#23483A] z-10 pointer-events-none"
-          />
-        )}
+    <ModalPortal onClose={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="terrain-scanner-title"
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/60 backdrop-blur-sm"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-lg bg-[#FAF9F3] border-2 border-[#A87C58] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 overflow-hidden font-sans"
+        >
+          
+          {/* Animated Scanner Bar Line */}
+          {!scanned && (
+            <div
+              ref={lineRef}
+              className="absolute left-0 right-0 h-1 bg-[#23483A] shadow-[0_0_15px_#23483A] z-10 pointer-events-none"
+            />
+          )}
 
-        {/* Header */}
-        <div className="flex items-start justify-between pb-3 border-b border-[#E8E6DC]">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-2xl bg-[#A87C58]/10 text-[#A87C58] border border-[#A87C58]/30">
-              <Sparkles className="w-6 h-6 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-1.5 mb-1">
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#D88A32]/20 text-[#965C22] border border-[#D88A32]/40">
-                  SCENARIO / NOT A LIVE FORECAST
-                </span>
+          {/* Header */}
+          <div className="flex items-start justify-between pb-3 border-b border-[#E8E6DC]">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-2xl bg-[#A87C58]/10 text-[#A87C58] border border-[#A87C58]/30">
+                <Sparkles className="w-6 h-6 animate-pulse" />
               </div>
-              <h2 className="text-xl font-heading font-bold text-[#202622]">
-                {scanned ? 'Scan Complete' : 'Scanning Local Terrain...'}
-              </h2>
+              <div>
+                <div className="flex items-center space-x-1.5 mb-1">
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#D88A32]/20 text-[#965C22] border border-[#D88A32]/40">
+                    SCENARIO / NOT A LIVE FORECAST
+                  </span>
+                </div>
+                <h2 id="terrain-scanner-title" className="text-xl font-heading font-bold text-[#202622]">
+                  {scanned ? 'Scan Complete' : 'Scanning Local Terrain...'}
+                </h2>
+              </div>
             </div>
-          </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-full text-[#536A72] hover:text-[#202622] hover:bg-[#E8E6DC]"
@@ -120,7 +132,8 @@ export const TerrainScanner: React.FC<TerrainScannerProps> = ({ isOpen, onClose 
           </div>
         )}
 
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

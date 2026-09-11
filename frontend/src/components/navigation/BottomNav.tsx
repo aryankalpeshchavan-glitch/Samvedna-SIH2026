@@ -26,9 +26,11 @@ interface DockItemProps {
   mouseX: ReturnType<typeof useMotionValue<number>>;
   mouseY: ReturnType<typeof useMotionValue<number>>;
   label: string;
+  index: number;
+  total: number;
 }
 
-function DockItem({ tab, isActive, onSelect, mouseX, mouseY, label }: DockItemProps) {
+function DockItem({ tab, isActive, onSelect, mouseX, mouseY, label, index, total }: DockItemProps) {
   const itemRef = useRef<HTMLButtonElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const Icon = tab.icon;
@@ -52,6 +54,14 @@ function DockItem({ tab, isActive, onSelect, mouseX, mouseY, label }: DockItemPr
   const width = useSpring(widthSync, { mass: 0.1, stiffness: 170, damping: 12 });
   const iconSize = useSpring(iconSizeSync, { mass: 0.1, stiffness: 170, damping: 12 });
 
+  // Tooltip positioning: On mobile, avoid clipping on the left edge (first item) and right edge (last item)
+  const mobileTooltipAlign =
+    index === 0
+      ? 'left-0 translate-x-0'
+      : index === total - 1
+      ? 'right-0 translate-x-0 left-auto'
+      : 'left-1/2 -translate-x-1/2';
+
   return (
     <div className="relative flex items-center justify-center">
       {/* Tooltip Label on Hover (Desktop: to the right, Mobile: above) */}
@@ -62,7 +72,7 @@ function DockItem({ tab, isActive, onSelect, mouseX, mouseY, label }: DockItemPr
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -4, scale: 0.9 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 whitespace-nowrap pointer-events-none px-2.5 py-1 rounded-lg bg-[#202622] text-[#FAF9F3] text-[11px] font-heading font-bold shadow-md border border-[#FAF9F3]/10 lg:left-full lg:ml-3 lg:top-1/2 lg:-translate-y-1/2 -top-9 left-1/2 -translate-x-1/2 lg:translate-x-0"
+            className={`absolute z-50 whitespace-nowrap pointer-events-none px-2.5 py-1 rounded-lg bg-[#202622] text-[#FAF9F3] text-[11px] font-heading font-bold shadow-md border border-[#FAF9F3]/10 lg:left-full lg:ml-3 lg:top-1/2 lg:-translate-y-1/2 -top-9 ${mobileTooltipAlign} lg:translate-x-0`}
           >
             {label}
           </motion.div>
@@ -125,10 +135,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, so
         mouseX.set(Infinity);
         mouseY.set(Infinity);
       }}
-      className="fixed z-40 font-sans max-w-full px-2 lg:px-0 bottom-4 left-1/2 -translate-x-1/2 lg:bottom-auto lg:left-4 lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0"
+      className="fixed z-40 font-sans max-w-full px-2 lg:px-0 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 lg:bottom-auto lg:left-4 lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0"
     >
       <div className="flex flex-row lg:flex-col items-center space-x-2 sm:space-x-3 lg:space-x-0 lg:space-y-3 px-3 py-2 lg:px-2 lg:py-3 rounded-3xl bg-[#FAF9F3]/95 backdrop-blur-md border border-[#C7B89B]/60 shadow-xl border-t border-t-white/40">
-        {tabs.map((tab) => {
+        {tabs.map((tab, idx) => {
           const isActive = activeTab === tab.id;
           const label = t(tab.labelKey);
 
@@ -141,6 +151,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, so
               mouseX={mouseX}
               mouseY={mouseY}
               label={label}
+              index={idx}
+              total={tabs.length}
             />
           );
         })}

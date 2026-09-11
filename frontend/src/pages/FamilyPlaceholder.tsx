@@ -1,9 +1,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
+import { ModalPortal } from '../components/ui/ModalPortal';
+
 import { animatePageEnter } from '../animations/pageTransitions';
 import { useTranslation } from '../i18n/LanguageContext';
 import { Users, ShieldCheck, UserPlus, CheckCircle2, UserCheck, PhoneCall, X, Heart, HeartHandshake, MapPin, HandHeart } from 'lucide-react';
+
+import { useToast } from '../context/ToastContext';
 
 export interface FamilyMemberItem {
   id: string;
@@ -27,6 +31,7 @@ export interface CommunitySafetyReport {
 export const FamilyPlaceholder: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  const { success } = useToast();
 
   // Initial Mock Family Members State
   const [familyList, setFamilyList] = useState<FamilyMemberItem[]>([
@@ -60,22 +65,29 @@ export const FamilyPlaceholder: React.FC = () => {
     },
     {
       id: 'mem-3',
-      name: 'Sunil Sharma',
-      relationship: 'Father',
+      name: 'Rajesh Sharma',
+      relationship: 'Brother',
       status: 'UNVERIFIED',
-      location: 'Last seen: Sector 4 Pass',
+      location: 'Dispur Hill Sector 2',
       isSelf: false,
     },
   ]);
 
-  // Initial Mock Community Safety Reports (Help Someone Else)
+  // Community Reports State
   const [communityReports, setCommunityReports] = useState<CommunitySafetyReport[]>([
     {
       id: 'comm-1',
-      name: 'Elderly Neighbor (Devi Ram)',
-      context: 'Neighbor',
-      location: 'Community Shelter B',
-      timestamp: '12m ago',
+      name: 'Ramen Das',
+      context: 'Elderly neighbor',
+      location: 'High School Ground Shelter',
+      timestamp: '12 min ago',
+    },
+    {
+      id: 'comm-2',
+      name: 'Bina Roy',
+      context: 'Local Shopkeeper',
+      location: 'Sector 4 Community Hall',
+      timestamp: '25 min ago',
     },
   ]);
 
@@ -83,9 +95,7 @@ export const FamilyPlaceholder: React.FC = () => {
   const [isCheckInOthersOpen, setIsCheckInOthersOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isReportSomeoneOpen, setIsReportSomeoneOpen] = useState(false);
-
   const [selectedForCheckIn, setSelectedForCheckIn] = useState<string[]>([]);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Form States for Add Member
   const [newMemberName, setNewMemberName] = useState('');
@@ -108,8 +118,7 @@ export const FamilyPlaceholder: React.FC = () => {
 
   // Trigger Toast Notification
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+    success(msg);
   };
 
   // 1. Self Check-In Action ("I'M SAFE")
@@ -200,14 +209,6 @@ export const FamilyPlaceholder: React.FC = () => {
   return (
     <div ref={containerRef} className="pb-28 pt-4 px-4 max-w-2xl mx-auto space-y-6 font-sans">
       
-      {/* Toast Feedback Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-[#23483A] text-[#FAF9F3] text-xs font-heading font-bold shadow-xl border border-[#FAF9F3]/20 flex items-center space-x-2 animate-bounce">
-          <CheckCircle2 className="w-4 h-4 text-[#FAF9F3]" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-[#C7B89B]/50">
         <div>
@@ -433,271 +434,307 @@ export const FamilyPlaceholder: React.FC = () => {
 
       {/* MODAL 1: CHECK IN SOMEONE WITH ME */}
       {isCheckInOthersOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans animate-fade-in">
-          <div className="w-full max-w-md bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-start justify-between pb-3 border-b border-[#C7B89B]/50">
-              <div className="flex items-center space-x-2.5">
-                <UserCheck className="w-5 h-5 text-[#23483A]" />
-                <h3 className="text-base font-heading font-bold text-[#202622]">
-                  {t('family.checkInOthers')}
-                </h3>
+        <ModalPortal onClose={() => setIsCheckInOthersOpen(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="check-in-others-title"
+            onClick={() => setIsCheckInOthersOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans animate-fade-in"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-start justify-between pb-3 border-b border-[#C7B89B]/50">
+                <div className="flex items-center space-x-2.5">
+                  <UserCheck className="w-5 h-5 text-[#23483A]" />
+                  <h3 id="check-in-others-title" className="text-base font-heading font-bold text-[#202622]">
+                    {t('family.checkInOthers')}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsCheckInOthersOpen(false)}
+                  aria-label="Close modal"
+                  className="p-1 rounded-xl text-[#536A72] hover:text-[#202622] cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
+
+              <p className="text-xs text-[#536A72]">
+                {t('family.selectMembers')}
+              </p>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto pt-1">
+                {familyList
+                  .filter((m) => !m.isSelf)
+                  .map((m) => (
+                    <label
+                      key={m.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-colors cursor-pointer ${
+                        selectedForCheckIn.includes(m.id)
+                          ? 'bg-[#23483A]/10 border-[#23483A] text-[#23483A]'
+                          : 'bg-[#F4F1E8] border-[#C7B89B]/50 text-[#202622]'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedForCheckIn.includes(m.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedForCheckIn((prev) => [...prev, m.id]);
+                            } else {
+                              setSelectedForCheckIn((prev) => prev.filter((id) => id !== m.id));
+                            }
+                          }}
+                          className="w-4 h-4 accent-[#23483A] rounded cursor-pointer"
+                        />
+                        <div>
+                          <strong className="text-xs font-heading font-bold block">{m.name}</strong>
+                          <span className="text-[10px] font-mono text-[#536A72]">{m.relationship}</span>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white/60">
+                        {m.status === 'CHECKED_IN' ? 'Safe' : 'Needs Check-in'}
+                      </span>
+                    </label>
+                  ))}
+              </div>
+
               <button
-                onClick={() => setIsCheckInOthersOpen(false)}
-                className="p-1 rounded-xl text-[#536A72] hover:text-[#202622] cursor-pointer"
+                onClick={handleConfirmCheckInOthers}
+                disabled={selectedForCheckIn.length === 0}
+                className={`w-full py-3 px-4 rounded-xl font-heading font-bold text-xs transition-colors cursor-pointer shadow-md ${
+                  selectedForCheckIn.length > 0
+                    ? 'bg-[#23483A] text-[#FAF9F3] hover:bg-[#1b382d]'
+                    : 'bg-[#C7B89B]/50 text-[#536A72] cursor-not-allowed'
+                }`}
               >
-                <X className="w-5 h-5" />
+                {t('family.confirmSafe')} ({selectedForCheckIn.length})
               </button>
             </div>
-
-            <p className="text-xs text-[#536A72]">
-              {t('family.selectMembers')}
-            </p>
-
-            <div className="space-y-2 max-h-60 overflow-y-auto pt-1">
-              {familyList
-                .filter((m) => !m.isSelf)
-                .map((m) => (
-                  <label
-                    key={m.id}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-colors cursor-pointer ${
-                      selectedForCheckIn.includes(m.id)
-                        ? 'bg-[#23483A]/10 border-[#23483A] text-[#23483A]'
-                        : 'bg-[#F4F1E8] border-[#C7B89B]/50 text-[#202622]'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedForCheckIn.includes(m.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedForCheckIn((prev) => [...prev, m.id]);
-                          } else {
-                            setSelectedForCheckIn((prev) => prev.filter((id) => id !== m.id));
-                          }
-                        }}
-                        className="w-4 h-4 accent-[#23483A] rounded cursor-pointer"
-                      />
-                      <div>
-                        <strong className="text-xs font-heading font-bold block">{m.name}</strong>
-                        <span className="text-[10px] font-mono text-[#536A72]">{m.relationship}</span>
-                      </div>
-                    </div>
-
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white/60">
-                      {m.status === 'CHECKED_IN' ? 'Safe' : 'Needs Check-in'}
-                    </span>
-                  </label>
-                ))}
-            </div>
-
-            <button
-              onClick={handleConfirmCheckInOthers}
-              disabled={selectedForCheckIn.length === 0}
-              className={`w-full py-3 px-4 rounded-xl font-heading font-bold text-xs transition-colors cursor-pointer shadow-md ${
-                selectedForCheckIn.length > 0
-                  ? 'bg-[#23483A] text-[#FAF9F3] hover:bg-[#1b382d]'
-                  : 'bg-[#C7B89B]/50 text-[#536A72] cursor-not-allowed'
-              }`}
-            >
-              {t('family.confirmSafe')} ({selectedForCheckIn.length})
-            </button>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* MODAL 2: ADD FAMILY MEMBER */}
       {isAddMemberOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans animate-fade-in">
-          <div className="w-full max-w-md bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-start justify-between pb-3 border-b border-[#C7B89B]/50">
-              <div className="flex items-center space-x-2.5">
-                <UserPlus className="w-5 h-5 text-[#23483A]" />
-                <h3 className="text-base font-heading font-bold text-[#202622]">
-                  {t('family.addMemberTitle')}
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsAddMemberOpen(false)}
-                className="p-1 rounded-xl text-[#536A72] hover:text-[#202622] cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddMemberSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs font-mono font-bold text-[#536A72] block mb-1">
-                  {t('family.nameLabel')}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newMemberName}
-                  onChange={(e) => setNewMemberName(e.target.value)}
-                  placeholder="e.g. Grandma Devi"
-                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#C7B89B] text-xs text-[#202622] focus:outline-none focus:border-[#23483A]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-mono font-bold text-[#536A72] block mb-1">
-                  {t('family.relationshipLabel')}
-                </label>
-                <select
-                  value={newMemberRel}
-                  onChange={(e) => setNewMemberRel(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#C7B89B] text-xs text-[#202622] focus:outline-none focus:border-[#23483A]"
-                >
-                  <option value="Spouse">Spouse</option>
-                  <option value="Son">Son</option>
-                  <option value="Daughter">Daughter</option>
-                  <option value="Father">Father</option>
-                  <option value="Mother">Mother</option>
-                  <option value="Grandparent">Grandparent</option>
-                  <option value="Relative">Relative</option>
-                </select>
-              </div>
-
-              <div className="pt-2 flex justify-end space-x-2">
+        <ModalPortal onClose={() => setIsAddMemberOpen(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-member-title"
+            onClick={() => setIsAddMemberOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans animate-fade-in"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-start justify-between pb-3 border-b border-[#C7B89B]/50">
+                <div className="flex items-center space-x-2.5">
+                  <UserPlus className="w-5 h-5 text-[#23483A]" />
+                  <h3 id="add-member-title" className="text-base font-heading font-bold text-[#202622]">
+                    {t('family.addMemberTitle')}
+                  </h3>
+                </div>
                 <button
-                  type="button"
                   onClick={() => setIsAddMemberOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-[#F4F1E8] border border-[#C7B89B] text-[#536A72] font-heading font-bold text-xs cursor-pointer"
+                  aria-label="Close modal"
+                  className="p-1 rounded-xl text-[#536A72] hover:text-[#202622] cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#23483A] text-[#FAF9F3] font-heading font-bold text-xs hover:bg-[#1b382d] cursor-pointer shadow-sm"
-                >
-                  {t('family.addMemberTitle')}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleAddMemberSubmit} className="space-y-3">
+                <div>
+                  <label className="text-xs font-mono font-bold text-[#536A72] block mb-1">
+                    {t('family.nameLabel')}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newMemberName}
+                    onChange={(e) => setNewMemberName(e.target.value)}
+                    placeholder="e.g. Grandma Devi"
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#C7B89B] text-xs text-[#202622] focus:outline-none focus:border-[#23483A]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-mono font-bold text-[#536A72] block mb-1">
+                    {t('family.relationshipLabel')}
+                  </label>
+                  <select
+                    value={newMemberRel}
+                    onChange={(e) => setNewMemberRel(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-[#C7B89B] text-xs text-[#202622] focus:outline-none focus:border-[#23483A]"
+                  >
+                    <option value="Spouse">Spouse</option>
+                    <option value="Son">Son</option>
+                    <option value="Daughter">Daughter</option>
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Grandparent">Grandparent</option>
+                    <option value="Relative">Relative</option>
+                  </select>
+                </div>
+
+                <div className="pt-2 flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddMemberOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-[#F4F1E8] border border-[#C7B89B] text-[#536A72] font-heading font-bold text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-[#23483A] text-[#FAF9F3] font-heading font-bold text-xs hover:bg-[#1b382d] cursor-pointer shadow-sm"
+                  >
+                    {t('family.addMemberTitle')}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* MODAL 3: REPORT SOMEONE AS SAFE (Guided Flow for Non-Family / Community Encounter) */}
       {isReportSomeoneOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans animate-fade-in">
-          <div className="w-full max-w-lg bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex items-start justify-between pb-3 border-b border-[#C7B89B]/50">
-              <div className="flex items-center space-x-2.5">
-                <HeartHandshake className="w-6 h-6 text-[#23483A]" />
-                <div>
-                  <span className="text-[10px] font-mono font-bold text-[#23483A] uppercase tracking-widest block">
-                    COMMUNITY SAFETY CONFIRMATION
-                  </span>
-                  <h3 className="text-base font-heading font-bold text-[#202622]">
-                    {t('family.reportSomeoneTitle')}
-                  </h3>
+        <ModalPortal onClose={() => setIsReportSomeoneOpen(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="report-someone-title"
+            onClick={() => setIsReportSomeoneOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans animate-fade-in"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              
+              <div className="flex items-start justify-between pb-3 border-b border-[#C7B89B]/50">
+                <div className="flex items-center space-x-2.5">
+                  <HeartHandshake className="w-6 h-6 text-[#23483A]" />
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-[#23483A] uppercase tracking-widest block">
+                      COMMUNITY SAFETY CONFIRMATION
+                    </span>
+                    <h3 id="report-someone-title" className="text-base font-heading font-bold text-[#202622]">
+                      {t('family.reportSomeoneTitle')}
+                    </h3>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => setIsReportSomeoneOpen(false)}
-                className="p-1 rounded-xl text-[#536A72] hover:text-[#202622] cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleReportSomeoneSubmit} className="space-y-3.5">
-              {/* Field 1: Optional Name */}
-              <div>
-                <label className="text-xs font-mono font-bold text-[#536A72] block mb-1">
-                  1. {t('family.personNameOpt')}
-                </label>
-                <input
-                  type="text"
-                  value={reportPersonName}
-                  onChange={(e) => setReportPersonName(e.target.value)}
-                  placeholder="e.g. Ramesh or Unidentified elderly person"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#C7B89B] text-xs text-[#202622] focus:outline-none focus:border-[#23483A]"
-                />
-                <span className="text-[10px] text-[#536A72] mt-0.5 block">
-                  Leave blank if person's name is unknown.
-                </span>
-              </div>
-
-              {/* Field 2: Relationship / Context */}
-              <div>
-                <label className="text-xs font-mono font-bold text-[#536A72] block mb-1">
-                  2. {t('family.contextLabel')}
-                </label>
-                <select
-                  value={reportContext}
-                  onChange={(e) => setReportContext(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white border border-[#C7B89B] text-xs font-semibold text-[#202622] focus:outline-none focus:border-[#23483A]"
-                >
-                  <option value="Someone I Encountered">{t('family.contextEncountered')}</option>
-                  <option value="Neighbor">{t('family.contextNeighbor')}</option>
-                  <option value="Friend">{t('family.contextFriend')}</option>
-                  <option value="Family Member">{t('family.contextFamily')}</option>
-                  <option value="Unknown / Stranger">{t('family.contextUnknown')}</option>
-                </select>
-              </div>
-
-              {/* Field 3: Location */}
-              <div>
-                <label className="text-xs font-mono font-bold text-[#536A72] block mb-1 flex items-center">
-                  <MapPin className="w-3.5 h-3.5 text-[#23483A] mr-1" />
-                  3. {t('family.locationLabel')}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={reportLocation}
-                  onChange={(e) => setReportLocation(e.target.value)}
-                  placeholder="e.g. Guwahati Sector 4 Shelter B"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#C7B89B] text-xs text-[#202622] focus:outline-none focus:border-[#23483A]"
-                />
-              </div>
-
-              {/* Field 4: Confirmation Checkbox */}
-              <div className="p-3 rounded-xl bg-[#23483A]/10 border border-[#23483A]/30">
-                <label className="flex items-start space-x-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    required
-                    checked={isConfirmedSafe}
-                    onChange={(e) => setIsConfirmedSafe(e.target.checked)}
-                    className="w-4 h-4 accent-[#23483A] rounded mt-0.5 cursor-pointer shrink-0"
-                  />
-                  <span className="text-xs font-medium text-[#202622] leading-snug">
-                    {t('family.confirmNotice')}
-                  </span>
-                </label>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-2 flex justify-end space-x-2">
                 <button
-                  type="button"
                   onClick={() => setIsReportSomeoneOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-[#F4F1E8] border border-[#C7B89B] text-[#536A72] font-heading font-bold text-xs cursor-pointer"
+                  aria-label="Close modal"
+                  className="p-1 rounded-xl text-[#536A72] hover:text-[#202622] cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!isConfirmedSafe}
-                  className={`px-5 py-2.5 rounded-xl font-heading font-bold text-xs transition-colors shadow-md cursor-pointer ${
-                    isConfirmedSafe
-                      ? 'bg-[#23483A] text-[#FAF9F3] hover:bg-[#1b382d]'
-                      : 'bg-[#C7B89B]/50 text-[#536A72] cursor-not-allowed'
-                  }`}
-                >
-                  {t('family.confirmTheyAreSafe')}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
 
+              <form onSubmit={handleReportSomeoneSubmit} className="space-y-3.5">
+                {/* Field 1: Optional Name */}
+                <div>
+                  <label className="text-xs font-mono font-bold text-[#536A72] block mb-1">
+                    1. {t('family.personNameOpt')}
+                  </label>
+                  <input
+                    type="text"
+                    value={reportPersonName}
+                    onChange={(e) => setReportPersonName(e.target.value)}
+                    placeholder="e.g. Ramesh or Unidentified elderly person"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#C7B89B] text-xs text-[#202622] focus:outline-none focus:border-[#23483A]"
+                  />
+                  <span className="text-[10px] text-[#536A72] mt-0.5 block">
+                    Leave blank if person's name is unknown.
+                  </span>
+                </div>
+
+                {/* Field 2: Relationship / Context */}
+                <div>
+                  <label className="text-xs font-mono font-bold text-[#536A72] block mb-1">
+                    2. {t('family.contextLabel')}
+                  </label>
+                  <select
+                    value={reportContext}
+                    onChange={(e) => setReportContext(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-white border border-[#C7B89B] text-xs font-semibold text-[#202622] focus:outline-none focus:border-[#23483A]"
+                  >
+                    <option value="Someone I Encountered">{t('family.contextEncountered')}</option>
+                    <option value="Neighbor">{t('family.contextNeighbor')}</option>
+                    <option value="Friend">{t('family.contextFriend')}</option>
+                    <option value="Family Member">{t('family.contextFamily')}</option>
+                    <option value="Unknown / Stranger">{t('family.contextUnknown')}</option>
+                  </select>
+                </div>
+
+                {/* Field 3: Location */}
+                <div>
+                  <label className="text-xs font-mono font-bold text-[#536A72] block mb-1 flex items-center">
+                    <MapPin className="w-3.5 h-3.5 text-[#23483A] mr-1" />
+                    3. {t('family.locationLabel')}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={reportLocation}
+                    onChange={(e) => setReportLocation(e.target.value)}
+                    placeholder="e.g. Guwahati Sector 4 Shelter B"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#C7B89B] text-xs text-[#202622] focus:outline-none focus:border-[#23483A]"
+                  />
+                </div>
+
+                {/* Field 4: Confirmation Checkbox */}
+                <div className="p-3 rounded-xl bg-[#23483A]/10 border border-[#23483A]/30">
+                  <label className="flex items-start space-x-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={isConfirmedSafe}
+                      onChange={(e) => setIsConfirmedSafe(e.target.checked)}
+                      className="w-4 h-4 accent-[#23483A] rounded mt-0.5 cursor-pointer shrink-0"
+                    />
+                    <span className="text-xs font-medium text-[#202622] leading-snug">
+                      {t('family.confirmNotice')}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-2 flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsReportSomeoneOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-[#F4F1E8] border border-[#C7B89B] text-[#536A72] font-heading font-bold text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!isConfirmedSafe}
+                    className={`px-5 py-2.5 rounded-xl font-heading font-bold text-xs transition-colors shadow-md cursor-pointer ${
+                      isConfirmedSafe
+                        ? 'bg-[#23483A] text-[#FAF9F3] hover:bg-[#1b382d]'
+                        : 'bg-[#C7B89B]/50 text-[#536A72] cursor-not-allowed'
+                    }`}
+                  >
+                    {t('family.confirmTheyAreSafe')}
+                  </button>
+                </div>
+              </form>
+
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
     </div>

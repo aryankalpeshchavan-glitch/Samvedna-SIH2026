@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, Lock, Phone, AlertTriangle, CheckCircle2, LogOut } from 'lucide-react';
 import { login, logout, getUserRole } from '../../services/api';
+import { ModalPortal } from '../ui/ModalPortal';
+
 
 interface OperationsAuthModalProps {
   isOpen: boolean;
@@ -53,11 +55,14 @@ export const OperationsAuthModal: React.FC<OperationsAuthModalProps> = ({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/60 backdrop-blur-sm animate-in fade-in duration-200"
-    >
+    <ModalPortal onClose={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="operations-auth-modal-title"
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/60 backdrop-blur-sm animate-in fade-in duration-200"
+      >
       <div
         className="w-full max-w-md bg-[#FAF9F3] border border-[#C7B89B] rounded-3xl shadow-2xl overflow-hidden flex flex-col font-sans"
         onClick={(e) => e.stopPropagation()}
@@ -69,7 +74,7 @@ export const OperationsAuthModal: React.FC<OperationsAuthModalProps> = ({
               <ShieldCheck className="w-5 h-5 fill-current" />
             </div>
             <div>
-              <h2 className="text-sm font-heading font-black tracking-wider text-[#202622] uppercase">
+              <h2 id="operations-auth-modal-title" className="text-sm font-heading font-black tracking-wider text-[#202622] uppercase">
                 OPERATIONS AUTHENTICATION
               </h2>
               <span className="text-[10px] font-mono text-[#536A72] block">
@@ -210,5 +215,7 @@ export const OperationsAuthModal: React.FC<OperationsAuthModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };
+

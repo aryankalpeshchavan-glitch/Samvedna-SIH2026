@@ -86,7 +86,7 @@ export const SosStateViewer: React.FC<SosStateViewerProps> = ({ statusDetail, on
         <div className="shrink-0 p-2 rounded-xl bg-[#FAF9F3] border border-[#C7B89B]/40">
           {config.icon}
         </div>
-        <div className="flex-1">
+        <div className="flex-1" aria-live="polite" aria-atomic="true">
           <h3 className="text-base font-heading font-bold text-[#202622] tracking-wide uppercase">
             {config.title}
           </h3>

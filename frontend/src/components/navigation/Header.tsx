@@ -49,16 +49,16 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
 
   const opsBadgeText =
     authInfo.status === 'bootstrapping'
-      ? 'OPS: INITIALIZING'
+      ? 'OPS: ...'
       : authInfo.status === 'unauthenticated'
-      ? 'OPS: LOGIN'
+      ? `OPS: ${t('common.login') || 'LOGIN'}`
       : authInfo.status === 'access_required'
-      ? 'OPS: ACCESS REQUIRED'
+      ? 'OPS: ACCESS REQ'
       : role === 'officer'
-      ? 'OPS: OFFICER'
+      ? `OPS: ${t('ops.badgeOfficer')}`
       : role === 'admin'
-      ? 'OPS: ADMIN'
-      : `OPS: ${role ? role.toUpperCase() : 'LOGIN'}`;
+      ? `OPS: ${t('ops.badgeAdmin')}`
+      : `OPS: ${role ? role.toUpperCase() : t('common.login') || 'LOGIN'}`;
 
   const opsBadgeColor =
     authInfo.status === 'authenticated'
@@ -68,26 +68,26 @@ export const Header: React.FC<HeaderProps> = ({ networkStatus, onOpenQrScanner, 
       : 'bg-[#D88A32]/15 border-[#D88A32]/40 text-[#965C22] hover:bg-[#D88A32]/25';
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FAF9F3]/95 backdrop-blur-md border-b border-[#C7B89B]/50 px-4 py-3 font-sans">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-[#FAF9F3]/95 backdrop-blur-md border-b border-[#C7B89B]/50 px-3 sm:px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] font-sans">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
         
         {/* Branding Title */}
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-[#23483A] text-[#FAF9F3] flex items-center justify-center shadow-sm shrink-0">
-            <Shield className="w-5 h-5 fill-current" />
+        <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#23483A] text-[#FAF9F3] flex items-center justify-center shadow-sm shrink-0">
+            <Shield className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
           </div>
           <div>
-            <h1 className="text-lg font-heading font-black tracking-wider text-[#202622] uppercase leading-none px-1.5 py-0.5">
+            <h1 className="text-base sm:text-lg font-heading font-black tracking-wider text-[#202622] uppercase leading-none px-1 py-0.5 sm:px-1.5">
               SAMVEDNA
             </h1>
-            <span className="text-[10px] font-mono text-[#536A72] tracking-tight block mt-0.5 uppercase">
+            <span className="text-[9px] sm:text-[10px] font-mono text-[#536A72] tracking-tight block mt-0.5 uppercase">
               {t('nav.subtitle')}
             </span>
           </div>
         </div>
 
         {/* Right Tools: Audio Alert Section, Language Selector, Data Badge, Network Indicator, Volunteer Verification */}
-        <div className="flex items-center space-x-2 shrink-0">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0 overflow-x-auto max-w-[65%] sm:max-w-none py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Audio Alert Section (Separated from main navigation by ~28-32px spacing & border) */}
           <div className="hidden md:flex items-center pl-3 ml-3 sm:ml-6 sm:pl-6 border-l border-[#C7B89B]/50">
             <button

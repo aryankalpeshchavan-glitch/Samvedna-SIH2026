@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { DataSourceBadge } from '../components/ui/DataSourceBadge';
-import { SpecularHeading } from '../components/ui/SpecularHeading';
 import { AudioAlertButton } from '../components/ui/AudioAlertButton';
 import { animatePageEnter } from '../animations/pageTransitions';
 import { useTranslation } from '../i18n/LanguageContext';

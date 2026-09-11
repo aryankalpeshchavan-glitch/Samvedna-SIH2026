@@ -2,7 +2,7 @@ import test, { beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import 'fake-indexeddb/auto';
 import { mockApiSyncItem, processPendingQueue } from '../src/services/offlineSync';
-import { savePendingAction, getPendingActions, clearSyncedActions, removePendingAction } from '../src/services/offlineStorage';
+import { savePendingAction, getPendingActions, removePendingAction } from '../src/services/offlineStorage';
 import { PendingActionEntry } from '../src/types/storage';
 import { SosPayload } from '../src/types/emergency';
 

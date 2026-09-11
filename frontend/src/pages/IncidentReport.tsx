@@ -6,8 +6,6 @@ import { animatePageEnter } from '../animations/pageTransitions';
 import { useTranslation } from '../i18n/LanguageContext';
 import { Camera, Send, CheckCircle2, Mountain, Waves, UserX, Stethoscope, Building2, AlertCircle, MapPin } from 'lucide-react';
 
-import { SpecularHeading } from '../components/ui/SpecularHeading';
-
 import { savePendingAction } from '../services/offlineStorage';
 import { getNetworkStatus } from '../services/network';
 import { IncidentReportPayload } from '../types/emergency';

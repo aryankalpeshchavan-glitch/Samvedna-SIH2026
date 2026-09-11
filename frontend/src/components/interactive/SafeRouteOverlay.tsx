@@ -1,6 +1,7 @@
 import React from 'react';
 import { MOCK_SAFE_ROUTE } from '../../data/mockStoryData';
 import { X, Navigation, ShieldCheck, AlertOctagon, MapPin } from 'lucide-react';
+import { ModalPortal } from '../ui/ModalPortal';
 
 interface SafeRouteOverlayProps {
   isOpen: boolean;
@@ -11,7 +12,12 @@ export const SafeRouteOverlay: React.FC<SafeRouteOverlayProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-40 bg-[#FAF9F3]/95 backdrop-blur-md border-2 border-[#23483A] rounded-3xl p-5 shadow-2xl space-y-4 font-sans">
+    <ModalPortal onClose={onClose}>
+      <div
+        role="region"
+        aria-label="Safe Evacuation Route Guidance"
+        className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-40 bg-[#FAF9F3]/95 backdrop-blur-md border-2 border-[#23483A] rounded-3xl p-5 shadow-2xl space-y-4 font-sans"
+      >
       <div className="flex items-start justify-between pb-2 border-b border-[#E8E6DC]">
         <div className="flex items-center space-x-2.5">
           <div className="p-2 rounded-xl bg-[#23483A] text-[#FAF9F3]">
@@ -61,6 +67,7 @@ export const SafeRouteOverlay: React.FC<SafeRouteOverlayProps> = ({ isOpen, onCl
         <AlertOctagon className="w-4 h-4 shrink-0" />
         <span>Avoid: {MOCK_SAFE_ROUTE.blockedRoads.join(', ')}</span>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };

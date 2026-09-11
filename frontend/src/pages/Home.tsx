@@ -16,6 +16,7 @@ import { EmergencyModeBanner } from '../components/emergency/EmergencyModeBanner
 import { PhoneCall, AlertOctagon, ShieldAlert, Loader2 } from 'lucide-react';
 import { getRisk, getIncidents, getAuthInfo, AuthInfo, logout } from '../services/api';
 import { RiskZoneOut, IncidentOut } from '../types/api';
+import { useTranslation } from '../i18n/LanguageContext';
 
 interface HomeProps {
   location: LocationData;
@@ -38,6 +39,7 @@ export const Home: React.FC<HomeProps> = ({
   onResetSos,
   onNavigate: _onNavigate,
 }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Map View Style ('satellite' by default, optional 'terrain' CrisisCore view)
@@ -338,15 +340,15 @@ export const Home: React.FC<HomeProps> = ({
       <div className="max-w-xl mx-auto p-3 rounded-xl bg-[#FAF9F3] border border-[#C7B89B]/40 text-xs text-[#536A72] flex items-center justify-between font-mono shadow-sm">
         <div className="flex items-center space-x-2">
           <PhoneCall className="w-4 h-4 text-[#23483A]" />
-          <span>SMS Fallback: <strong className="text-[#202622]">SMS 'SOS' to 56161</strong></span>
+          <span>{t('fallback.smsFallback')} <strong className="text-[#202622]">{t('fallback.smsAction')}</strong></span>
         </div>
-        <span className="text-[10px] text-[#23483A] font-bold">Feature Phones Ready</span>
+        <span className="text-[10px] text-[#23483A] font-bold">{t('fallback.featurePhonesReady')}</span>
       </div>
 
       {networkStatus === 'OFFLINE' && (
         <div className="max-w-xl mx-auto p-3 rounded-xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-xs text-[#8E2F2B] font-mono flex items-center space-x-2">
           <AlertOctagon className="w-4 h-4 shrink-0" />
-          <span>⚠️ OFFLINE MODE: SOS request saved in IndexedDB; will auto-sync on reconnect.</span>
+          <span>{t('fallback.offlineWarning')}</span>
         </div>
       )}
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { verifyVolunteerQrCode, VolunteerRecord } from '../../services/volunteerVerification';
-import { SpecularHeading } from '../ui/SpecularHeading';
+import { ModalPortal } from '../ui/ModalPortal';
 import { QrCode, Camera, X, CheckCircle2, AlertOctagon, ShieldCheck, RefreshCw, PhoneCall, Award } from 'lucide-react';
 
 interface VolunteerQrScannerModalProps {
@@ -107,29 +107,34 @@ export const VolunteerQrScannerModal: React.FC<VolunteerQrScannerModalProps> = (
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans animate-fade-in"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="qr-modal-title"
-    >
-      <div className="w-full max-w-lg bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 shadow-2xl space-y-5 relative max-h-[90vh] overflow-y-auto">
-        
-        {/* Header */}
-        <div className="flex items-start justify-between pb-3 border-b border-[#C7B89B]/50">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-2xl bg-[#23483A]/10 text-[#23483A] border border-[#23483A]/30">
-              <QrCode className="w-6 h-6" />
+    <ModalPortal onClose={handleClose}>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202622]/70 backdrop-blur-sm font-sans animate-fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="qr-modal-title"
+        onClick={handleClose}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-lg bg-[#FAF9F3] border-2 border-[#23483A] rounded-3xl p-6 shadow-2xl space-y-5 relative max-h-[90vh] overflow-y-auto"
+        >
+          
+          {/* Header */}
+          <div className="flex items-start justify-between pb-3 border-b border-[#C7B89B]/50">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-2xl bg-[#23483A]/10 text-[#23483A] border border-[#23483A]/30">
+                <QrCode className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono font-bold text-[#23483A] uppercase tracking-widest block">
+                  OFFICIAL RESPONDER VERIFICATION
+                </span>
+                <h2 id="qr-modal-title" className="text-lg font-heading font-black text-[#202622] uppercase tracking-wide px-2 py-0.5">
+                  {t('qr.verifyTitle')}
+                </h2>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] font-mono font-bold text-[#23483A] uppercase tracking-widest block">
-                OFFICIAL RESPONDER VERIFICATION
-              </span>
-              <h2 className="text-lg font-heading font-black text-[#202622] uppercase tracking-wide px-2 py-0.5">
-                {t('qr.verifyTitle')}
-              </h2>
-            </div>
-          </div>
           <button
             onClick={handleClose}
             className="p-1 rounded-xl text-[#536A72] hover:text-[#202622] hover:bg-[#E8E6DC]"
@@ -352,7 +357,8 @@ export const VolunteerQrScannerModal: React.FC<VolunteerQrScannerModalProps> = (
           </div>
         )}
 
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

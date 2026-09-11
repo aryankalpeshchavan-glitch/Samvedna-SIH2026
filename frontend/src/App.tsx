@@ -13,6 +13,8 @@ import { CustomerServiceHelp } from './pages/CustomerServiceHelp';
 import { SosConfirmModal } from './components/emergency/SosConfirmModal';
 import { VolunteerQrScannerModal } from './components/emergency/VolunteerQrScannerModal';
 import { IncidentCategory, SeverityLevel, SosState } from './types/emergency';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -42,7 +44,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas text-gray-100 flex flex-col font-sans selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-[#F4F1E8] text-[#202622] flex flex-col font-sans selection:bg-[#23483A] selection:text-[#FAF9F3]">
       {/* Top Header */}
       <Header
         networkStatus={networkStatus}
@@ -52,43 +54,45 @@ export function App() {
         onOpenHelp={() => setActiveTab('help')}
       />
 
-      {/* Main Content Area — Responsive Padding Prevents Dock Overlap on Desktop (lg:pl-24) & Mobile (pb-28) */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:pl-24 py-4">
-        {activeTab === 'home' && (
-          <Home
-            location={location}
-            refreshLocation={refreshLocation}
-            networkStatus={networkStatus}
-            sosState={sosState}
-            statusDetail={statusDetail}
-            onTriggerSos={initiateSos}
-            onResetSos={resetSos}
-            onNavigate={setActiveTab}
-          />
-        )}
+      {/* Main Content Area — Protected by ErrorBoundary */}
+      <ErrorBoundary>
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:pl-24 py-4">
+          {activeTab === 'home' && (
+            <Home
+              location={location}
+              refreshLocation={refreshLocation}
+              networkStatus={networkStatus}
+              sosState={sosState}
+              statusDetail={statusDetail}
+              onTriggerSos={initiateSos}
+              onResetSos={resetSos}
+              onNavigate={setActiveTab}
+            />
+          )}
 
-        {activeTab === 'incident' && (
-          <IncidentReport onSubmit={handleIncidentSubmit} />
-        )}
+          {activeTab === 'incident' && (
+            <IncidentReport onSubmit={handleIncidentSubmit} />
+          )}
 
-        {activeTab === 'status' && (
-          <Status
-            sosState={sosState}
-            statusDetail={statusDetail}
-            onResetSos={resetSos}
-            onSimulateStateChange={(state: SosState) => {
-              setSosState(state);
-            }}
-            onOpenQrScanner={() => setIsQrScannerOpen(true)}
-          />
-        )}
+          {activeTab === 'status' && (
+            <Status
+              sosState={sosState}
+              statusDetail={statusDetail}
+              onResetSos={resetSos}
+              onSimulateStateChange={(state: SosState) => {
+                setSosState(state);
+              }}
+              onOpenQrScanner={() => setIsQrScannerOpen(true)}
+            />
+          )}
 
-        {activeTab === 'family' && <FamilyPlaceholder />}
+          {activeTab === 'family' && <FamilyPlaceholder />}
 
-        {activeTab === 'alerts' && <AlertsPlaceholder />}
+          {activeTab === 'alerts' && <AlertsPlaceholder />}
 
-        {activeTab === 'help' && <CustomerServiceHelp />}
-      </main>
+          {activeTab === 'help' && <CustomerServiceHelp />}
+        </main>
+      </ErrorBoundary>
 
       {/* Emergency Confirmation Modal */}
       {sosState === 'SOS_CONFIRMATION' && (
