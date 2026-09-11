@@ -52,10 +52,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Allowed frontend origins
 origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://samvedna-sih2026-2cg2r5elz-aj-e6d0.vercel.app",
+    "http://localhost:5173",  # Local Vite
+    "http://localhost:3000",  # Local React
+    "https://samvedna-sih2026.vercel.app",  # Production
+    "https://samvedna-sih2026-2cg2r5elz-aj-e6d0.vercel.app",  # Preview
+    "https://samvedna-sih2026-nerhsq2ji-aj-e6d0.vercel.app",  # Current preview
 ]
 
 app.add_middleware(
@@ -65,15 +68,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(incidents_router)
