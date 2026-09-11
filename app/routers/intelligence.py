@@ -43,6 +43,10 @@ from app.intelligence.actions import generate_actions
 from app.services.prediction_service import prediction_service
 from app.intelligence.rag_service import rag_gemini_service
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 
 
@@ -277,15 +281,20 @@ async def decision_by_location(
     Computes Risk → Explanation → Exposure → Priority → Actions for a lat/lng.
     """
     zone = None
+
     if data.zone_id:
-        zone_result = await db.execute(select(RiskZone).where(RiskZone.id == data.zone_id))
+        zone_result = await db.execute(
+            select(RiskZone).where(RiskZone.id == data.zone_id)
+        )
         zone = zone_result.scalar_one_or_none()
     else:
-        # Find nearest risk zone within 10 km
         all_zones_result = await db.execute(
-            select(RiskZone).order_by(RiskZone.computed_at.desc()).limit(50)
+            select(RiskZone)
+            .order_by(RiskZone.computed_at.desc())
+            .limit(50)
         )
         all_zones = all_zones_result.scalars().all()
+
         nearest, nearest_d = None, float("inf")
         for z in all_zones:
             if z.lat and z.lng:
@@ -295,13 +304,20 @@ async def decision_by_location(
                     nearest = z
         zone = nearest
 
-    return await _build_decision(
-        lat=data.lat,
-        lng=data.lng,
-        db=db,
-        zone=zone,
-        location_id=data.location_id,
-    )
+    try:
+        return await _build_decision(
+            lat=data.lat,
+            lng=data.lng,
+            db=db,
+            zone=zone,
+            location_id=data.location_id,
+        )
+    except Exception as e:
+        logger.exception("Decision endpoint failed")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Risk service unavailable: {str(e)}"
+        )
 
 
 @router.get("/decision/{zone_id}", response_model=DecisionResponse)
