@@ -461,6 +461,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
   const onSelectCitizenReportRef = useRef(onSelectCitizenReport);
   const onSelectRiskZoneRef = useRef(onSelectRiskZone);
   const riskZonesRef = useRef(riskZones);
+  const currentAppliedStyleRef = useRef<MapViewStyle>(mapViewStyle);
 
   useEffect(() => {
     onHoverStateRef.current = onHoverState;
@@ -476,6 +477,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     if (!mapContainerRef.current) return;
 
     const initialStyle = mapViewStyle === 'terrain' ? WARM_TERRAIN_MAP_STYLE : SATELLITE_HYBRID_MAP_STYLE;
+    currentAppliedStyleRef.current = mapViewStyle;
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -499,6 +501,14 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
 
     mapRef.current = map;
 
+    // Safety fallback: ensure loading spinner is dismissed even if network tiles stall or load event is delayed
+    const loadingTimeout = setTimeout(() => {
+      setIsMapLoading(false);
+      if (mapContainerRef.current && mapRef.current) {
+        mapRef.current.resize();
+      }
+    }, 2500);
+
     // Handle container resize cleanly
     const handleResize = () => {
       if (mapRef.current) {
@@ -507,9 +517,19 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
-    map.on('load', () => {
+    map.on('error', (e) => {
+      console.warn('MapLibre error encountered:', e);
       setIsMapLoading(false);
-      setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute, riskZonesRef.current);
+    });
+
+    map.on('load', () => {
+      clearTimeout(loadingTimeout);
+      setIsMapLoading(false);
+      try {
+        setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute, riskZonesRef.current);
+      } catch (err) {
+        console.error('Failed to setup map layers on load:', err);
+      }
 
       // Hover Interactions for States using stable ref
       const handleMouseMove = (e: maplibregl.MapLayerMouseEvent) => {
@@ -617,6 +637,7 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
     });
 
     return () => {
+      clearTimeout(loadingTimeout);
       window.removeEventListener('resize', handleResize);
       stationMarkersRef.current.forEach((m) => m.remove());
       citizenMarkersRef.current.forEach((m) => m.remove());
@@ -630,6 +651,10 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
+
+    // Only set style if the style actually changed from current applied style
+    if (currentAppliedStyleRef.current === mapViewStyle) return;
+    currentAppliedStyleRef.current = mapViewStyle;
 
     const currentCenter = map.getCenter();
     const currentZoom = map.getZoom();
@@ -648,7 +673,11 @@ export const NeMap3D: React.FC<NeMap3DProps> = ({
 
     map.once('style.load', () => {
       map.jumpTo({ center: currentCenter, zoom: currentZoom });
-      setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute, riskZonesRef.current);
+      try {
+        setupMapSourcesAndLayers(map, mapViewStyle, showSafeRoute, riskZonesRef.current);
+      } catch (err) {
+        console.error('Failed to setup layers on style load:', err);
+      }
     });
   }, [mapViewStyle, showSafeRoute]);
 
