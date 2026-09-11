@@ -236,98 +236,91 @@ class PredictionService:
         prob = 1.0 / (1.0 + math.exp(-logit))
         return prob
 
-    def predict_hazard(
-    self,
-    lat: float,
-    lng: float,
-    features: Optional[dict[str, Any]] = None,
-    horizon_hours: int = 24,
-    zone_id: Optional[str] = None,
-) -> Optional[HazardPredictionResult]:
-    """
-    Backend-facing hazard prediction.
-    If only lat/lng are supplied, use deterministic environmental defaults
-    instead of returning None.
-    """
+        def predict_hazard(
+        self,
+        lat: float,
+        lng: float,
+        features: Optional[dict[str, Any]] = None,
+        horizon_hours: int = 24,
+        zone_id: Optional[str] = None,
+    ) -> Optional[HazardPredictionResult]:
+        """
+        Backend-facing hazard prediction.
+        If only lat/lng are supplied, use deterministic defaults.
+        """
 
-    # ---------- FIX START ----------
-    # Create default features when none are provided
-    if features is None:
-        features = {}
+        # Create default features when none are provided
+        if features is None:
+            features = {}
 
-    r24 = float(features.get("rainfall_24h", 60.0))
-    r3 = float(features.get("rainfall_3day", r24 * 1.5))
-    r7 = float(features.get("rainfall_7day", r24 * 2.2))
-    r14 = float(features.get("rainfall_14day", r24 * 2.8))
-    r30 = float(features.get("rainfall_30day", r24 * 3.5))
+        r24 = float(features.get("rainfall_24h", 60.0))
+        r3 = float(features.get("rainfall_3day", r24 * 1.5))
+        r7 = float(features.get("rainfall_7day", r24 * 2.2))
+        r14 = float(features.get("rainfall_14day", r24 * 2.8))
+        r30 = float(features.get("rainfall_30day", r24 * 3.5))
 
-    r_prev = float(features.get("rainfall_previous_day", 45.0))
-    r_lag2 = float(features.get("rainfall_2day_lag", 35.0))
-    r_lag3 = float(features.get("rainfall_3day_lag", 30.0))
+        r_prev = float(features.get("rainfall_previous_day", 45.0))
+        r_lag2 = float(features.get("rainfall_2day_lag", 35.0))
+        r_lag3 = float(features.get("rainfall_3day_lag", 30.0))
 
-    elev_mean = float(features.get("elevation_mean_m", 450.0))
-    elev_min = float(features.get("elevation_min_m", elev_mean - 20))
-    elev_max = float(features.get("elevation_max_m", elev_mean + 25))
-    elev_std = float(features.get("elevation_std_m", 18.0))
+        elev_mean = float(features.get("elevation_mean_m", 450.0))
+        elev_min = float(features.get("elevation_min_m", elev_mean - 20))
+        elev_max = float(features.get("elevation_max_m", elev_mean + 25))
+        elev_std = float(features.get("elevation_std_m", 18.0))
 
-    slope_mean = float(features.get("slope_mean_deg", 24.0))
-    slope_max = float(features.get("slope_max_deg", 38.0))
-    slope_std = float(features.get("slope_std_deg", 8.0))
+        slope_mean = float(features.get("slope_mean_deg", 24.0))
+        slope_max = float(features.get("slope_max_deg", 38.0))
+        slope_std = float(features.get("slope_std_deg", 8.0))
 
-    heavy_flag = 1.0 if r24 >= 64.5 else 0.0
-    v_heavy_flag = 1.0 if r24 >= 115.6 else 0.0
-    # ---------- FIX END ----------
+        heavy_flag = 1.0 if r24 >= 64.5 else 0.0
+        v_heavy_flag = 1.0 if r24 >= 115.6 else 0.0
 
-    feature_vector = [
-        r24, r3, r7, r14, r30,
-        heavy_flag, v_heavy_flag,
-        r_prev, r_lag2, r_lag3,
-        elev_mean, elev_min, elev_max, elev_std,
-        slope_mean, slope_max, slope_std,
-    ]
+        feature_vector = [
+            r24, r3, r7, r14, r30,
+            heavy_flag, v_heavy_flag,
+            r_prev, r_lag2, r_lag3,
+            elev_mean, elev_min, elev_max, elev_std,
+            slope_mean, slope_max, slope_std,
+        ]
 
-    try:
-        if self.is_available:
-            raw_prob = self._evaluate_trees(feature_vector)
-            risk_score = round(max(0.0, min(1.0, raw_prob)), 4)
-            confidence = round(max(risk_score, 1.0 - risk_score), 4)
-            data_status = "live"
-            model_version = self._model_version
-            threshold = self._threshold
-        else:
+        try:
+            if self.is_available:
+                raw_prob = self._evaluate_trees(feature_vector)
+                risk_score = round(max(0.0, min(1.0, raw_prob)), 4)
+                confidence = round(max(risk_score, 1.0 - risk_score), 4)
+                data_status = "live"
+                model_version = self._model_version
+                threshold = self._threshold
+            else:
+                risk_score, confidence, data_status, model_version, threshold = \
+                    self._compute_fallback(r24, r7, slope_mean)
+
+        except Exception:
+            logger.exception("Prediction failed")
             risk_score, confidence, data_status, model_version, threshold = \
                 self._compute_fallback(r24, r7, slope_mean)
 
-    except Exception as e:
-        logger.exception("Prediction failed")
-        risk_score, confidence, data_status, model_version, threshold = \
-            self._compute_fallback(r24, r7, slope_mean)
+        risk_level = classify_risk_level(risk_score)
 
-    risk_level = classify_risk_level(risk_score)
+        top_drivers = sorted(
+            self._feature_importances,
+            key=self._feature_importances.get,
+            reverse=True,
+        )[:5]
 
-    top_drivers = sorted(
-        self._feature_importances,
-        key=self._feature_importances.get,
-        reverse=True
-    )[:5]
+        attributions = {k: self._feature_importances[k] for k in top_drivers}
 
-    attributions = {
-        k: self._feature_importances[k]
-        for k in top_drivers
-    }
-
-    return HazardPredictionResult(
-        risk_score=risk_score,
-        risk_level=risk_level,
-        confidence=confidence,
-        drivers=top_drivers,
-        data_status=data_status,
-        model_version=model_version,
-        threshold=threshold,
-        feature_attributions=attributions,
-        early_warning=(risk_score >= threshold),
-    )
-
+        return HazardPredictionResult(
+            risk_score=risk_score,
+            risk_level=risk_level,
+            confidence=confidence,
+            drivers=top_drivers,
+            data_status=data_status,
+            model_version=model_version,
+            threshold=threshold,
+            feature_attributions=attributions,
+            early_warning=(risk_score >= threshold),
+        )
     def _compute_fallback(self, r24: float, r7: float, slope: float) -> tuple[float, float, str, str, float]:
         """Clearly marked deterministic fallback based on physical precipitation and terrain thresholds."""
         heuristic = (r24 / 200.0) * 0.5 + (r7 / 500.0) * 0.3 + (slope / 45.0) * 0.2
