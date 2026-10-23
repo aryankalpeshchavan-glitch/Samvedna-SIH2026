@@ -57,7 +57,7 @@ fun BottomNavBar(
     Surface(
         modifier = modifier,
         shape = ClayShapes.card,
-        color = CanvasLight.copy(alpha = 0.98f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
         shadowElevation = 12.dp
     ) {
         Row(

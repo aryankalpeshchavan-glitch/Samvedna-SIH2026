@@ -76,7 +76,8 @@ data class Helpline(
     val altNumber: String,
     val description: String,
     val badge: String,
-    val colorType: HelplineColorType
+    val colorType: HelplineColorType,
+    val category: String = "All"
 )
 
 enum class HelplineColorType { RED, GREEN, AMBER }
@@ -96,7 +97,18 @@ data class RegisterRequest(
     val phone: String,
     val password: String,
     val name: String,
-    val role: String = "citizen"
+    val role: String = "citizen",
+    val lang: String = "en"
+)
+
+@Serializable
+data class UserOut(
+    val id: Long? = null,
+    val phone: String? = null,
+    val name: String? = null,
+    val role: String? = null,
+    val lang: String? = null,
+    val created_at: String? = null
 )
 
 @Serializable
@@ -108,7 +120,8 @@ data class LoginRequest(
 @Serializable
 data class AuthResponse(
     val access_token: String? = null,
-    val token_type: String? = null
+    val token_type: String? = null,
+    val role: String? = null
 )
 
 @Serializable
@@ -125,6 +138,23 @@ data class IncidentRequest(
 data class IncidentResponse(
     val id: String? = null,
     val status: String? = null
+)
+
+@Serializable
+data class IncidentOut(
+    val id: String,
+    val reporter_id: Long? = null,
+    val type: String,
+    val description: String? = null,
+    val lat: Double,
+    val lng: Double,
+    val severity: Int = 1,
+    val status: String = "reported",
+    val data_label: String = "live",
+    val photo_url: String? = null,
+    val occurred_at: String? = null,
+    val created_at: String? = null,
+    val updated_at: String? = null
 )
 
 @Serializable

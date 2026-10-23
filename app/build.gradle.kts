@@ -1,3 +1,4 @@
+kotlin
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -17,27 +18,51 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        // Default to emulator URL; overridden per build type
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8001/\"")
-        buildConfigField("String", "WS_BASE_URL", "\"ws://10.0.2.2:8001/ws/status\"")
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"https://samvedna-sih2026-1.onrender.com/\""
+        )
+
+        buildConfigField(
+            "String",
+            "WS_BASE_URL",
+            "\"wss://samvedna-sih2026-1.onrender.com/ws/status\""
+        )
     }
 
     buildTypes {
         debug {
-            // For physical device on same Wi-Fi: replace with your machine's LAN IP
-            // e.g., "http://192.168.1.50:8001/"
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8001/\"")
-            buildConfigField("String", "WS_BASE_URL", "\"ws://10.0.2.2:8001/ws/status\"")
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"https://samvedna-sih2026-1.onrender.com/\""
+            )
+            buildConfigField(
+                "String",
+                "WS_BASE_URL",
+                "\"wss://samvedna-sih2026-1.onrender.com/ws/status\""
+            )
         }
+
         release {
             isMinifyEnabled = true
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Configure with your deployed domain
-            buildConfigField("String", "API_BASE_URL", "\"https://api.samvedna.example/\"")
-            buildConfigField("String", "WS_BASE_URL", "\"wss://api.samvedna.example/ws/status\"")
+
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"https://samvedna-sih2026-1.onrender.com/\""
+            )
+            buildConfigField(
+                "String",
+                "WS_BASE_URL",
+                "\"wss://samvedna-sih2026-1.onrender.com/ws/status\""
+            )
         }
     }
 
@@ -57,9 +82,10 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.09.03")
-    implementation(composeBom)
+    val composeBom =
+        platform("androidx.compose:compose-bom:2024.09.03")
 
+    implementation(composeBom)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -78,7 +104,6 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     implementation("androidx.room:room-runtime:2.6.1")
@@ -86,11 +111,8 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
-
     implementation("org.maplibre.gl:android-sdk:11.11.0")
-
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 }
 

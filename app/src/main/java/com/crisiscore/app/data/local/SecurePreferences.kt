@@ -34,10 +34,33 @@ object SecurePreferences {
         getPrefs().edit().putString("auth_token", token).apply()
     }
 
-    fun getDemoPhone(): String? = getPrefs().getString("demo_phone", null)
+    fun getUserPhone(): String? = getPrefs().getString("user_phone", null)
 
-    fun setDemoPhone(phone: String) {
-        getPrefs().edit().putString("demo_phone", phone).apply()
+    fun setUserPhone(phone: String?) {
+        getPrefs().edit().putString("user_phone", phone).apply()
+    }
+
+    fun getUserName(): String? = getPrefs().getString("user_name", null)
+
+    fun setUserName(name: String?) {
+        getPrefs().edit().putString("user_name", name).apply()
+    }
+
+    fun getUserRole(): String? = getPrefs().getString("user_role", null)
+
+    fun setUserRole(role: String?) {
+        getPrefs().edit().putString("user_role", role).apply()
+    }
+
+    fun isLoggedIn(): Boolean = !getToken().isNullOrBlank()
+
+    fun clearAuth() {
+        getPrefs().edit()
+            .remove("auth_token")
+            .remove("user_phone")
+            .remove("user_name")
+            .remove("user_role")
+            .apply()
     }
 
     fun getLanguage(): String = getPrefs().getString("language", "en") ?: "en"

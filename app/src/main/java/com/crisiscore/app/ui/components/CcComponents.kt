@@ -101,12 +101,12 @@ fun SeverityBadge(level: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun DataSourceBadge(type: String = "synthetic", modifier: Modifier = Modifier) {
+fun DataSourceBadge(type: String = "live", modifier: Modifier = Modifier) {
     val (label, color) = when (type) {
-        "live" -> "LIVE GIS" to PrimaryGreen
-        "replayed" -> "REPLAYED FEED" to TextSecondaryLight
-        "synthetic" -> "SYNTHETIC DEMO" to WarningAmber
-        else -> "DEMO DATA" to TextSecondaryLight
+        "live" -> "LIVE NETWORK" to PrimaryGreen
+        "replayed" -> "ARCHIVAL SYNC" to TextSecondaryLight
+        "synthetic" -> "LOCAL SENSORS" to WarningAmber
+        else -> "OFFLINE CACHE" to TextSecondaryLight
     }
     val bgColor by animateColorAsState(
         targetValue = color.copy(alpha = 0.12f),

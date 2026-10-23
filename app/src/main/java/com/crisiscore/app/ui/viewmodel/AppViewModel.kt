@@ -1,4 +1,4 @@
-﻿package com.crisiscore.app.ui.viewmodel
+package com.crisiscore.app.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -10,6 +10,7 @@ import com.crisiscore.app.ui.components.TabType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -24,6 +25,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
     val notifications: StateFlow<List<Notification>> = _notifications.asStateFlow()
+
+    private val _incidents = MutableStateFlow<List<IncidentOut>>(emptyList())
+    val incidents: StateFlow<List<IncidentOut>> = _incidents.asStateFlow()
+
+    private val _isRefreshingIncidents = MutableStateFlow(false)
+    val isRefreshingIncidents: StateFlow<Boolean> = _isRefreshingIncidents.asStateFlow()
 
     private val _activeTab = MutableStateFlow(TabType.Home)
     val activeTab: StateFlow<TabType> = _activeTab.asStateFlow()
@@ -56,15 +63,44 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             assignedVolunteerPhone = event.volunteerPhone ?: _sosDetail.value.assignedVolunteerPhone,
                             etaMinutes = event.etaMinutes ?: _sosDetail.value.etaMinutes
                         )
+                        // Trigger immediate incident list refresh on map
+                        loadIncidents()
+                    }
+                    is WsEvent.IncidentsChanged -> {
+                        loadIncidents()
                     }
                     is WsEvent.Connected -> {
                         loadNotifications()
+                        loadIncidents()
                     }
                     else -> Unit
                 }
             }
         }
         loadNotifications()
+        loadIncidents()
+
+        // Periodic polling to guarantee Swagger updates reflect on map even without WS
+        viewModelScope.launch {
+            while (isActive) {
+                kotlinx.coroutines.delay(10000L)
+                val list = repository.getIncidents()
+                if (list.isNotEmpty()) {
+                    _incidents.value = list
+                }
+            }
+        }
+    }
+
+    fun loadIncidents() {
+        viewModelScope.launch {
+            _isRefreshingIncidents.value = true
+            val list = repository.getIncidents()
+            if (list.isNotEmpty()) {
+                _incidents.value = list
+            }
+            _isRefreshingIncidents.value = false
+        }
     }
 
     fun setActiveTab(tab: TabType) {
@@ -143,13 +179,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             SeverityLevel.HIGH -> 4
             SeverityLevel.CRITICAL -> 5
         }
-        return repository.createIncident(
+        val res = repository.createIncident(
             type = category.name,
             description = description.ifBlank { "${category.name} reported" },
             lat = lat,
             lng = lng,
             severity = severityInt
         )
+        loadIncidents()
+        return res
     }
 
     fun loadNotifications() {

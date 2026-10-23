@@ -35,15 +35,21 @@ import com.crisiscore.app.util.T
 @Composable
 fun AppHeader(
     modifier: Modifier = Modifier,
-    onHelpClick: () -> Unit = {}
+    onHelpClick: () -> Unit = {},
+    onAuthClick: () -> Unit = {},
+    isLoggedIn: Boolean = false,
+    userNameOrPhone: String? = null,
+    userRole: String? = null,
+    onLogout: () -> Unit = {}
 ) {
     val currentLang by LocaleManager.currentLanguage.collectAsState()
     var showLangMenu by remember { mutableStateOf(false) }
+    var showUserMenu by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = ClayShapes.card,
-        color = CanvasLight.copy(alpha = 0.98f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
         shadowElevation = 8.dp
     ) {
         Row(
@@ -91,6 +97,7 @@ fun AppHeader(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Language selector
                 Box {
                     HeaderIconButton(
                         color = ClayCreamTint,
@@ -123,6 +130,121 @@ fun AppHeader(
                     }
                 }
 
+                // Role Badge pill if logged in
+                if (isLoggedIn) {
+                    val isAdmin = userRole?.lowercase() == "admin" || userRole?.lowercase() == "officer"
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isAdmin) EmergencyRed.copy(alpha = 0.12f) else PrimaryGreen.copy(alpha = 0.12f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isAdmin) EmergencyRed.copy(alpha = 0.4f) else PrimaryGreen.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = if (isAdmin) "ADMIN" else "CITIZEN",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = if (isAdmin) EmergencyRed else PrimaryGreen,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                // Auth / Profile Button
+                Box {
+                    HeaderIconButton(
+                        color = if (isLoggedIn) PrimaryGreen.copy(alpha = 0.12f) else ClayCreamTint,
+                        iconTint = if (isLoggedIn) PrimaryGreen else TextSecondaryLight,
+                        onClick = {
+                            if (isLoggedIn) {
+                                showUserMenu = true
+                            } else {
+                                onAuthClick()
+                            }
+                        }
+                    ) {
+                        Box(contentAlignment = Alignment.TopEnd) {
+                            Icon(
+                                if (isLoggedIn) Icons.Outlined.Person else Icons.Outlined.Login,
+                                contentDescription = if (isLoggedIn) "Account" else "Sign In",
+                                tint = if (isLoggedIn) PrimaryGreen else TextSecondaryLight,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            if (isLoggedIn) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(androidx.compose.foundation.shape.CircleShape)
+                                        .background(PrimaryGreen)
+                                )
+                            }
+                        }
+                    }
+
+                    if (isLoggedIn) {
+                        DropdownMenu(
+                            expanded = showUserMenu,
+                            onDismissRequest = { showUserMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                userNameOrPhone ?: "Citizen",
+                                                fontWeight = FontWeight.Bold,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            val isAdmin = userRole?.lowercase() == "admin" || userRole?.lowercase() == "officer"
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (isAdmin) EmergencyRed.copy(alpha = 0.15f) else PrimaryGreen.copy(alpha = 0.15f)
+                                            ) {
+                                                Text(
+                                                    if (isAdmin) "ADMIN" else "CITIZEN",
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = if (isAdmin) EmergencyRed else PrimaryGreen,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            if (userRole?.lowercase() == "admin") "Command Center Clearance" else "Citizen Community Access",
+                                            color = if (userRole?.lowercase() == "admin") EmergencyRed else PrimaryGreen,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)
+                                        )
+                                    }
+                                },
+                                onClick = { /* noop */ },
+                                enabled = false
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Outlined.Logout,
+                                            contentDescription = null,
+                                            tint = EmergencyRed,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Sign Out", color = EmergencyRed)
+                                    }
+                                },
+                                onClick = {
+                                    showUserMenu = false
+                                    onLogout()
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Help Button
                 HeaderIconButton(
                     color = ClayRedTint,
                     iconTint = EmergencyRed,

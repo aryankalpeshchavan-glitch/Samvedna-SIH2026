@@ -197,7 +197,7 @@ object T {
             "help.offlineTitle" to "OFFLINE EMERGENCY SMS",
             "help.offlineMessage" to "When no internet: SMS 'SOS' to 56161 for automatic emergency relay. Works on any feature phone.",
             "auth.loginTitle" to "SIGN IN", "auth.registerTitle" to "CREATE ACCOUNT",
-            "auth.phoneLabel" to "Phone Number", "auth.passwordLabel" to "Password",
+            "auth.phoneLabel" to "Username or Phone Number", "auth.passwordLabel" to "Password",
             "auth.nameLabel" to "Full Name",
             "auth.loginButton" to "SIGN IN", "auth.registerButton" to "CREATE ACCOUNT",
             "auth.demoButton" to "CONTINUE AS DEMO",

@@ -16,8 +16,9 @@ object RetrofitClient {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
         .addInterceptor { chain ->
             val original = chain.request()
             val builder = original.newBuilder()

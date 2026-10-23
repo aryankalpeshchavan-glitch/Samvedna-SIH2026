@@ -27,6 +27,7 @@ sealed class WsEvent {
         val volunteerPhone: String? = null,
         val etaMinutes: Int? = null
     ) : WsEvent()
+    data object IncidentsChanged : WsEvent()
     data class Connected(val timestamp: Long = System.currentTimeMillis()) : WsEvent()
     data class Disconnected(val code: Int, val reason: String) : WsEvent()
 }
@@ -55,8 +56,14 @@ class WebSocketClient(private val context: Context) {
     fun connect() {
         val token = SecurePreferences.getToken() ?: return
 
+        val wsUrl = if (BuildConfig.WS_BASE_URL.contains("?")) {
+            "${BuildConfig.WS_BASE_URL}&token=$token"
+        } else {
+            "${BuildConfig.WS_BASE_URL}?token=$token"
+        }
+
         val request = Request.Builder()
-            .url(BuildConfig.WS_BASE_URL)
+            .url(wsUrl)
             .addHeader("Authorization", "Bearer $token")
             .build()
 
@@ -66,7 +73,7 @@ class WebSocketClient(private val context: Context) {
 
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
-                Log.d("WebSocketClient", "Connected")
+                Log.d("WebSocketClient", "Connected to Render WS")
                 currentReconnectDelayMs = reconnectDelayMs
                 _events.tryEmit(WsEvent.Connected())
             }
@@ -75,6 +82,23 @@ class WebSocketClient(private val context: Context) {
                 try {
                     messageHandler?.invoke(text)
                     val map = json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(text)
+
+                    // Check for backend audit events: {"event":"audit","action":"verify","entity_type":"Incident",...}
+                    val eventName = map["event"]?.let { if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null } ?: ""
+                    val entityType = map["entity_type"]?.let { if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null } ?: ""
+
+                    if (eventName == "audit" && entityType.equals("Incident", ignoreCase = true)) {
+                        val incidentId = map["entity_id"]?.let { if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null } ?: ""
+                        val action = map["action"]?.let { if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null } ?: "updated"
+                        val afterObj = map["after"] as? kotlinx.serialization.json.JsonObject
+                        val status = afterObj?.get("status")?.let { if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null } ?: action
+
+                        Log.d("WebSocketClient", "Received Swagger incident audit: id=$incidentId action=$action status=$status")
+                        _events.tryEmit(WsEvent.IncidentUpdateEvent(incidentId, status))
+                        _events.tryEmit(WsEvent.IncidentsChanged)
+                        return
+                    }
+
                     val type = map["type"]?.let { if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null } ?: ""
                     when (type) {
                         "notification" -> {
@@ -91,8 +115,9 @@ class WebSocketClient(private val context: Context) {
                             val eta = map["etaMinutes"]?.let { if (it is kotlinx.serialization.json.JsonPrimitive) it.content.toIntOrNull() else null }
                             Log.d("WebSocketClient", "Received incident update: $incidentId, status: $status")
                             _events.tryEmit(WsEvent.IncidentUpdateEvent(incidentId, status, volName, volPhone, eta))
+                            _events.tryEmit(WsEvent.IncidentsChanged)
                         }
-                        else -> Log.d("WebSocketClient", "Unknown message type: $type")
+                        else -> Log.d("WebSocketClient", "Unhandled WS message: $text")
                     }
                 } catch (e: Exception) {
                     Log.e("WebSocketClient", "Failed to parse message", e)

@@ -31,7 +31,10 @@ fun CrisisCoreNavHost(
     val sosState by viewModel.sosState.collectAsState()
     val sosDetail by viewModel.sosDetail.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
+    val incidents by viewModel.incidents.collectAsState()
+    val isRefreshingIncidents by viewModel.isRefreshingIncidents.collectAsState()
     var showAuth by remember { mutableStateOf(false) }
+    var authRevision by remember { mutableStateOf(0) }
 
     val tabOrder = remember {
         listOf(TabType.Home, TabType.Incident, TabType.Status, TabType.Family, TabType.Alerts, TabType.Help)
@@ -78,7 +81,11 @@ fun CrisisCoreNavHost(
     if (showAuth) {
         AuthScreen(
             repository = viewModel.repository,
-            onLoginSuccess = { showAuth = false }
+            onLoginSuccess = {
+                showAuth = false
+                authRevision++
+            },
+            onDismiss = { showAuth = false }
         )
         return
     }
@@ -88,20 +95,36 @@ fun CrisisCoreNavHost(
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 Column {
-                    AppHeader(
-                        onHelpClick = { viewModel.setActiveTab(TabType.Help) }
-                    )
+                    // Key with authRevision so header reflects login/logout immediately
+                    key(authRevision) {
+                        AppHeader(
+                            onHelpClick = { viewModel.setActiveTab(TabType.Help) },
+                            onAuthClick = { showAuth = true },
+                            isLoggedIn = viewModel.repository.isLoggedIn(),
+                            userNameOrPhone = viewModel.repository.getCurrentUserName() ?: viewModel.repository.getCurrentUserPhone(),
+                            userRole = viewModel.repository.getCurrentUserRole(),
+                            onLogout = {
+                                viewModel.repository.logout()
+                                authRevision++
+                            }
+                        )
+                    }
                     OfflineBanner()
                 }
             },
             bottomBar = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.navigationBarsPadding())
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     BottomNavBar(
                         activeTab = activeTab,
                         onTabChange = { viewModel.setActiveTab(it) },
                         sosActive = sosState != SosState.IDLE,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -119,16 +142,22 @@ fun CrisisCoreNavHost(
                     label = "tabTransition"
                 ) { tab ->
                     when (tab) {
-                        TabType.Home -> HomeScreen(
-                            repository = viewModel.repository,
-                            onTriggerSos = { viewModel.triggerSos() },
-                            onNavigate = { viewModel.setActiveTab(it) },
-                            onAuthClick = { showAuth = true }
-                        )
+                        TabType.Home -> key(authRevision) {
+                            HomeScreen(
+                                repository = viewModel.repository,
+                                incidents = incidents,
+                                isRefreshingIncidents = isRefreshingIncidents,
+                                onRefreshIncidents = { viewModel.loadIncidents() },
+                                onTriggerSos = { viewModel.triggerSos() },
+                                onNavigate = { viewModel.setActiveTab(it) },
+                                onAuthClick = { showAuth = true }
+                            )
+                        }
                         TabType.Incident -> IncidentScreen(
                             repository = viewModel.repository,
                             onSubmit = { _, _, _ ->
                                 viewModel.loadNotifications()
+                                viewModel.loadIncidents()
                             }
                         )
                         TabType.Status -> StatusScreen(

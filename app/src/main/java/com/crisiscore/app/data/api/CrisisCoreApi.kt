@@ -6,7 +6,7 @@ import retrofit2.http.*
 
 interface CrisisCoreApi {
     @POST("auth/register")
-    suspend fun register(@Body request: RegisterRequest): Response<Unit>
+    suspend fun register(@Body request: RegisterRequest): Response<UserOut>
 
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
@@ -23,6 +23,13 @@ interface CrisisCoreApi {
     suspend fun getRiskExplanation(@Path("zone_id") zoneId: String): Response<RiskExplanation>
 
     // Incident endpoints
+    @GET("incidents")
+    suspend fun getIncidents(
+        @Query("status") status: String? = null,
+        @Query("bbox") bbox: String? = null,
+        @Query("limit") limit: Int? = 100
+    ): Response<List<IncidentOut>>
+
     @POST("incidents")
     suspend fun createIncident(@Body request: IncidentRequest): Response<IncidentResponse>
 

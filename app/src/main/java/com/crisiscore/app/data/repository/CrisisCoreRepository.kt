@@ -36,44 +36,95 @@ class CrisisCoreRepository(private val context: Context) {
     private val ws = WebSocketClient(context)
 
     init {
-        CoroutineScope(Dispatchers.IO).launch { ws.connect() }
+        CoroutineScope(Dispatchers.IO).launch {
+            ensureAuthToken()
+            ws.connect()
+        }
     }
 
     // ============================================================
     // Auth
     // ============================================================
 
-    suspend fun register(phone: String, password: String, name: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun register(
+        usernameOrPhone: String,
+        password: String,
+        name: String,
+        role: String = "citizen"
+    ): Result<UserOut> = withContext(Dispatchers.IO) {
         try {
-            api.register(RegisterRequest(phone, password, name)).isSuccessful
+            val res = api.register(RegisterRequest(phone = usernameOrPhone, password = password, name = name, role = role))
+            if (res.isSuccessful && res.body() != null) {
+                val user = res.body()!!
+                SecurePreferences.setUserPhone(user.phone ?: usernameOrPhone)
+                SecurePreferences.setUserName(user.name ?: name)
+                user.role?.let { SecurePreferences.setUserRole(it) }
+                Result.success(user)
+            } else {
+                val code = res.code()
+                val errorBody = res.errorBody()?.string() ?: ""
+                val msg = when {
+                    code == 409 -> "Username or phone number is already registered."
+                    code == 422 -> "Input format invalid: Username/phone must be 10–15 characters and password at least 6 characters."
+                    errorBody.contains("already registered", ignoreCase = true) -> "Username or phone is already registered."
+                    else -> "Registration failed (HTTP $code). Please try again."
+                }
+                Result.failure(Exception(msg))
+            }
         } catch (e: Exception) {
             Log.e("CrisisCoreRepo", "Register failed", e)
-            false
+            Result.failure(Exception("Could not connect to Render backend: ${e.localizedMessage ?: "Connection error. If server was idle, please retry in 30 seconds."}"))
         }
     }
 
-    suspend fun login(phone: String, password: String): String? = withContext(Dispatchers.IO) {
+    suspend fun login(usernameOrPhone: String, password: String): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val res = api.login(LoginRequest(phone, password))
-            if (res.isSuccessful) {
-                val token = res.body()?.access_token
-                token?.let { SecurePreferences.setToken(it) }
-                token
-            } else null
+            val res = api.login(LoginRequest(phone = usernameOrPhone, password = password))
+            if (res.isSuccessful && res.body() != null) {
+                val body = res.body()!!
+                val token = body.access_token
+                if (!token.isNullOrBlank()) {
+                    SecurePreferences.setToken(token)
+                    SecurePreferences.setUserPhone(usernameOrPhone)
+                    body.role?.let { SecurePreferences.setUserRole(it) }
+                    try {
+                        ws.disconnect()
+                        ws.connect()
+                    } catch (_: Exception) {}
+                    Result.success(token)
+                } else {
+                    Result.failure(Exception("Login succeeded but no token received from server."))
+                }
+            } else {
+                val code = res.code()
+                val errorBody = res.errorBody()?.string() ?: ""
+                val msg = when {
+                    code == 401 || errorBody.contains("Invalid credentials", ignoreCase = true) -> "Invalid username/phone or password."
+                    code == 422 -> "Invalid credentials format."
+                    else -> "Login failed (HTTP $code). Please verify credentials."
+                }
+                Result.failure(Exception(msg))
+            }
         } catch (e: Exception) {
             Log.e("CrisisCoreRepo", "Login failed", e)
-            null
+            Result.failure(Exception("Could not connect to Render backend: ${e.localizedMessage ?: "Connection timeout. Render server may be waking up, please retry."}"))
         }
     }
 
-    suspend fun autoLoginDemo(): String? {
-        var phone = SecurePreferences.getDemoPhone()
-        if (phone == null) {
-            phone = "+91${(1000000000..9999999999).random()}"
-            SecurePreferences.setDemoPhone(phone)
-        }
-        register(phone, "demoPass123", "Citizen Demo")
-        return login(phone, "demoPass123")
+    fun logout() {
+        SecurePreferences.clearAuth()
+        try {
+            ws.disconnect()
+        } catch (_: Exception) {}
+    }
+
+    fun isLoggedIn(): Boolean = SecurePreferences.isLoggedIn()
+    fun getCurrentUserPhone(): String? = SecurePreferences.getUserPhone()
+    fun getCurrentUserName(): String? = SecurePreferences.getUserName()
+    fun getCurrentUserRole(): String? = SecurePreferences.getUserRole()
+    fun isAdmin(): Boolean {
+        val role = getCurrentUserRole()?.lowercase() ?: ""
+        return role == "admin" || role == "officer"
     }
 
     // ============================================================
@@ -201,6 +252,26 @@ class CrisisCoreRepository(private val context: Context) {
         } catch (e: Exception) {
             Log.e("CrisisCoreRepo", "Sync failed", e)
         }
+    }
+
+    suspend fun getIncidents(status: String? = null): List<IncidentOut> = withContext(Dispatchers.IO) {
+        try {
+            ensureAuthToken()
+            val res = api.getIncidents(status = status)
+            if (res.isSuccessful && res.body() != null) {
+                res.body()!!
+            } else {
+                Log.w("CrisisCoreRepo", "getIncidents HTTP ${res.code()}: ${res.errorBody()?.string()}")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e("CrisisCoreRepo", "getIncidents failed", e)
+            emptyList()
+        }
+    }
+
+    suspend fun ensureAuthToken() {
+        // Publish ready: User logs in with real credentials.
     }
 
     // ============================================================
