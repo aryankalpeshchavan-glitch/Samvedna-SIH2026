@@ -129,13 +129,13 @@ export const OperationsAuthModal: React.FC<OperationsAuthModalProps> = ({
             )}
 
             {currentRole === 'citizen' && (
-              <div className="p-3 rounded-xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-[#8E2F2B] text-xs font-mono space-y-2">
+              <div className="p-3 rounded-xl bg-[#23483A]/10 border border-[#23483A]/30 text-[#23483A] text-xs font-mono space-y-2">
                 <div className="flex items-center space-x-1.5 font-bold">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-[#8E2F2B]" />
-                  <span>Operations Access Required</span>
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-[#23483A]" />
+                  <span>Citizen Session Active</span>
                 </div>
-                <p className="text-[11px] leading-relaxed">
-                  Citizen accounts are not authorized for tactical operations or live command data. Sign in below with an Officer or Admin account, or sign out to reset your session.
+                <p className="text-[11px] leading-relaxed text-[#202622]/80">
+                  You are signed in as a verified citizen. Live incident telemetry, map hazard reports, and SOS distress signals are fully enabled.
                 </p>
                 <button
                   type="button"
@@ -151,20 +151,44 @@ export const OperationsAuthModal: React.FC<OperationsAuthModalProps> = ({
           {/* Operational Login Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
                 <label className="text-xs font-mono font-bold text-[#202622]">
                   Authorized Phone Number
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPhone('9876543211');
-                    setPassword('Officer@123');
-                  }}
-                  className="text-[10px] font-mono text-[#23483A] hover:underline font-bold"
-                >
-                  Fill Officer Creds
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhone('9999000001');
+                      setPassword('AdminPass123');
+                    }}
+                    className="text-[10px] font-mono text-[#23483A] hover:underline font-bold"
+                  >
+                    Admin
+                  </button>
+                  <span className="text-[#536A72] text-[10px]">•</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhone('9999000002');
+                      setPassword('CitizenPass123');
+                    }}
+                    className="text-[10px] font-mono text-[#D88A32] hover:underline font-bold"
+                  >
+                    Citizen
+                  </button>
+                  <span className="text-[#536A72] text-[10px]">•</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhone('9876543211');
+                      setPassword('Officer@123');
+                    }}
+                    className="text-[10px] font-mono text-[#536A72] hover:underline font-bold"
+                  >
+                    Officer
+                  </button>
+                </div>
               </div>
               <div className="relative">
                 <Phone className="w-4 h-4 text-[#536A72] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />

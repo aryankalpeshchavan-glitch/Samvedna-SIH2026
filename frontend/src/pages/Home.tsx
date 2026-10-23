@@ -79,14 +79,6 @@ export const Home: React.FC<HomeProps> = ({
   const [riskError, setRiskError] = useState<string | null>(null);
 
   const fetchLiveRisk = async () => {
-    const currentAuth = getAuthInfo();
-    if (currentAuth.status !== 'authenticated') {
-      setIsRiskLoading(false);
-      setRiskError(null);
-      setRiskZones([]);
-      return;
-    }
-
     setIsRiskLoading(true);
     setRiskError(null);
     try {
@@ -115,14 +107,6 @@ export const Home: React.FC<HomeProps> = ({
   const [incidentsError, setIncidentsError] = useState<string | null>(null);
 
   const fetchLiveIncidents = async () => {
-    const currentAuth = getAuthInfo();
-    if (currentAuth.status !== 'authenticated') {
-      setIsIncidentsLoading(false);
-      setIncidentsError(null);
-      setIncidents([]);
-      return;
-    }
-
     setIsIncidentsLoading(true);
     setIncidentsError(null);
     try {
@@ -145,24 +129,14 @@ export const Home: React.FC<HomeProps> = ({
     }
   };
 
-  // Immediate First-Load Data Initialization on Authentication
+  // Immediate First-Load Data Initialization
   useEffect(() => {
-    if (authInfo.status === 'authenticated') {
-      fetchLiveRisk();
-      fetchLiveIncidents();
-    } else {
-      setRiskZones([]);
-      setIncidents([]);
-      setRiskError(null);
-      setIncidentsError(null);
-      setIsRiskLoading(false);
-      setIsIncidentsLoading(false);
-    }
+    fetchLiveRisk();
+    fetchLiveIncidents();
   }, [authInfo.status]);
 
-  // Periodic Telemetry Refresh (Only when authenticated)
+  // Periodic Telemetry Refresh (Every 15 seconds)
   useEffect(() => {
-    if (authInfo.status !== 'authenticated') return;
     const handleRefresh = () => {
       fetchLiveRisk();
       fetchLiveIncidents();
@@ -173,7 +147,7 @@ export const Home: React.FC<HomeProps> = ({
       window.removeEventListener('crisiscore-refresh-telemetry', handleRefresh);
       clearInterval(interval);
     };
-  }, [authInfo.status]);
+  }, []);
 
   // Interactive Explainer Modals
   const [isWhyRiskOpen, setIsWhyRiskOpen] = useState(false);
@@ -216,34 +190,6 @@ export const Home: React.FC<HomeProps> = ({
         </div>
       )}
 
-      {/* Operations Access Barrier for Citizen Tokens */}
-      {authInfo.status === 'access_required' && (
-        <div className="max-w-xl mx-auto p-3.5 rounded-2xl bg-[#8E2F2B]/10 border border-[#8E2F2B]/40 text-[#8E2F2B] font-mono text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-sm">
-          <div className="flex items-center space-x-2.5">
-            <AlertOctagon className="w-5 h-5 shrink-0 text-[#8E2F2B]" />
-            <div>
-              <strong className="block font-heading text-sm uppercase">Operations Access Required</strong>
-              <span className="text-[11px] text-[#8E2F2B]/90">
-                Citizen session active. Live tactical risk and incident telemetry require Officer or Admin authorization.
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 shrink-0 w-full sm:w-auto justify-end">
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-operations-auth'))}
-              className="px-3 py-1.5 rounded-xl bg-[#23483A] text-[#FAF9F3] text-xs font-heading font-bold hover:bg-[#1b382d] transition-all cursor-pointer"
-            >
-              Sign In as Officer
-            </button>
-            <button
-              onClick={() => logout()}
-              className="px-2.5 py-1.5 rounded-xl bg-[#F4F1E8] border border-[#C7B89B] text-[#8E2F2B] text-xs font-mono font-bold hover:bg-[#E8E6DC] transition-all cursor-pointer"
-            >
-              Log Out
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Operations Login Banner when Unauthenticated */}
       {authInfo.status === 'unauthenticated' && (
