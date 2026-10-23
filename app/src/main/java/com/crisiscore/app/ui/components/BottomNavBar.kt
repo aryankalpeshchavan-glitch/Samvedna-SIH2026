@@ -157,11 +157,11 @@ private fun NavTile(
             Text(
                 T(tab.labelKey),
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 9.sp,
-                    fontWeight = if (isActive) FontWeight.Black else FontWeight.Bold,
+                    fontSize = 10.sp,
+                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                     letterSpacing = 0.sp
                 ),
-                color = if (isActive) CanvasLight.copy(alpha = 0.95f) else TextSecondaryLight,
+                color = if (isActive) CanvasLight else TextSecondaryLight,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis

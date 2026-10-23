@@ -155,9 +155,12 @@ fun CrisisCoreNavHost(
                         }
                         TabType.Incident -> IncidentScreen(
                             repository = viewModel.repository,
-                            onSubmit = { _, _, _ ->
-                                viewModel.loadNotifications()
+                            onSubmit = { _, _, _, createdIncident ->
+                                if (createdIncident != null) {
+                                    viewModel.addIncident(createdIncident)
+                                }
                                 viewModel.loadIncidents()
+                                viewModel.loadNotifications()
                             }
                         )
                         TabType.Status -> StatusScreen(

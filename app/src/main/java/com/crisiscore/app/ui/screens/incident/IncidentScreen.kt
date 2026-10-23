@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun IncidentScreen(
     repository: CrisisCoreRepository,
-    onSubmit: (IncidentCategory, SeverityLevel, String) -> Unit
+    onSubmit: (IncidentCategory, SeverityLevel, String, com.crisiscore.app.data.model.IncidentOut?) -> Unit = { _, _, _, _ -> }
 ) {
     val context = LocalContext.current
     var selectedCategory by remember { mutableStateOf(IncidentCategory.LANDSLIDE) }
@@ -301,7 +301,7 @@ fun IncidentScreen(
                     isSubmitting = false
                     submitStatus = res?.status ?: "QUEUED_OFFLINE"
                     submitted = true
-                    onSubmit(selectedCategory, severity, note)
+                    onSubmit(selectedCategory, severity, note, res)
                 }
             },
             variant = CcButtonVariant.Emergency,

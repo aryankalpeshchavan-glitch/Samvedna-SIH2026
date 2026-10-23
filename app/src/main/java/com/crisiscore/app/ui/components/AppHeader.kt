@@ -76,22 +76,23 @@ fun AppHeader(
                     )
                 }
                 Spacer(Modifier.width(10.dp))
-                Column {
+                Column(verticalArrangement = Arrangement.Center) {
                     Text(
                         T("app.name"),
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 17.sp,
-                            letterSpacing = 2.sp,
+                            fontSize = 16.sp,
+                            letterSpacing = 1.5.sp,
                             fontWeight = FontWeight.Black
-                        )
+                        ),
+                        maxLines = 1
                     )
                     Text(
                         T("nav.subtitle"),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 8.sp,
-                            letterSpacing = 0.5.sp,
+                            fontSize = 9.sp,
                             color = TextSecondaryLight
-                        )
+                        ),
+                        maxLines = 1
                     )
                 }
             }

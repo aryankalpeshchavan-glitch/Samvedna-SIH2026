@@ -188,22 +188,36 @@ class CrisisCoreRepository(private val context: Context) {
         lat: Double,
         lng: Double,
         severity: Int
-    ): IncidentResponse? = withContext(Dispatchers.IO) {
+    ): IncidentOut? = withContext(Dispatchers.IO) {
         val key = java.util.UUID.randomUUID().toString()
+        val backendType = when (type.lowercase()) {
+            "landslide", "slope_crack" -> "landslide"
+            "flood" -> "flood"
+            "earthquake" -> "earthquake"
+            "fire" -> "fire"
+            else -> "other"
+        }
+        val enrichedDesc = if (type.uppercase() !in listOf("LANDSLIDE", "FLOOD", "EARTHQUAKE", "FIRE", "OTHER")) {
+            "[$type] $description"
+        } else description
+
         try {
             val res = api.createIncident(IncidentRequest(
-                type, description, lat, lng, severity, key
+                backendType, enrichedDesc, lat, lng, severity, key
             ))
             if (res.isSuccessful && res.body() != null) {
-                res.body()
+                val created = res.body()!!
+                Log.d("CrisisCoreRepo", "Incident successfully created on Render backend: ${created.id}")
+                created
             } else {
-                queueIncidentForSync(key, type, description, lat, lng, severity)
-                IncidentResponse(id = key, status = "QUEUED_OFFLINE")
+                Log.w("CrisisCoreRepo", "createIncident HTTP ${res.code()}: ${res.errorBody()?.string()}")
+                queueIncidentForSync(key, backendType, enrichedDesc, lat, lng, severity)
+                IncidentOut(id = key, type = backendType, description = enrichedDesc, lat = lat, lng = lng, severity = severity, status = "QUEUED_OFFLINE")
             }
         } catch (e: Exception) {
             Log.e("CrisisCoreRepo", "Create incident failed, queuing", e)
-            queueIncidentForSync(key, type, description, lat, lng, severity)
-            IncidentResponse(id = key, status = "QUEUED_OFFLINE")
+            queueIncidentForSync(key, backendType, enrichedDesc, lat, lng, severity)
+            IncidentOut(id = key, type = backendType, description = enrichedDesc, lat = lat, lng = lng, severity = severity, status = "QUEUED_OFFLINE")
         }
     }
 

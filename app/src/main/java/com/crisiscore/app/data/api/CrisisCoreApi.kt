@@ -31,7 +31,7 @@ interface CrisisCoreApi {
     ): Response<List<IncidentOut>>
 
     @POST("incidents")
-    suspend fun createIncident(@Body request: IncidentRequest): Response<IncidentResponse>
+    suspend fun createIncident(@Body request: IncidentRequest): Response<IncidentOut>
 
     @POST("incidents/sync")
     suspend fun syncIncidents(@Body request: SyncIncidentsRequest): Response<SyncIncidentsResponse>

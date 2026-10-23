@@ -103,6 +103,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun addIncident(incident: IncidentOut) {
+        _incidents.value = listOf(incident) + _incidents.value.filter { it.id != incident.id }
+    }
+
     fun setActiveTab(tab: TabType) {
         _activeTab.value = tab
     }
@@ -169,7 +173,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         severity: SeverityLevel,
         description: String,
         location: LocationData?
-    ): IncidentResponse? {
+    ): IncidentOut? {
         val lat = location?.latitude ?: 26.1445
         val lng = location?.longitude ?: 91.7362
         val severityInt = when (severity) {

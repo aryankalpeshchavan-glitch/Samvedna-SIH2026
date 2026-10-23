@@ -409,7 +409,7 @@ private fun IncidentFeedCard(incident: IncidentOut) {
                     Text(
                         if (isVerified) "✓ VERIFIED" else "⚠ PENDING",
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
                         color = statusColor
                     )
                 }
@@ -420,7 +420,7 @@ private fun IncidentFeedCard(incident: IncidentOut) {
                     Text(
                         "SEV ${incident.severity}",
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, fontWeight = FontWeight.Black),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Black),
                         color = sevColor
                     )
                 }
@@ -428,8 +428,7 @@ private fun IncidentFeedCard(incident: IncidentOut) {
             Spacer(Modifier.height(8.dp))
             Text(
                 incident.type.replace('_', ' ').uppercase(),
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 13.sp),
-                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
                 maxLines = 1,
                 color = TextPrimaryLight
             )
