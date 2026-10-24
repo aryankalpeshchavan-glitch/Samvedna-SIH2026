@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -293,6 +293,48 @@ async def list_incidents(
     query = query.order_by(Incident.created_at.desc()).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
+
+@router.delete("/{incident_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_incident(
+    incident_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("officer", "admin")),
+):
+    result = await db.execute(
+        select(Incident).where(Incident.id == incident_id)
+    )
+    incident = result.scalar_one_or_none()
+
+    if not incident:
+        raise HTTPException(
+            status_code=404,
+            detail="Incident not found",
+        )
+
+    # Preserve the incident details in the audit trail
+    from app.core.audit_logger import record_audit_log
+
+    await record_audit_log(
+        db=db,
+        action="delete",
+        entity_type="Incident",
+        entity_id=str(incident.id),
+        actor_id=current_user.id,
+        before={
+            "status": incident.status,
+            "type": incident.type,
+            "description": incident.description,
+            "lat": incident.lat,
+            "lng": incident.lng,
+            "severity": incident.severity,
+        },
+        after=None,
+    )
+
+    await db.delete(incident)
+    await db.flush()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/sms", response_model=IncidentOut, status_code=201)
